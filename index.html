@@ -14,147 +14,152 @@
   --green: #1D9E75; --green-dark: #0F6E56; --green-light: #E1F5EE;
   --amber: #854F0B; --amber-light: #FAEEDA;
   --red: #A32D2D; --red-light: #FCEBEB;
+  --blue: #185FA5; --blue-light: #E6F1FB;
   --radius: 8px; --radius-lg: 12px;
 }
 body { font-family: 'Georgia', serif; background: var(--bg3); color: var(--text); font-size: 14px; line-height: 1.5; height: 100vh; overflow: hidden; }
 input, select, button, textarea { font-family: inherit; font-size: 13px; }
-input[type=text], input[type=number] {
-  background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius);
-  padding: 5px 8px; color: var(--text); outline: none; transition: border-color 0.15s;
-}
-input[type=text]:focus, input[type=number]:focus { border-color: var(--green); }
-select {
-  background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius);
-  padding: 5px 8px; color: var(--text); outline: none; cursor: pointer;
-}
+input[type=text], input[type=number], textarea { background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 5px 8px; color: var(--text); outline: none; transition: border-color 0.15s; }
+input[type=text]:focus, input[type=number]:focus, textarea:focus { border-color: var(--green); }
+select { background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 5px 8px; color: var(--text); outline: none; cursor: pointer; }
 input[type=range] { accent-color: var(--green); cursor: pointer; }
-
+textarea { resize: vertical; width: 100%; min-height: 70px; }
 .app { display: flex; height: 100vh; }
-
-/* Sidebar */
-.sidebar { width: 250px; min-width: 250px; background: var(--bg); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-.sidebar-header { padding: 16px; border-bottom: 0.5px solid var(--border); }
-.sidebar-header h1 { font-size: 16px; font-weight: normal; color: var(--text); display: flex; align-items: center; gap: 8px; letter-spacing: 0.02em; }
+.sidebar { width: 260px; min-width: 260px; background: var(--bg); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.sidebar-header { padding: 14px 16px; border-bottom: 0.5px solid var(--border); }
+.sidebar-header h1 { font-size: 16px; font-weight: normal; color: var(--text); display: flex; align-items: center; gap: 8px; }
 .sidebar-header h1 i { color: var(--green); font-size: 18px; }
-.sidebar-header p { font-size: 11px; color: var(--text3); margin-top: 3px; font-style: italic; }
+.sidebar-header p { font-size: 11px; color: var(--text3); margin-top: 2px; font-style: italic; }
 .nav-tabs { display: flex; border-bottom: 0.5px solid var(--border); }
-.nav-tab { flex: 1; padding: 10px 4px; font-size: 12px; text-align: center; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none; }
+.nav-tab { flex: 1; padding: 9px 2px; font-size: 11px; text-align: center; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; transition: all 0.15s; }
 .nav-tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 500; }
-.nav-tab:hover:not(.active) { color: var(--text); background: var(--bg2); }
-.search-wrap { padding: 10px; border-bottom: 0.5px solid var(--border); }
-.search-wrap input { width: 100%; }
+.nav-tab:hover:not(.active) { background: var(--bg2); }
+.search-filter { border-bottom: 0.5px solid var(--border); }
+.search-row { display: flex; align-items: center; gap: 6px; padding: 8px 10px 6px; }
+.search-row input { flex: 1; }
+.filter-toggle { background: none; border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 4px 8px; font-size: 11px; cursor: pointer; color: var(--text2); display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+.filter-toggle.active { background: var(--green-light); border-color: var(--green); color: var(--green-dark); }
+.filter-panel { padding: 0 10px 10px; display: none; }
+.filter-panel.open { display: block; }
+.filter-label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin: 8px 0 5px; }
+.price-range { display: flex; align-items: center; gap: 6px; }
+.price-range input { width: 68px; }
+.price-range span { font-size: 12px; color: var(--text2); }
+.tag-filter-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag-filter-chip { font-size: 11px; padding: 2px 7px; border-radius: 10px; border: 0.5px solid var(--border2); cursor: pointer; background: var(--bg); color: var(--text2); }
+.tag-filter-chip.active { background: var(--green); border-color: var(--green); color: white; }
+.clear-filters { font-size: 11px; color: var(--red); background: none; border: none; cursor: pointer; margin-top: 6px; padding: 0; }
 .recipe-list { flex: 1; overflow-y: auto; padding: 4px 0; }
-.recipe-item { padding: 10px 16px; cursor: pointer; border-left: 3px solid transparent; transition: background 0.1s; }
+.recipe-item { padding: 9px 14px; cursor: pointer; border-left: 3px solid transparent; }
 .recipe-item:hover { background: var(--bg2); }
 .recipe-item.active { background: var(--bg2); border-left-color: var(--green); }
 .recipe-item .sku { font-size: 10px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; font-family: monospace; }
-.recipe-item .rname { font-size: 13px; color: var(--text); margin-top: 2px; }
-.recipe-item .rprice { font-size: 12px; color: var(--text2); margin-top: 2px; }
-.margin-pill { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 10px; margin-left: 4px; }
+.recipe-item .rname { font-size: 13px; color: var(--text); margin-top: 1px; }
+.recipe-item .rprice { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.recipe-item .rtags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.tag-chip { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--blue-light); color: var(--blue); }
+.margin-pill { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 10px; margin-left: 3px; }
 .mg { background: #EAF3DE; color: #3B6D11; }
 .mw { background: var(--amber-light); color: var(--amber); }
 .mb { background: var(--red-light); color: var(--red); }
-.new-btn { margin: 10px; font-size: 13px; padding: 8px; background: var(--green); color: white; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.15s; }
+.new-btn { margin: 8px 10px; font-size: 13px; padding: 7px; background: var(--green); color: white; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; }
 .new-btn:hover { background: var(--green-dark); }
-.pl-nav { padding: 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; overflow-y: auto; }
-.pl-nav p { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 8px; font-style: italic; }
-.pl-nav-btn { text-align: left; padding: 8px 10px; font-size: 13px; border: 0.5px solid var(--border); border-radius: var(--radius); cursor: pointer; background: transparent; color: var(--text); transition: background 0.1s; display: flex; align-items: center; gap: 8px; }
+.pl-nav { padding: 10px; display: flex; flex-direction: column; gap: 4px; flex: 1; overflow-y: auto; }
+.pl-nav p { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 6px; font-style: italic; }
+.pl-nav-btn { text-align: left; padding: 7px 10px; font-size: 13px; border: 0.5px solid var(--border); border-radius: var(--radius); cursor: pointer; background: transparent; color: var(--text); display: flex; align-items: center; gap: 8px; }
 .pl-nav-btn:hover, .pl-nav-btn.active { background: var(--bg2); }
-
-/* Main */
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
-.top-bar { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 11px 20px; display: flex; align-items: center; gap: 12px; }
-.top-bar h2 { font-size: 15px; font-weight: normal; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.01em; }
+.top-bar { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 10px 18px; display: flex; align-items: center; gap: 10px; }
+.top-bar h2 { font-size: 15px; font-weight: normal; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tab-bar { display: flex; gap: 2px; }
-.tab { padding: 5px 12px; font-size: 13px; border-radius: var(--radius); cursor: pointer; color: var(--text2); border: 0.5px solid transparent; transition: all 0.1s; background: none; }
+.tab { padding: 5px 11px; font-size: 13px; border-radius: var(--radius); cursor: pointer; color: var(--text2); border: 0.5px solid transparent; background: none; }
 .tab:hover { background: var(--bg2); }
 .tab.active { background: var(--bg2); color: var(--text); border-color: var(--border); }
 .action-btns { display: flex; gap: 8px; }
-.save-btn { background: var(--green); color: white; border: none; padding: 7px 16px; border-radius: var(--radius); font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
+.save-btn { background: var(--green); color: white; border: none; padding: 7px 14px; border-radius: var(--radius); font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
 .save-btn:hover { background: var(--green-dark); }
-.delete-btn { background: none; border: 0.5px solid var(--border2); padding: 7px 12px; border-radius: var(--radius); font-size: 13px; cursor: pointer; color: var(--red); transition: background 0.1s; }
+.delete-btn { background: none; border: 0.5px solid var(--border2); padding: 7px 11px; border-radius: var(--radius); font-size: 13px; cursor: pointer; color: var(--red); }
 .delete-btn:hover { background: var(--red-light); }
-.pl-save-btn { background: var(--green); color: white; border: none; padding: 6px 14px; border-radius: var(--radius); font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; white-space: nowrap; }
+.pl-save-btn { background: var(--green); color: white; border: none; padding: 6px 13px; border-radius: var(--radius); font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
 .pl-save-btn:hover { background: var(--green-dark); }
-
-/* Content */
-.content { flex: 1; overflow-y: auto; padding: 16px 20px; }
+.content { flex: 1; overflow-y: auto; padding: 14px 18px; }
 .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
-.empty-state i { font-size: 40px; display: block; margin-bottom: 12px; color: var(--text3); }
-.empty-state h3 { font-size: 16px; font-weight: normal; color: var(--text); margin-bottom: 6px; }
-
-/* Stats */
-.stat-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 16px; }
-.stat-card { background: var(--bg2); border-radius: var(--radius); padding: 10px 12px; }
+.empty-state i { font-size: 40px; display: block; margin-bottom: 10px; color: var(--text3); }
+.empty-state h3 { font-size: 16px; font-weight: normal; color: var(--text); margin-bottom: 5px; }
+.stat-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 14px; }
+.stat-card { background: var(--bg2); border-radius: var(--radius); padding: 9px 11px; }
 .stat-card .slabel { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
-.stat-card .sval { font-size: 20px; color: var(--text); margin-top: 3px; }
-
-/* Two col layout */
-.two-col { display: grid; grid-template-columns: 1fr 220px; gap: 16px; align-items: start; }
-
-/* Sections */
-.section { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 12px; }
-.section h3 { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px; }
+.stat-card .sval { font-size: 19px; color: var(--text); margin-top: 2px; }
+.two-col { display: grid; grid-template-columns: 1fr 220px; gap: 14px; align-items: start; }
+.section { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 13px 15px; margin-bottom: 11px; }
+.section h3 { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 11px; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field label { font-size: 11px; color: var(--text2); }
-.field input, .field select { width: 100%; }
-
-/* Photo */
-.photo-box { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 12px; }
-.photo-box h3 { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px; }
-.photo-area { width: 100%; aspect-ratio: 1; border-radius: var(--radius); border: 1.5px dashed var(--border2); background: var(--bg2); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; transition: all 0.15s; }
+.field input, .field select, .field textarea { width: 100%; }
+.pricing-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+.price-box { background: var(--bg2); border-radius: var(--radius); padding: 10px 12px; }
+.price-box.final { background: var(--green-light); border: 0.5px solid rgba(29,158,117,0.3); }
+.price-box .pb-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.price-box.final .pb-label { color: var(--green-dark); }
+.price-box .pb-val { font-size: 20px; color: var(--text); }
+.price-box.final .pb-val { color: var(--green-dark); font-weight: 500; }
+.price-box .pb-note { font-size: 11px; color: var(--text3); margin-top: 2px; font-style: italic; }
+.photo-box { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 13px 15px; margin-bottom: 11px; }
+.photo-box h3 { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 11px; }
+.photo-area { width: 100%; aspect-ratio: 1; border-radius: var(--radius); border: 1.5px dashed var(--border2); background: var(--bg2); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; }
 .photo-area:hover { border-color: var(--green); background: var(--green-light); }
 .photo-area img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
 .photo-area .photo-label { font-size: 12px; color: var(--text2); text-align: center; z-index: 1; pointer-events: none; font-style: italic; }
 .photo-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-.photo-remove { display: block; margin: 6px auto 0; font-size: 12px; color: var(--red); background: none; border: none; cursor: pointer; }
-
-/* Ingredient table */
+.photo-remove { display: block; margin: 5px auto 0; font-size: 12px; color: var(--red); background: none; border: none; cursor: pointer; }
 .ing-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.ing-table th { text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 8px 7px 0; border-bottom: 0.5px solid var(--border); white-space: nowrap; }
+.ing-table th { text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 8px 6px 0; border-bottom: 0.5px solid var(--border); white-space: nowrap; }
 .ing-table td { padding: 5px 8px 5px 0; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
 .ing-table select { width: 100%; }
-.ing-table input[type=number] { width: 62px; }
-.del-btn { background: none; border: none; cursor: pointer; color: var(--text3); padding: 2px 4px; border-radius: 4px; font-size: 14px; line-height: 1; transition: color 0.1s; }
+.ing-table input[type=number] { width: 60px; }
+.del-btn { background: none; border: none; cursor: pointer; color: var(--text3); padding: 2px 4px; border-radius: 4px; font-size: 14px; line-height: 1; }
 .del-btn:hover { color: var(--red); }
-.add-row-btn { margin-top: 9px; font-size: 12px; color: var(--green); background: none; border: none; cursor: pointer; padding: 3px 0; display: flex; align-items: center; gap: 4px; }
+.add-row-btn { margin-top: 8px; font-size: 12px; color: var(--green); background: none; border: none; cursor: pointer; padding: 3px 0; display: flex; align-items: center; gap: 4px; }
 .add-row-btn:hover { text-decoration: underline; }
-
-/* Labor */
+.tags-select { display: flex; flex-wrap: wrap; gap: 5px; }
+.recipe-tag-chip { font-size: 12px; padding: 3px 10px; border-radius: 12px; border: 0.5px solid var(--border2); cursor: pointer; background: var(--bg2); color: var(--text2); user-select: none; }
+.recipe-tag-chip.selected { background: var(--blue); border-color: var(--blue); color: white; }
+.no-tags-msg { font-size: 12px; color: var(--text3); font-style: italic; }
 .labor-row { display: flex; align-items: center; gap: 10px; }
 .labor-row input[type=range] { flex: 1; }
-.labor-badge { font-size: 14px; color: var(--text); min-width: 40px; }
+.labor-badge { font-size: 14px; color: var(--text); min-width: 38px; }
 .labor-dollar { font-size: 13px; color: var(--text2); }
-
-/* Cost breakdown */
 .cb-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
-.cb-row.total { font-weight: 600; border-bottom: none; padding-top: 10px; font-size: 14px; }
-.cb-cat { color: var(--text3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; padding: 9px 0 3px; }
-
-/* Price list table */
+.cb-row.total { font-weight: 600; border-bottom: none; padding-top: 9px; font-size: 14px; }
+.cb-cat { color: var(--text3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 0 3px; }
 .pl-wrap { overflow-x: auto; }
 .pl-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
-.pl-table th { text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 8px 9px 0; border-bottom: 0.5px solid var(--border); white-space: nowrap; }
+.pl-table th { text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 8px 8px 0; border-bottom: 0.5px solid var(--border); white-space: nowrap; }
 .pl-table td { padding: 5px 8px 5px 0; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
 .pl-table input[type=text] { width: 100%; }
-.pl-table input[type=number] { width: 84px; }
+.pl-table input[type=number] { width: 82px; }
 .markup-val { font-size: 13px; font-weight: 500; white-space: nowrap; }
 .markup-met { color: #0F6E56; }
 .markup-off { color: var(--red); }
 .diff-val { font-size: 11px; white-space: nowrap; }
-.legend { display: flex; gap: 16px; font-size: 12px; color: var(--text2); margin-bottom: 12px; align-items: center; flex-wrap: wrap; font-style: italic; }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--text2); margin-bottom: 10px; align-items: center; flex-wrap: wrap; font-style: italic; }
 .legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
 .saved-flash { font-size: 12px; color: var(--green); margin-left: 6px; opacity: 0; transition: opacity 0.3s; }
-
-/* Scrollbar */
+.tag-manage-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 3px 8px; border-radius: 10px; background: var(--blue-light); color: var(--blue); border: 0.5px solid rgba(24,95,165,0.2); margin: 3px; }
+.tag-manage-chip button { background: none; border: none; cursor: pointer; color: var(--blue); font-size: 12px; padding: 0; line-height: 1; opacity: 0.6; }
+.tag-manage-chip button:hover { opacity: 1; }
+.add-tag-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+.add-tag-row input { flex: 1; }
+.add-tag-btn { background: var(--green); color: white; border: none; padding: 5px 12px; border-radius: var(--radius); font-size: 12px; cursor: pointer; white-space: nowrap; }
+.size-display { font-size: 13px; color: var(--text2); margin-top: 5px; font-style: italic; }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 </style>
 </head>
 <body>
-
 <div class="app">
  <div class="sidebar">
   <div class="sidebar-header">
@@ -164,15 +169,32 @@ input[type=range] { accent-color: var(--green); cursor: pointer; }
   <div class="nav-tabs">
    <button class="nav-tab active" id="nt-recipes" onclick="setNav('recipes')">Recipes</button>
    <button class="nav-tab" id="nt-prices" onclick="setNav('prices')">Price lists</button>
+   <button class="nav-tab" id="nt-tags" onclick="setNav('tags')">Tags</button>
   </div>
   <div id="sidebar-recipes" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-   <div class="search-wrap"><input type="text" placeholder="Search recipes…" id="searchInput" oninput="filterRecipes()" /></div>
+   <div class="search-filter">
+    <div class="search-row">
+     <input type="text" placeholder="Search name, SKU, flower…" id="searchInput" oninput="filterRecipes()" />
+     <button class="filter-toggle" id="filterToggle" onclick="toggleFilters()"><i class="ti ti-adjustments-horizontal"></i> Filter</button>
+    </div>
+    <div class="filter-panel" id="filterPanel">
+     <div class="filter-label">Price range ($)</div>
+     <div class="price-range">
+      <input type="number" id="priceMin" placeholder="Min" min="0" oninput="filterRecipes()" />
+      <span>–</span>
+      <input type="number" id="priceMax" placeholder="Max" min="0" oninput="filterRecipes()" />
+     </div>
+     <div class="filter-label">Tags</div>
+     <div class="tag-filter-list" id="tagFilterList"></div>
+     <button class="clear-filters" onclick="clearFilters()">✕ Clear all filters</button>
+    </div>
+   </div>
    <div class="recipe-list" id="recipeList"></div>
    <button class="new-btn" onclick="newRecipe()"><i class="ti ti-plus"></i> New recipe</button>
   </div>
-  <div id="sidebar-prices" style="display:none;">
+  <div id="sidebar-prices" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
    <div class="pl-nav">
-    <p>Edit costs and set final retail prices.</p>
+    <p>Edit costs and final retail prices.</p>
     <button class="pl-nav-btn active" id="plnav-flowers" onclick="showPL('flowers')"><i class="ti ti-flower"></i> Flowers</button>
     <button class="pl-nav-btn" id="plnav-fillers" onclick="showPL('fillers')"><i class="ti ti-leaf"></i> Greenery &amp; filler</button>
     <button class="pl-nav-btn" id="plnav-containers" onclick="showPL('containers')"><i class="ti ti-bottle"></i> Containers</button>
@@ -180,8 +202,17 @@ input[type=range] { accent-color: var(--green); cursor: pointer; }
     <button class="pl-nav-btn" id="plnav-hardgoods" onclick="showPL('hardgoods')"><i class="ti ti-tools"></i> Hardgoods</button>
    </div>
   </div>
+  <div id="sidebar-tags" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+   <div class="pl-nav">
+    <p>Manage your tag library. Tags are applied to recipes for filtering and search.</p>
+    <div id="sidebarTagList" style="margin-top:4px;"></div>
+    <div class="add-tag-row">
+     <input type="text" id="newTagInput" placeholder="New tag…" onkeydown="if(event.key==='Enter')addTag()" />
+     <button class="add-tag-btn" onclick="addTag()"><i class="ti ti-plus"></i></button>
+    </div>
+   </div>
+  </div>
  </div>
-
  <div class="main">
   <div class="top-bar">
    <h2 id="topTitle">Select a recipe</h2>
@@ -195,66 +226,64 @@ input[type=range] { accent-color: var(--green); cursor: pointer; }
    </div>
   </div>
   <div class="content" id="mainContent">
-   <div class="empty-state">
-    <i class="ti ti-plant"></i>
-    <h3>No recipe selected</h3>
-    <p>Choose a recipe from the list or create a new one.</p>
-   </div>
+   <div class="empty-state"><i class="ti ti-plant"></i><h3>No recipe selected</h3><p>Choose a recipe or create a new one.</p></div>
   </div>
  </div>
 </div>
-
 <script>
-// ── Data helpers ──────────────────────────────────────────────
-function defR(list){return list.map(x=>({n:x.n,p:x.p,r:x.r!==undefined?x.r:null}));}
+function defR(l){return l.map(x=>({n:x.n,p:x.p,r:x.r!==undefined?x.r:null}));}
 function getMult(t){return(t==='flowers'||t==='fillers')?4:3.5;}
 function gpCost(list,name){const f=list.find(x=>x.n.trim()===name.trim());return f?f.p:0;}
 function getList(t){return t==='flowers'?FLOWERS:t==='fillers'?FILLERS:t==='containers'?CONTAINERS:t==='hardgoods'?HARDGOODS:ACCENTS;}
+function fmt(n){return parseFloat(n).toFixed(2);}
 
-// ── Price lists ───────────────────────────────────────────────
 let FLOWERS=defR(JSON.parse(localStorage.getItem('bs_flowers')||'null')||[{n:"None",p:0},{n:"Anemone Purple/White",p:8},{n:"Anthurium - Green",p:12.5},{n:"Anemones Blue",p:8},{n:"Alstro - Hot Pink",p:3.5},{n:"Alstro - Lt Pink",p:3.5},{n:"Alstro - Orange",p:3.5},{n:"Alstro - Pink",p:3.5},{n:"Alstro - Purple",p:3.5},{n:"Alstro - Light Yellow",p:3.5},{n:"Alstro - White",p:3.5},{n:"Alstro - Yellow",p:3.5},{n:"Alstro - White/Purple",p:3.5},{n:"Asiatic Lily - Orange",p:6},{n:"Asiatic Lily - Pink",p:6},{n:"Asiatic Lily - Lavender",p:6},{n:"Asiatic Lily - Yellow",p:6},{n:"Asiatic Lily - Red",p:6},{n:"Anemones Hot Pink",p:8},{n:"Bells of Ireland",p:3.5},{n:"Billy Balls",p:3},{n:"Birds of Paradise",p:7.5},{n:"Pink Azalea",p:48},{n:"Callas - Pink",p:12.5},{n:"Callas - Yellow",p:12.5},{n:"Callas - Eggplant",p:12.5},{n:"Callas - Bronze",p:12.5},{n:"Callas (Mini) - White",p:8},{n:"Callas (Mini) - Pink",p:8},{n:"Callas (Mini) - Yellow",p:8},{n:"Callas (Mini) - Purple",p:8},{n:"Callas (Mini) - Bronze",p:8},{n:"Callas (Mini) - Picasso",p:8},{n:"Anemones Dark Purple",p:8},{n:"Anemones White",p:8},{n:"Astilbe Pink",p:4},{n:"Astilbe White",p:4},{n:"Garden Roses Hot Pink",p:9},{n:"Garden Roses Peach",p:8.5},{n:"Garden Roses White",p:8.5},{n:"Garden Roses Yellow",p:8.5},{n:"Green Buttons",p:3},{n:"Green Cymbidium Blooms",p:7.5},{n:"Hypericum Green",p:3.5},{n:"Hypericum Peach",p:3.5},{n:"Lisianthus Purple",p:4},{n:"Lisianthus Lavender",p:4},{n:"Casa Blanca Lilies",p:12.5},{n:"Lisianthus Pale Yellow",p:4},{n:"Lisianthus Pink",p:4.5},{n:"Lisianthus White",p:5.5},{n:"Disbud Purple",p:4},{n:"Disbud Lavender",p:4},{n:"Delphinium",p:4},{n:"Dianthus - Green Trick",p:3},{n:"Protea - Yellow Pin Cushion",p:8},{n:"Ranunculus - Yellow",p:6},{n:"Gerbera - Fuchsia",p:4},{n:"Gerbera - Hot Pink",p:4},{n:"Gerbera - Light Pink",p:4},{n:"Gerbera - Orange",p:4},{n:"Astilbe Hot Pink",p:4},{n:"Buplerum",p:3},{n:"Astilbe Hot Purple",p:4},{n:"Gerbera - White and Violet",p:4},{n:"Gerbera - Yellow",p:4},{n:"Gerbera - Peach",p:4},{n:"Ginger - Pink",p:7.5},{n:"Ginger - Red",p:7.5},{n:"Ranunculus Peach",p:6},{n:"Ranunculus Hot Pink",p:6},{n:"Ranunculus Light Pink",p:6},{n:"Ranunculus Orange",p:6},{n:"Safari Sunset",p:4},{n:"Safflower",p:3},{n:"Scabiosa Pods",p:3},{n:"Silver Protea",p:3},{n:"Veronica Pink",p:4},{n:"Veronica Purple",p:4},{n:"Hydrangea - Blue",p:9},{n:"Hydrangea - White",p:8.5},{n:"Hydrangea - Shamrock",p:10},{n:"Hydrangea - Pink",p:10},{n:"Hydrangea - Mini Green",p:5},{n:"Hydrangea - Purple",p:12},{n:"Hydrangea - Large Green",p:10},{n:"Iris",p:3},{n:"Veronica Blue",p:4},{n:"Larkspur - Purple",p:4},{n:"Larkspur - Pink",p:4},{n:"Liatrice",p:4},{n:"Delphinum - Light Blue",p:4},{n:"Orchids - Dendrobium White",p:6},{n:"Orchids - Mokaras-Fuchsia",p:7},{n:"Orchids - Mokaras-gold",p:7},{n:"Orchids - Mokaras-Purple",p:7},{n:"Orchids - Oncidium Stem",p:10},{n:"Poms - Green",p:3},{n:"Poms - Yellow",p:3},{n:"Poms - White Daisy",p:3},{n:"Protea - Orange Pin Cushion",p:10},{n:"Protea - Pink Velvet",p:7},{n:"Protea - Safari Sunset",p:4},{n:"Bom Bom mums - Yellow",p:3},{n:"Bom Bom mums - Purple",p:3},{n:"Roses - Long Stem Lavender",p:8},{n:"Roses - Long Stem Circus",p:8},{n:"Roses - Long Stem Pink",p:8},{n:"Roses - Long Stem Red",p:8},{n:"Roses - Long Stem White",p:8},{n:"Roses - Long Stem Yellow",p:8},{n:"Roses - Long Stem Cherry/brandy",p:8},{n:"Roses - Long Stem Malibu",p:8},{n:"Roses - Free Spirit",p:5},{n:"Roses - Med Stem Lavender",p:4.5},{n:"Roses - Med Stem Circus",p:4},{n:"Roses - Med Stem Hot Pink",p:4},{n:"Roses - Med Stem Light Pink",p:4},{n:"Roses - Med Stem Red",p:5.5},{n:"Roses - Med Stem Cherry/Brandy",p:4},{n:"Roses - Med Stem Pink",p:4},{n:"Roses - Med Stem Malibu",p:4},{n:"Roses - Med Stem White",p:4},{n:"Roses - Med Stem Orange",p:4},{n:"Roses - Med Stem Peach",p:4},{n:"Rover Mum",p:3.5},{n:"Snaps - Orange",p:4},{n:"Snaps - Pink",p:4},{n:"Snaps - Purple",p:4},{n:"Snaps - Red",p:4},{n:"Snaps - White",p:4},{n:"Snaps - Yellow",p:4},{n:"Solidago Stem",p:2},{n:"Spray Roses - Pink",p:5},{n:"Spray Roses - Red",p:5},{n:"Spray Roses - White",p:5},{n:"Spray Roses - Yellow",p:5},{n:"Spray Roses - Orange",p:5},{n:"Spray Roses - Hot Pink",p:5},{n:"Stargazers",p:8.5},{n:"Double Stem Purple Orchid Plant",p:75},{n:"Stock - Peach",p:4},{n:"Statice Stem - Purple",p:3},{n:"Statice Stem - Fuschia",p:3},{n:"Stock - Fuchsia",p:4.5},{n:"Stock - Lavender",p:5.5},{n:"Stock - Pink",p:4},{n:"Stock - Purple",p:5.5},{n:"Stock - Dark Purple",p:4.5},{n:"Stock - RASPBERRY",p:5.5},{n:"Stock - Pale Yellow",p:5.5},{n:"Sunflower - Large",p:5},{n:"Sunflower - Mini",p:3},{n:"Thistle",p:3},{n:"Tulips - Orange",p:5.5},{n:"Tulips - Pink",p:5.5},{n:"Tulips - Purple",p:5.5},{n:"Tulips - Red",p:5.5},{n:"Tulips - Dark Pink",p:5.5},{n:"Tulips - White",p:5.5},{n:"Tulips - Yellow",p:5.5},{n:"Pink Phalaenopsis Stem",p:50},{n:"Waxflower - White",p:3},{n:"Waxflower - Orange",p:3},{n:"Waxflower - Purple",p:3},{n:"Waxflower - Pink",p:3},{n:"3 inch Succulent",p:12},{n:"White Single Stem Phal Orchid",p:75},{n:"4 inch Succulent",p:10},{n:"Blooming Dianthus",p:3}]);
 let FILLERS=defR(JSON.parse(localStorage.getItem('bs_fillers')||'null')||[{n:"None",p:0},{n:"Babys Breath Stem",p:3},{n:"Babys Breath Bunch",p:25},{n:"Bear Grass Stem",p:0.1},{n:"Cattails",p:0.5},{n:"Curly Willow short",p:3},{n:"Curly Willow tall",p:5},{n:"Green Asp Leaves",p:1},{n:"Echeveria",p:15},{n:"Aralia Leaf",p:2},{n:"Bell Cups",p:3},{n:"Bromeliad Blooms",p:25},{n:"Dried Fan Palms",p:3},{n:"Lotus Pod",p:2},{n:"Mushroom",p:2.5},{n:"Pheasant Feathers",p:2},{n:"Flat Fern",p:0.5},{n:"Kiwi Vine",p:4},{n:"GUNNI EUC",p:4},{n:"Medium Monstera",p:5},{n:"Spiral Euc",p:1.5},{n:"Seeded Euc",p:2},{n:"Italian Ruscus Stem",p:3},{n:"Jade/Commodore Stem",p:0.3},{n:"James Storie Orchid",p:7},{n:"Misty Limonium",p:3},{n:"Plumosus (Asparagus Fern)",p:0.4},{n:"Tree Fern Stem",p:0.4},{n:"Varnished Natraj Stick",p:6},{n:"Ting - Gold",p:0.3},{n:"Ting - Red",p:0.3},{n:"Ting - Silver",p:0.3},{n:"Willow - Gold",p:2},{n:"Willow - Silver",p:2},{n:"Berries - Gold",p:3},{n:"Berries - Red",p:3},{n:"Berries - Silver",p:3},{n:"Red Glitter Sticks",p:2.5},{n:"Blue Glitter Sticks",p:2.5},{n:"Silver Glitter Sticks",p:2.5},{n:"Preserved Millet - Natural",p:0.25},{n:"Preserved Millet - Green",p:0.25},{n:"Preserved Millet - Red",p:0.25},{n:"Red Ti Leaves",p:1.5},{n:"Ivy",p:2},{n:"Monstera Leaves",p:5},{n:"Flax",p:2.5},{n:"Galax Leaves",p:0.25},{n:"Foxtail fern",p:1},{n:"Bundle Birch",p:20},{n:"Sm driftwood",p:10},{n:"Med driftwood",p:15},{n:"Lg driftwood",p:20},{n:"Lg willow orb",p:13},{n:"Grape Vine",p:10}]);
 let CONTAINERS=defR(JSON.parse(localStorage.getItem('bs_containers')||'null')||[{n:"None",p:0},{n:"EOS COLLECTION",p:27},{n:"Two dozen vase",p:30},{n:"007 Vase",p:7},{n:"4x4 Cylinder",p:7},{n:"Riviera Vase",p:38},{n:"5x10",p:18},{n:"5x5 Cylinder",p:8},{n:"WD White ceramic 12x6x4",p:30},{n:"White Ginny Pot",p:30},{n:"6x6 Clear Cube",p:17},{n:"6x6 CYLINDER",p:12},{n:"G3 3055CLR Flare Vase",p:19},{n:"C999 Vase",p:5},{n:"7 inch White Cylinder",p:25},{n:"5x5 White Cylinder",p:12},{n:"7X4 White Ceramic Cyl",p:17},{n:"Red 4x4 Cube",p:7},{n:"Red 5x5 Cube",p:20},{n:"Red Upgraded Rose Vase",p:18},{n:"5x6 Clear Cylinder",p:8},{n:"6x8 Cylinder",p:15},{n:"6x6 Frosted Cube",p:25},{n:"6X6 Ginny Pot",p:30},{n:"Jordan Vase",p:16},{n:"6X4X12 Clear Rectangle",p:47},{n:"10x10 Clear Cylinder",p:36},{n:"5X10 Cylinder vase",p:18},{n:"10x10 Bubble Bowl",p:10},{n:"6x10 Cylinder",p:18},{n:"Rectangle Slate Gray Tray",p:18},{n:"White 6 inch Cylinder",p:18},{n:"3x5 Cylinder",p:4}]);
 let ACCENTS=defR(JSON.parse(localStorage.getItem('bs_accents')||'null')||[{n:"None",p:0},{n:"Leaf Wrap",p:5},{n:"Multi-color Gems",p:3},{n:"Pink Ribbon",p:5},{n:"Purple Ribbon",p:5},{n:"Pink Gems",p:3},{n:"Red Gems",p:3},{n:"Red Heart Gems",p:3},{n:"Red Large Glass Gems",p:3},{n:"Red Ribbon",p:5},{n:"Rocks",p:3},{n:"Violet Ribbon",p:5},{n:"Yellow Ribbon",p:5},{n:"Clear Rocks",p:4}]);
 let HARDGOODS=defR(JSON.parse(localStorage.getItem('bs_hardgoods')||'null')||[{n:"None",p:0},{n:"Bamboo Skewer",p:0.25},{n:"Corsage Pin",p:0.1},{n:"Floral Foam Block",p:2},{n:"Floral Tape - Green",p:0.5},{n:"Floral Tape - White",p:0.5},{n:"Floral Wire",p:0.1},{n:"Greening Pins",p:0.1},{n:"Mache Box - Small",p:4},{n:"Mache Box - Medium",p:6},{n:"Mache Box - Large",p:8},{n:"Organza Bag - Small",p:1},{n:"Organza Bag - Large",p:2},{n:"Pick - Wood",p:0.25},{n:"Tissue Paper",p:0.5},{n:"Wrap - Kraft",p:1},{n:"Wrap - Cellophane",p:1.5}]);
+let TAGS=JSON.parse(localStorage.getItem('bs_tags')||'null')||["Valentine's Day","Mother's Day","Christmas","Easter","Sympathy","Wedding","Birthday","Spring","Summer","Fall","Winter","Everyday","Premium","Under $75","Under $100","Under $150"];
+let activeTagFilters=[];
 
-// ── Recipes ───────────────────────────────────────────────────
-let recipes=JSON.parse(localStorage.getItem('bs_recipes')||'null')||[
-{id:1,sku:"FE2409",name:"Twenty Spring Tulips",price:120,projection:300,container:"C999 Vase",accent:"None",flowers:[{name:"Tulips - Yellow",qty:5},{name:"Tulips - Orange",qty:5},{name:"Tulips - Pink",qty:5},{name:"Tulips - Dark Pink",qty:5}],fillers:[],laborPct:13,photo:null},
-{id:2,sku:"FE2408",name:"Ten Spring Tulips",price:65,projection:350,container:"007 Vase",accent:"None",flowers:[{name:"Tulips - Yellow",qty:2},{name:"Tulips - Pink",qty:2},{name:"Tulips - Orange",qty:2},{name:"Tulips - Dark Pink",qty:4}],fillers:[],laborPct:13,photo:null},
-{id:3,sku:"FMD2600",name:"Twilight Meadow",price:85,projection:800,container:"4x4 Cylinder",accent:"None",flowers:[{name:"Hydrangea - Mini Green",qty:2},{name:"Spray Roses - Yellow",qty:4},{name:"Lisianthus Purple",qty:4},{name:"Alstro - Hot Pink",qty:3},{name:"Blooming Dianthus",qty:3}],fillers:[],laborPct:13,photo:null},
-{id:4,sku:"FMD2601",name:"Garden Jewels",price:125,projection:475,container:"5x5 Cylinder",accent:"None",flowers:[{name:"Stock - Pink",qty:4},{name:"Spray Roses - Yellow",qty:3},{name:"Garden Roses Hot Pink",qty:3},{name:"Alstro - Purple",qty:3},{name:"Thistle",qty:2},{name:"Hydrangea - Blue",qty:2}],fillers:[],laborPct:20,photo:null},
-{id:5,sku:"FMD2602",name:"Citrine Glow",price:165,projection:375,container:"5x5 White Cylinder",accent:"None",flowers:[{name:"Roses - Free Spirit",qty:3},{name:"Hydrangea - Shamrock",qty:2},{name:"Ranunculus Peach",qty:3},{name:"Alstro - Orange",qty:3},{name:"Spray Roses - Hot Pink",qty:3},{name:"Stock - Fuchsia",qty:3},{name:"Anemones Hot Pink",qty:3}],fillers:[],laborPct:20,photo:null},
-{id:6,sku:"FMD2603",name:"Candied Clementine",price:200,projection:175,container:"6x6 CYLINDER",accent:"None",flowers:[{name:"Roses - Free Spirit",qty:6},{name:"Callas (Mini) - Pink",qty:3},{name:"Alstro - Orange",qty:4},{name:"Spray Roses - Yellow",qty:4},{name:"Stock - Fuchsia",qty:3},{name:"Hydrangea - Mini Green",qty:3},{name:"Ranunculus Peach",qty:5}],fillers:[],laborPct:20,photo:null},
-{id:7,sku:"FMD2604",name:"French Meadow",price:250,projection:90,container:"6x6 CYLINDER",accent:"None",flowers:[{name:"Hydrangea - Large Green",qty:2},{name:"Stock - Peach",qty:6},{name:"Delphinum - Light Blue",qty:5},{name:"Veronica Blue",qty:6},{name:"Lisianthus Pink",qty:3},{name:"Ranunculus Light Pink",qty:3},{name:"Roses - Med Stem Lavender",qty:5},{name:"Spray Roses - Yellow",qty:3},{name:"Disbud Lavender",qty:3},{name:"Hypericum Green",qty:5}],fillers:[],laborPct:20,photo:null},
-{id:8,sku:"FMD2605",name:"Midnight Moonlight",price:300,projection:40,container:"White 6 inch Cylinder",accent:"None",flowers:[{name:"Stock - Dark Purple",qty:5},{name:"Astilbe Hot Purple",qty:4},{name:"Blooming Dianthus",qty:3},{name:"Disbud Lavender",qty:3},{name:"Anemones Dark Purple",qty:4},{name:"Callas (Mini) - Picasso",qty:3},{name:"Garden Roses Yellow",qty:5},{name:"Lisianthus Purple",qty:6},{name:"Alstro - Light Yellow",qty:3},{name:"Hypericum Green",qty:5}],fillers:[{name:"GUNNI EUC",qty:3}],laborPct:20,photo:null},
-{id:9,sku:"FMD2606",name:"Spring Luxe",price:350,projection:10,container:"WD White ceramic 12x6x4",accent:"None",flowers:[{name:"Delphinum - Light Blue",qty:5},{name:"Snaps - White",qty:4},{name:"Stock - Peach",qty:7},{name:"Hydrangea - Large Green",qty:4},{name:"Garden Roses Yellow",qty:5},{name:"Spray Roses - White",qty:3},{name:"Lisianthus Pink",qty:4},{name:"Ranunculus Orange",qty:6},{name:"Alstro - White",qty:5}],fillers:[{name:"GUNNI EUC",qty:3},{name:"Curly Willow tall",qty:1}],laborPct:20,photo:null}
+let recipes=JSON.parse(localStorage.getItem('bs_recipes2')||'null')||[
+{id:1,sku:"FE2409",name:"Twenty Spring Tulips",calcPrice:120,adjPrice:null,projection:300,container:"C999 Vase",accent:"None",flowers:[{name:"Tulips - Yellow",qty:5},{name:"Tulips - Orange",qty:5},{name:"Tulips - Pink",qty:5},{name:"Tulips - Dark Pink",qty:5}],fillers:[],laborPct:13,photo:null,tags:["Spring","Everyday"],notes:"",sizeH:"",sizeW:"",sizeD:""},
+{id:2,sku:"FE2408",name:"Ten Spring Tulips",calcPrice:65,adjPrice:null,projection:350,container:"007 Vase",accent:"None",flowers:[{name:"Tulips - Yellow",qty:2},{name:"Tulips - Pink",qty:2},{name:"Tulips - Orange",qty:2},{name:"Tulips - Dark Pink",qty:4}],fillers:[],laborPct:13,photo:null,tags:["Spring","Under $75"],notes:"",sizeH:"",sizeW:"",sizeD:""},
+{id:3,sku:"FMD2600",name:"Twilight Meadow",calcPrice:85,adjPrice:null,projection:800,container:"4x4 Cylinder",accent:"None",flowers:[{name:"Hydrangea - Mini Green",qty:2},{name:"Spray Roses - Yellow",qty:4},{name:"Lisianthus Purple",qty:4},{name:"Alstro - Hot Pink",qty:3},{name:"Blooming Dianthus",qty:3}],fillers:[],laborPct:13,photo:null,tags:["Everyday","Under $100"],notes:"",sizeH:"",sizeW:"",sizeD:""},
+{id:4,sku:"FMD2601",name:"Garden Jewels",calcPrice:125,adjPrice:null,projection:475,container:"5x5 Cylinder",accent:"None",flowers:[{name:"Stock - Pink",qty:4},{name:"Spray Roses - Yellow",qty:3},{name:"Garden Roses Hot Pink",qty:3},{name:"Alstro - Purple",qty:3},{name:"Thistle",qty:2},{name:"Hydrangea - Blue",qty:2}],fillers:[],laborPct:20,photo:null,tags:["Birthday","Spring"],notes:"",sizeH:"",sizeW:"",sizeD:""},
+{id:5,sku:"FMD2602",name:"Citrine Glow",calcPrice:165,adjPrice:null,projection:375,container:"5x5 White Cylinder",accent:"None",flowers:[{name:"Roses - Free Spirit",qty:3},{name:"Hydrangea - Shamrock",qty:2},{name:"Ranunculus Peach",qty:3},{name:"Alstro - Orange",qty:3},{name:"Spray Roses - Hot Pink",qty:3},{name:"Stock - Fuchsia",qty:3},{name:"Anemones Hot Pink",qty:3}],fillers:[],laborPct:20,photo:null,tags:["Premium","Mother's Day"],notes:"",sizeH:"",sizeW:"",sizeD:""},
+{id:6,sku:"FMD2603",name:"Candied Clementine",calcPrice:200,adjPrice:null,projection:175,container:"6x6 CYLINDER",accent:"None",flowers:[{name:"Roses - Free Spirit",qty:6},{name:"Callas (Mini) - Pink",qty:3},{name:"Alstro - Orange",qty:4},{name:"Spray Roses - Yellow",qty:4},{name:"Stock - Fuchsia",qty:3},{name:"Hydrangea - Mini Green",qty:3},{name:"Ranunculus Peach",qty:5}],fillers:[],laborPct:20,photo:null,tags:["Premium","Birthday"],notes:"",sizeH:"",sizeW:"",sizeD:""},
+{id:7,sku:"FMD2604",name:"French Meadow",calcPrice:250,adjPrice:null,projection:90,container:"6x6 CYLINDER",accent:"None",flowers:[{name:"Hydrangea - Large Green",qty:2},{name:"Stock - Peach",qty:6},{name:"Delphinum - Light Blue",qty:5},{name:"Veronica Blue",qty:6},{name:"Lisianthus Pink",qty:3},{name:"Ranunculus Light Pink",qty:3},{name:"Roses - Med Stem Lavender",qty:5},{name:"Spray Roses - Yellow",qty:3},{name:"Disbud Lavender",qty:3},{name:"Hypericum Green",qty:5}],fillers:[],laborPct:20,photo:null,tags:["Premium","Wedding"],notes:"",sizeH:"",sizeW:"",sizeD:""},
+{id:8,sku:"FMD2605",name:"Midnight Moonlight",calcPrice:300,adjPrice:null,projection:40,container:"White 6 inch Cylinder",accent:"None",flowers:[{name:"Stock - Dark Purple",qty:5},{name:"Astilbe Hot Purple",qty:4},{name:"Blooming Dianthus",qty:3},{name:"Disbud Lavender",qty:3},{name:"Anemones Dark Purple",qty:4},{name:"Callas (Mini) - Picasso",qty:3},{name:"Garden Roses Yellow",qty:5},{name:"Lisianthus Purple",qty:6},{name:"Alstro - Light Yellow",qty:3},{name:"Hypericum Green",qty:5}],fillers:[{name:"GUNNI EUC",qty:3}],laborPct:20,photo:null,tags:["Premium","Sympathy"],notes:"",sizeH:"",sizeW:"",sizeD:""},
+{id:9,sku:"FMD2606",name:"Spring Luxe",calcPrice:350,adjPrice:null,projection:10,container:"WD White ceramic 12x6x4",accent:"None",flowers:[{name:"Delphinum - Light Blue",qty:5},{name:"Snaps - White",qty:4},{name:"Stock - Peach",qty:7},{name:"Hydrangea - Large Green",qty:4},{name:"Garden Roses Yellow",qty:5},{name:"Spray Roses - White",qty:3},{name:"Lisianthus Pink",qty:4},{name:"Ranunculus Orange",qty:6},{name:"Alstro - White",qty:5}],fillers:[{name:"GUNNI EUC",qty:3},{name:"Curly Willow tall",qty:1}],laborPct:20,photo:null,tags:["Premium","Spring","Wedding"],notes:"Bestseller in April. Consider upselling to garden box.",sizeH:"13",sizeW:"15",sizeD:"13"}
 ];
 
 let activeId=null,activeTab='recipe',activePL='flowers',activeNav='recipes',nextId=Math.max(...recipes.map(r=>r.id),0)+1;
 
-// ── Cost calc ─────────────────────────────────────────────────
+function finalPrice(r){return(r.adjPrice&&r.adjPrice>0)?r.adjPrice:r.calcPrice;}
 function calcCost(r){
+  const fp=finalPrice(r);
   const vp=gpCost(CONTAINERS,r.container||'None'),ap=gpCost(ACCENTS,r.accent||'None');
   const fc=(r.flowers||[]).reduce((s,f)=>s+f.qty*gpCost(FLOWERS,f.name),0);
   const fil=(r.fillers||[]).reduce((s,f)=>s+f.qty*gpCost(FILLERS,f.name),0);
-  const labor=r.price*(r.laborPct||0)/100;
+  const labor=fp*(r.laborPct||0)/100;
   const total=vp+ap+fc+fil+labor;
-  const margin=r.price>0?(r.price-total)/r.price*100:0;
-  return{vp,ap,fc,fil,labor,total,margin,pct:r.laborPct||0};
+  const margin=fp>0?(fp-total)/fp*100:0;
+  return{vp,ap,fc,fil,labor,total,margin,pct:r.laborPct||0,fp};
 }
 function mc(m){return m>=40?'mg':m>=20?'mw':'mb';}
+function sizeStr(r){const p=[];if(r.sizeH)p.push(r.sizeH+' in. tall');if(r.sizeW)p.push(r.sizeW+' in. wide');if(r.sizeD)p.push(r.sizeD+' in. depth');return p.join(' × ');}
 
-// ── Nav ───────────────────────────────────────────────────────
 function setNav(nav){
   activeNav=nav;
-  document.getElementById('nt-recipes').classList.toggle('active',nav==='recipes');
-  document.getElementById('nt-prices').classList.toggle('active',nav==='prices');
-  document.getElementById('sidebar-recipes').style.display=nav==='recipes'?'flex':'none';
-  document.getElementById('sidebar-prices').style.display=nav==='prices'?'flex':'none';
-  if(nav==='prices') showPL(activePL);
-  else if(activeId) renderEditor();
-  else resetMain();
+  ['recipes','prices','tags'].forEach(n=>{
+    document.getElementById('nt-'+n).classList.toggle('active',n===nav);
+    const p=document.getElementById('sidebar-'+n);
+    if(p)p.style.display=n===nav?'flex':'none';
+  });
+  if(nav==='prices')showPL(activePL);
+  else if(nav==='tags'){renderSidebarTags();renderTagsMain();}
+  else if(nav==='recipes'&&activeId)renderEditor();
+  else if(nav==='recipes')resetMain();
 }
 function resetMain(){
   document.getElementById('topTitle').textContent='Select a recipe';
@@ -263,153 +292,120 @@ function resetMain(){
   document.getElementById('mainContent').innerHTML='<div class="empty-state"><i class="ti ti-plant"></i><h3>No recipe selected</h3><p>Choose a recipe or create a new one.</p></div>';
 }
 
-// ── Price lists ───────────────────────────────────────────────
-function showPL(type){
-  activePL=type;
-  ['flowers','fillers','containers','accents','hardgoods'].forEach(t=>{
-    const b=document.getElementById('plnav-'+t);
-    if(b){b.classList.toggle('active',t===type);}
-  });
-  const labels={flowers:'Flower costs',fillers:'Greenery & filler costs',containers:'Container costs',accents:'Accent costs',hardgoods:'Hardgoods costs'};
-  document.getElementById('topTitle').textContent=labels[type];
+// Tags
+function renderSidebarTags(){
+  const el=document.getElementById('sidebarTagList');
+  if(!el)return;
+  el.innerHTML=TAGS.map((t,i)=>`<div class="tag-manage-chip">${t}<button onclick="deleteTag(${i})"><i class="ti ti-x"></i></button></div>`).join('');
+}
+function renderTagsMain(){
+  document.getElementById('topTitle').textContent='Tag library';
   document.getElementById('tabBar').style.display='none';
   document.getElementById('actionBtns').style.display='none';
-  renderPriceList(type);
+  document.getElementById('mainContent').innerHTML=`<div class="section"><h3>Tag library</h3><p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Tags can be applied to any recipe for filtering and search. Add or remove them here.</p><div id="mainTagList" style="display:flex;flex-wrap:wrap;">${TAGS.map((t,i)=>`<div class="tag-manage-chip" style="font-size:13px;padding:4px 10px;margin:3px;">${t}<button onclick="deleteTag(${i});renderTagsMain();" title="Remove"><i class="ti ti-x"></i></button></div>`).join('')||'<span style="font-size:13px;color:var(--text3);font-style:italic;">No tags yet.</span>'}</div><div class="add-tag-row"><input type="text" id="mainNewTag" placeholder="New tag name…" onkeydown="if(event.key==='Enter')addTagMain()"/><button class="add-tag-btn" onclick="addTagMain()"><i class="ti ti-plus"></i> Add tag</button></div></div>`;
+}
+function addTag(){
+  const el=document.getElementById('newTagInput');
+  const v=(el.value||'').trim();if(!v||TAGS.includes(v))return;
+  TAGS.push(v);saveTags();el.value='';renderSidebarTags();renderTagFilterChips();
+}
+function addTagMain(){
+  const el=document.getElementById('mainNewTag');
+  const v=(el.value||'').trim();if(!v||TAGS.includes(v))return;
+  TAGS.push(v);saveTags();renderTagsMain();renderSidebarTags();renderTagFilterChips();
+}
+function deleteTag(i){TAGS.splice(i,1);saveTags();renderSidebarTags();renderTagFilterChips();}
+function saveTags(){localStorage.setItem('bs_tags',JSON.stringify(TAGS));}
+
+// Filters
+function toggleFilters(){
+  document.getElementById('filterPanel').classList.toggle('open');
+  renderTagFilterChips();
+}
+function renderTagFilterChips(){
+  const el=document.getElementById('tagFilterList');if(!el)return;
+  el.innerHTML=TAGS.map(t=>`<span class="tag-filter-chip${activeTagFilters.includes(t)?' active':''}" onclick="toggleTagFilter('${t.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">${t}</span>`).join('');
+}
+function toggleTagFilter(tag){
+  const i=activeTagFilters.indexOf(tag);
+  if(i>=0)activeTagFilters.splice(i,1);else activeTagFilters.push(tag);
+  renderTagFilterChips();filterRecipes();
+  const hasF=activeTagFilters.length>0||(document.getElementById('priceMin')?.value||'')!==''||(document.getElementById('priceMax')?.value||'')!=='';
+  document.getElementById('filterToggle').classList.toggle('active',hasF);
+}
+function clearFilters(){
+  activeTagFilters=[];
+  const mn=document.getElementById('priceMin'),mx=document.getElementById('priceMax');
+  if(mn)mn.value='';if(mx)mx.value='';
+  document.getElementById('filterToggle').classList.remove('active');
+  renderTagFilterChips();filterRecipes();
 }
 
-function renderPriceList(type){
-  const list=getList(type),mult=getMult(type);
-  const multLabel=mult===4?'× 4':'× 3.5';
-  const rows=list.filter(x=>x.n!=='None').map((item,i)=>{
-    const idx=i+1;
-    const markup=parseFloat((item.p*mult).toFixed(2));
-    const finalVal=(item.r!==null&&item.r!==undefined)?item.r:markup;
-    const diff=parseFloat((finalVal-markup).toFixed(2));
-    const met=finalVal>=markup;
-    const diffStr=diff===0?'':(diff>0?'+$'+diff.toFixed(2):'-$'+Math.abs(diff).toFixed(2));
-    return`<tr data-idx="${idx}">
-      <td style="width:36%"><input type="text" value="${item.n}" onchange="updatePLName('${type}',${idx},this.value)"/></td>
-      <td style="width:13%"><input type="number" value="${item.p}" min="0" step="0.01" onchange="updatePLCost('${type}',${idx},this.value,this)"/></td>
-      <td style="width:16%"><span class="markup-val ${met?'markup-met':'markup-off'}" id="mkup-${type}-${idx}">$${markup.toFixed(2)}</span></td>
-      <td style="width:17%"><input type="number" value="${finalVal.toFixed(2)}" min="0" step="0.01" onchange="updatePLRetail('${type}',${idx},this.value,this)"/></td>
-      <td style="width:10%"><span class="diff-val" id="diff-${type}-${idx}" style="color:${met?'#0F6E56':'#A32D2D'}">${diffStr}</span></td>
-      <td style="width:4%"><button class="del-btn" onclick="deletePLItem('${type}',${idx})"><i class="ti ti-x"></i></button></td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('mainContent').innerHTML=`
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-   <div class="legend" style="flex:1;">
-    <span><span class="legend-dot" style="background:#0F6E56;"></span>Green = meets markup goal (cost ${multLabel})</span>
-    <span><span class="legend-dot" style="background:#A32D2D;"></span>Red = below markup goal</span>
-   </div>
-   <button class="pl-save-btn" onclick="savePriceLists()"><i class="ti ti-device-floppy"></i> Save prices</button>
-   <span class="saved-flash" id="savedFlash">Saved!</span>
-  </div>
-  <div class="section">
-   <div class="pl-wrap">
-    <table class="pl-table">
-     <thead><tr>
-      <th>Name</th><th>Cost ($)</th><th>Markup (${multLabel})</th><th>Final retail ($)</th><th>Diff</th><th></th>
-     </tr></thead>
-     <tbody id="plRows">${rows}</tbody>
-    </table>
-   </div>
-   <button class="add-row-btn" onclick="addPLItem('${type}')"><i class="ti ti-plus"></i> Add item</button>
-  </div>`;
-}
-
-function updatePLName(type,idx,val){getList(type)[idx].n=val;}
-function updatePLCost(type,idx,val,el){
-  const item=getList(type)[idx];
-  item.p=parseFloat(val)||0;
-  const mult=getMult(type),markup=parseFloat((item.p*mult).toFixed(2));
-  const row=el.closest('tr');
-  if(item.r===null||item.r===undefined) row.cells[3].querySelector('input').value=markup.toFixed(2);
-  refreshPLRow(row,item,mult);
-}
-function updatePLRetail(type,idx,val,el){
-  const item=getList(type)[idx];
-  item.r=parseFloat(val)||0;
-  refreshPLRow(el.closest('tr'),item,getMult(type));
-}
-function refreshPLRow(row,item,mult){
-  const markup=parseFloat((item.p*mult).toFixed(2));
-  const finalVal=(item.r!==null&&item.r!==undefined)?item.r:markup;
-  const diff=parseFloat((finalVal-markup).toFixed(2));
-  const met=finalVal>=markup;
-  const mkupCell=row.cells[2].querySelector('span')||row.cells[2];
-  mkupCell.textContent='$'+markup.toFixed(2);
-  mkupCell.className='markup-val '+(met?'markup-met':'markup-off');
-  const diffCell=row.cells[4].querySelector('span')||row.cells[4];
-  diffCell.style.color=met?'#0F6E56':'#A32D2D';
-  diffCell.textContent=diff===0?'':(diff>0?'+$'+diff.toFixed(2):'-$'+Math.abs(diff).toFixed(2));
-}
-function deletePLItem(type,idx){getList(type).splice(idx,1);renderPriceList(type);}
-function addPLItem(type){
-  getList(type).push({n:'New item',p:0,r:null});
-  renderPriceList(type);
-  const rows=document.getElementById('plRows').querySelectorAll('tr');
-  if(rows.length) rows[rows.length-1].querySelector('input[type=text]').focus();
-}
-function savePriceLists(){
-  localStorage.setItem('bs_flowers',JSON.stringify(FLOWERS));
-  localStorage.setItem('bs_fillers',JSON.stringify(FILLERS));
-  localStorage.setItem('bs_containers',JSON.stringify(CONTAINERS));
-  localStorage.setItem('bs_hardgoods',JSON.stringify(HARDGOODS));
-  localStorage.setItem('bs_accents',JSON.stringify(ACCENTS));
-  const f=document.getElementById('savedFlash');
-  if(f){f.style.opacity='1';setTimeout(()=>f.style.opacity='0',1800);}
-}
-
-// ── Recipe list ───────────────────────────────────────────────
-function renderList(){
-  const q=document.getElementById('searchInput').value.toLowerCase();
-  const el=document.getElementById('recipeList');
-  const filtered=recipes.filter(r=>(r.name||'').toLowerCase().includes(q)||(r.sku||'').toLowerCase().includes(q));
+// Recipe list
+function filterRecipes(){
+  const q=(document.getElementById('searchInput')?.value||'').toLowerCase();
+  const mn=parseFloat(document.getElementById('priceMin')?.value)||0;
+  const mx=parseFloat(document.getElementById('priceMax')?.value)||Infinity;
+  const el=document.getElementById('recipeList');if(!el)return;
+  const filtered=recipes.filter(r=>{
+    const fp=finalPrice(r);
+    const flowerTxt=(r.flowers||[]).map(f=>f.name.toLowerCase()).join(' ');
+    const fillerTxt=(r.fillers||[]).map(f=>f.name.toLowerCase()).join(' ');
+    const matchQ=!q||(r.name||'').toLowerCase().includes(q)||(r.sku||'').toLowerCase().includes(q)||flowerTxt.includes(q)||fillerTxt.includes(q);
+    const matchP=fp>=mn&&fp<=mx;
+    const matchT=activeTagFilters.length===0||activeTagFilters.every(t=>(r.tags||[]).includes(t));
+    return matchQ&&matchP&&matchT;
+  });
   el.innerHTML=filtered.map(r=>{
-    const{margin}=calcCost(r);
+    const fp=finalPrice(r);const{margin}=calcCost(r);
+    const tagHtml=(r.tags||[]).map(t=>`<span class="tag-chip">${t}</span>`).join('');
     return`<div class="recipe-item${r.id===activeId?' active':''}" onclick="selectRecipe(${r.id})">
       <div class="sku">${r.sku||'—'}</div>
       <div class="rname">${r.name||'Untitled'}</div>
-      <div class="rprice">$${r.price.toFixed(2)} <span class="margin-pill ${mc(margin)}">${margin.toFixed(0)}%</span></div>
+      <div class="rprice">$${fmt(fp)} <span class="margin-pill ${mc(margin)}">${margin.toFixed(0)}%</span></div>
+      ${tagHtml?`<div class="rtags">${tagHtml}</div>`:''}
     </div>`;
   }).join('')||'<div style="padding:14px 16px;font-size:13px;color:var(--text3);font-style:italic;">No recipes found</div>';
 }
-function filterRecipes(){renderList();}
-function selectRecipe(id){activeId=id;activeTab='recipe';setNav('recipes');renderList();renderEditor();}
+
+function selectRecipe(id){activeId=id;activeTab='recipe';setNav('recipes');filterRecipes();renderEditor();}
 function newRecipe(){
-  const r={id:nextId++,sku:'',name:'',price:0,projection:0,container:'None',accent:'None',flowers:[{name:'None',qty:1}],fillers:[],laborPct:13,photo:null};
-  recipes.push(r);activeId=r.id;activeTab='recipe';setNav('recipes');renderList();renderEditor();
+  const r={id:nextId++,sku:'',name:'',calcPrice:0,adjPrice:null,projection:null,container:'None',accent:'None',flowers:[{name:'None',qty:1}],fillers:[],laborPct:13,photo:null,tags:[],notes:'',sizeH:'',sizeW:'',sizeD:''};
+  recipes.push(r);activeId=r.id;activeTab='recipe';setNav('recipes');filterRecipes();renderEditor();
 }
 function deleteRecipe(){
   if(!activeId||!confirm('Delete this recipe?'))return;
-  recipes=recipes.filter(r=>r.id!==activeId);activeId=null;saveAll();renderList();resetMain();
+  recipes=recipes.filter(r=>r.id!==activeId);activeId=null;saveAll();filterRecipes();resetMain();
 }
 function saveRecipe(){
   const r=recipes.find(x=>x.id===activeId);if(!r)return;
   r.sku=document.getElementById('f_sku').value;
   r.name=document.getElementById('f_name').value;
-  r.price=parseFloat(document.getElementById('f_price').value)||0;
-  r.projection=parseFloat(document.getElementById('f_proj').value)||0;
+  r.calcPrice=parseFloat(document.getElementById('f_calcprice').value)||0;
+  const adj=document.getElementById('f_adjprice').value;
+  r.adjPrice=(adj&&parseFloat(adj)>0)?parseFloat(adj):null;
+  const proj=document.getElementById('f_proj').value;
+  r.projection=(proj&&parseFloat(proj)>0)?parseFloat(proj):null;
   r.container=document.getElementById('f_container').value;
   r.accent=document.getElementById('f_accent').value;
   r.laborPct=parseFloat(document.getElementById('f_laborpct').value)||0;
-  r.flowers=[];
-  document.querySelectorAll('.flower-row').forEach(row=>{
+  r.notes=document.getElementById('f_notes').value;
+  r.sizeH=document.getElementById('f_sizeh').value;
+  r.sizeW=document.getElementById('f_sizew').value;
+  r.sizeD=document.getElementById('f_sized').value;
+  r.tags=[];document.querySelectorAll('.recipe-tag-chip.selected').forEach(el=>r.tags.push(el.dataset.tag));
+  r.flowers=[];document.querySelectorAll('.flower-row').forEach(row=>{
     const sel=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
     if(sel!=='None'&&qty>0)r.flowers.push({name:sel,qty});
   });
-  r.fillers=[];
-  document.querySelectorAll('.filler-row').forEach(row=>{
+  r.fillers=[];document.querySelectorAll('.filler-row').forEach(row=>{
     const sel=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
     if(sel!=='None'&&qty>0)r.fillers.push({name:sel,qty});
   });
-  saveAll();renderList();renderEditor();
+  saveAll();filterRecipes();renderEditor();
 }
-function saveAll(){try{localStorage.setItem('bs_recipes',JSON.stringify(recipes));}catch(e){alert('Could not save — storage full. Try removing old recipe photos.');}}
+function saveAll(){try{localStorage.setItem('bs_recipes2',JSON.stringify(recipes));}catch(e){alert('Could not save — storage full. Try removing old recipe photos.');}}
 
-// ── Recipe editor ─────────────────────────────────────────────
 function switchTab(tab){
   activeTab=tab;
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='recipe')||(i===1&&tab==='costs')));
@@ -429,18 +425,23 @@ function renderContent(){
 function mkOpts(list,sel){return list.map(f=>`<option value="${f.n}"${f.n.trim()===sel.trim()?' selected':''}>${f.n}${f.p>0?' ($'+f.p+')':''}</option>`).join('');}
 
 function renderRecipeTab(r){
-  const c=calcCost(r);
+  const c=calcCost(r),fp=finalPrice(r);
   const flowers=r.flowers.length?r.flowers:[{name:'None',qty:1}];
   const photoHtml=r.photo
-    ?`<div class="photo-area"><img src="${r.photo}" alt="Arrangement photo"/><input type="file" accept="image/*" onchange="handlePhoto(event)" title="Change photo"/></div><button class="photo-remove" onclick="removePhoto()"><i class="ti ti-x"></i> Remove</button>`
+    ?`<div class="photo-area"><img src="${r.photo}" alt="Arrangement photo"/><input type="file" accept="image/*" onchange="handlePhoto(event)" title="Change"/></div><button class="photo-remove" onclick="removePhoto()"><i class="ti ti-x"></i> Remove</button>`
     :`<div class="photo-area"><i class="ti ti-camera" style="font-size:28px;color:var(--text3);margin-bottom:6px;"></i><div class="photo-label">Click to upload<br>arrangement photo</div><input type="file" accept="image/*" onchange="handlePhoto(event)"/></div>`;
+  const tagsHtml=TAGS.length
+    ?TAGS.map(t=>`<span class="recipe-tag-chip${(r.tags||[]).includes(t)?' selected':''}" data-tag="${t.replace(/"/g,'&quot;')}" onclick="this.classList.toggle('selected')">${t}</span>`).join('')
+    :'<span class="no-tags-msg">No tags yet — add some in the Tags tab.</span>';
+  const sz=sizeStr(r);
+  const adjNote=r.adjPrice&&r.adjPrice>0?`Adjusted from $${fmt(r.calcPrice)}`:'Using calculated price';
 
   document.getElementById('mainContent').innerHTML=`
   <div class="stat-row">
-   <div class="stat-card"><div class="slabel">Retail price</div><div class="sval">$${r.price.toFixed(2)}</div></div>
-   <div class="stat-card"><div class="slabel">Total cost</div><div class="sval">$${c.total.toFixed(2)}</div></div>
+   <div class="stat-card"><div class="slabel">Final retail</div><div class="sval" style="color:var(--green-dark)">$${fmt(fp)}</div></div>
+   <div class="stat-card"><div class="slabel">Total cost</div><div class="sval">$${fmt(c.total)}</div></div>
    <div class="stat-card"><div class="slabel">Gross margin</div><div class="sval" style="color:${c.margin>=40?'#0F6E56':c.margin>=20?'#854F0B':'#A32D2D'}">${c.margin.toFixed(1)}%</div></div>
-   <div class="stat-card"><div class="slabel">Projection</div><div class="sval">${r.projection}</div></div>
+   <div class="stat-card"><div class="slabel">Projection</div><div class="sval">${r.projection||'—'}</div></div>
   </div>
   <div class="two-col">
    <div>
@@ -451,8 +452,30 @@ function renderRecipeTab(r){
       <div class="field"><label>Name</label><input id="f_name" type="text" value="${r.name}" placeholder="Arrangement name"/></div>
      </div>
      <div class="field-row">
-      <div class="field"><label>Retail price ($)</label><input id="f_price" type="number" value="${r.price}" min="0" step="0.01" oninput="refreshLaborDollar()"/></div>
-      <div class="field"><label>Projection (units)</label><input id="f_proj" type="number" value="${r.projection}" min="0"/></div>
+      <div class="field"><label>Projection <span style="font-style:italic;color:var(--text3)">(optional)</span></label><input id="f_proj" type="number" value="${r.projection||''}" min="0" placeholder="units"/></div>
+     </div>
+    </div>
+    <div class="section">
+     <h3>Pricing</h3>
+     <div class="pricing-grid">
+      <div class="price-box">
+       <div class="pb-label">Calculated retail</div>
+       <div class="pb-val">$${fmt(r.calcPrice)}</div>
+       <div class="pb-note">From costs &amp; labor</div>
+      </div>
+      <div class="price-box">
+       <div class="pb-label">Adjusted retail <span style="font-style:italic;">(optional)</span></div>
+       <input id="f_adjprice" type="number" value="${r.adjPrice||''}" min="0" step="0.01" placeholder="e.g. 125.00" style="width:100%;margin-top:4px;" oninput="refreshFinalPrice()"/>
+       <div class="pb-note">Override to round</div>
+      </div>
+      <div class="price-box final">
+       <div class="pb-label">Final retail</div>
+       <div class="pb-val" id="final_price_display">$${fmt(fp)}</div>
+       <div class="pb-note" id="final_price_note">${adjNote}</div>
+      </div>
+     </div>
+     <div style="margin-top:10px;">
+      <div class="field" style="max-width:160px;"><label>Set calculated retail ($)</label><input id="f_calcprice" type="number" value="${r.calcPrice||''}" min="0" step="0.01" oninput="refreshFinalPrice()"/></div>
      </div>
     </div>
     <div class="section">
@@ -464,55 +487,83 @@ function renderRecipeTab(r){
     </div>
     <div class="section">
      <h3>Flowers</h3>
-     <table class="ing-table">
-      <thead><tr><th style="width:55%">Flower</th><th>Stems</th><th>Cost</th><th></th></tr></thead>
-      <tbody id="flowerRows">${flowers.map(f=>ingRow(f,'flower')).join('')}</tbody>
-     </table>
+     <table class="ing-table"><thead><tr><th style="width:55%">Flower</th><th>Stems</th><th>Cost</th><th></th></tr></thead>
+     <tbody id="flowerRows">${flowers.map(f=>ingRow(f,'flower')).join('')}</tbody></table>
      <button class="add-row-btn" onclick="addRow('flower')"><i class="ti ti-plus"></i> Add flower</button>
     </div>
     <div class="section">
      <h3>Greenery &amp; filler</h3>
-     <table class="ing-table">
-      <thead><tr><th style="width:55%">Filler</th><th>Qty</th><th>Cost</th><th></th></tr></thead>
-      <tbody id="fillerRows">${r.fillers.map(f=>ingRow(f,'filler')).join('')}</tbody>
-     </table>
+     <table class="ing-table"><thead><tr><th style="width:55%">Filler</th><th>Qty</th><th>Cost</th><th></th></tr></thead>
+     <tbody id="fillerRows">${r.fillers.map(f=>ingRow(f,'filler')).join('')}</tbody></table>
      <button class="add-row-btn" onclick="addRow('filler')"><i class="ti ti-plus"></i> Add filler</button>
     </div>
     <div class="section">
      <h3>Labor</h3>
-     <p style="font-size:12px;color:var(--text2);margin-bottom:9px;font-style:italic;">% of retail price ($${r.price.toFixed(2)})</p>
+     <p style="font-size:12px;color:var(--text2);margin-bottom:8px;font-style:italic;">% of final retail price ($${fmt(fp)})</p>
      <div class="labor-row">
       <input type="range" id="f_laborpct" min="0" max="40" step="1" value="${r.laborPct||0}" oninput="refreshLaborDollar()"/>
       <span class="labor-badge" id="labor_pct_label">${r.laborPct||0}%</span>
-      <span class="labor-dollar" id="labor_dollar">= $${c.labor.toFixed(2)}</span>
+      <span class="labor-dollar" id="labor_dollar">= $${fmt(c.labor)}</span>
      </div>
+    </div>
+    <div class="section">
+     <h3>Size <span style="font-weight:normal;font-style:italic;font-size:10px;">(optional)</span></h3>
+     <div class="field-row-3">
+      <div class="field"><label>Height (in.)</label><input id="f_sizeh" type="number" value="${r.sizeH||''}" min="0" step="0.5" placeholder="—" oninput="refreshSize()"/></div>
+      <div class="field"><label>Width (in.)</label><input id="f_sizew" type="number" value="${r.sizeW||''}" min="0" step="0.5" placeholder="—" oninput="refreshSize()"/></div>
+      <div class="field"><label>Depth (in.)</label><input id="f_sized" type="number" value="${r.sizeD||''}" min="0" step="0.5" placeholder="—" oninput="refreshSize()"/></div>
+     </div>
+     <div class="size-display" id="size_display">${sz||'No size entered'}</div>
+    </div>
+    <div class="section">
+     <h3>Tags</h3>
+     <div class="tags-select">${tagsHtml}</div>
+    </div>
+    <div class="section">
+     <h3>Notes</h3>
+     <textarea id="f_notes" placeholder="Sourcing tips, design intent, substitution ideas, customer feedback…">${r.notes||''}</textarea>
     </div>
    </div>
    <div>
     <div class="photo-box"><h3>Photo</h3>${photoHtml}</div>
+    ${sz?`<div class="section"><h3>Size</h3><div style="font-size:13px;color:var(--text2);line-height:1.7;">${sz}</div></div>`:''}
    </div>
   </div>`;
 }
 
+function refreshFinalPrice(){
+  const calc=parseFloat(document.getElementById('f_calcprice')?.value)||0;
+  const adj=parseFloat(document.getElementById('f_adjprice')?.value)||0;
+  const fp=adj>0?adj:calc;
+  const el=document.getElementById('final_price_display');const en=document.getElementById('final_price_note');
+  if(el)el.textContent='$'+fmt(fp);
+  if(en)en.textContent=adj>0?`Adjusted from $${fmt(calc)}`:'Using calculated price';
+}
 function refreshLaborDollar(){
-  const pct=parseFloat(document.getElementById('f_laborpct').value)||0;
-  const price=parseFloat(document.getElementById('f_price').value)||0;
-  document.getElementById('labor_pct_label').textContent=pct+'%';
-  document.getElementById('labor_dollar').textContent='= $'+(price*pct/100).toFixed(2);
+  const pct=parseFloat(document.getElementById('f_laborpct')?.value)||0;
+  const calc=parseFloat(document.getElementById('f_calcprice')?.value)||0;
+  const adj=parseFloat(document.getElementById('f_adjprice')?.value)||0;
+  const fp=adj>0?adj:calc;
+  const lb=document.getElementById('labor_pct_label');const ld=document.getElementById('labor_dollar');
+  if(lb)lb.textContent=pct+'%';if(ld)ld.textContent='= $'+fmt(fp*pct/100);
+}
+function refreshSize(){
+  const h=document.getElementById('f_sizeh')?.value,w=document.getElementById('f_sizew')?.value,d=document.getElementById('f_sized')?.value;
+  const p=[];if(h)p.push(h+' in. tall');if(w)p.push(w+' in. wide');if(d)p.push(d+' in. depth');
+  const el=document.getElementById('size_display');if(el)el.textContent=p.join(' × ')||'No size entered';
 }
 function ingRow(f,type){
   const list=type==='flower'?FLOWERS:FILLERS,cost=f.qty*gpCost(list,f.name);
-  return`<tr class="${type}-row"><td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,f.name)}</select></td><td><input class="f-qty" type="number" value="${f.qty}" min="0" step="1" oninput="updateRowCost(this)"/></td><td class="f-cost" style="color:var(--text2)">$${cost.toFixed(2)}</td><td><button class="del-btn" onclick="this.closest('tr').remove()"><i class="ti ti-x"></i></button></td></tr>`;
+  return`<tr class="${type}-row"><td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,f.name)}</select></td><td><input class="f-qty" type="number" value="${f.qty}" min="0" step="1" oninput="updateRowCost(this)"/></td><td class="f-cost" style="color:var(--text2)">$${fmt(cost)}</td><td><button class="del-btn" onclick="this.closest('tr').remove()"><i class="ti ti-x"></i></button></td></tr>`;
 }
 function updateRowCost(el){
   const row=el.closest('tr'),type=row.classList.contains('flower-row')?'flower':'filler';
   const list=type==='flower'?FLOWERS:FILLERS,name=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
-  row.querySelector('.f-cost').textContent='$'+(qty*gpCost(list,name)).toFixed(2);
+  row.querySelector('.f-cost').textContent='$'+fmt(qty*gpCost(list,name));
 }
 function addRow(type){
   const tbody=document.getElementById(type==='flower'?'flowerRows':'fillerRows'),tr=document.createElement('tr');
-  tr.className=type+'-row';
-  const list=type==='flower'?FLOWERS:FILLERS;
+  tr.className=type+'-row';const list=type==='flower'?FLOWERS:FILLERS;
   tr.innerHTML=`<td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,'None')}</select></td><td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateRowCost(this)"/></td><td class="f-cost" style="color:var(--text2)">$0.00</td><td><button class="del-btn" onclick="this.closest('tr').remove()"><i class="ti ti-x"></i></button></td>`;
   tbody.appendChild(tr);
 }
@@ -524,47 +575,106 @@ function handlePhoto(e){
 }
 function removePhoto(){const r=recipes.find(x=>x.id===activeId);if(!r)return;r.photo=null;saveAll();renderContent();}
 
-// ── Cost breakdown tab ────────────────────────────────────────
 function renderCostsTab(r){
-  const c=calcCost(r);
-  const sd=(r.flowers||[]).map(f=>{const p=gpCost(FLOWERS,f.name);return`<div class="cb-row"><span>${f.qty}× ${f.name}</span><span>$${(f.qty*p).toFixed(2)}</span></div>`;}).join('');
-  const fd=(r.fillers||[]).map(f=>{const p=gpCost(FILLERS,f.name);return`<div class="cb-row"><span>${f.qty}× ${f.name}</span><span>$${(f.qty*p).toFixed(2)}</span></div>`;}).join('');
-  const projProfit=(r.price-c.total)*r.projection;
+  const c=calcCost(r),fp=finalPrice(r);
+  const sd=(r.flowers||[]).map(f=>{const p=gpCost(FLOWERS,f.name);return`<div class="cb-row"><span>${f.qty}× ${f.name}</span><span>$${fmt(f.qty*p)}</span></div>`;}).join('');
+  const fd=(r.fillers||[]).map(f=>{const p=gpCost(FILLERS,f.name);return`<div class="cb-row"><span>${f.qty}× ${f.name}</span><span>$${fmt(f.qty*p)}</span></div>`;}).join('');
+  const projProfit=r.projection?(fp-c.total)*r.projection:null;
   document.getElementById('mainContent').innerHTML=`
   <div class="stat-row">
-   <div class="stat-card"><div class="slabel">Retail price</div><div class="sval">$${r.price.toFixed(2)}</div></div>
-   <div class="stat-card"><div class="slabel">Total cost</div><div class="sval">$${c.total.toFixed(2)}</div></div>
+   <div class="stat-card"><div class="slabel">Final retail</div><div class="sval" style="color:var(--green-dark)">$${fmt(fp)}</div></div>
+   <div class="stat-card"><div class="slabel">Total cost</div><div class="sval">$${fmt(c.total)}</div></div>
    <div class="stat-card"><div class="slabel">Gross margin</div><div class="sval" style="color:${c.margin>=40?'#0F6E56':c.margin>=20?'#854F0B':'#A32D2D'}">${c.margin.toFixed(1)}%</div></div>
-   <div class="stat-card"><div class="slabel">Profit / unit</div><div class="sval">$${(r.price-c.total).toFixed(2)}</div></div>
+   <div class="stat-card"><div class="slabel">Profit / unit</div><div class="sval">$${fmt(fp-c.total)}</div></div>
   </div>
   <div class="two-col">
    <div>
     <div class="section">
+     <h3>Retail pricing</h3>
+     <div class="cb-row"><span>Calculated retail</span><span>$${fmt(r.calcPrice)}</span></div>
+     ${r.adjPrice?`<div class="cb-row"><span>Adjusted retail <span style="font-size:11px;color:var(--text3);">(override)</span></span><span>$${fmt(r.adjPrice)}</span></div>`:''}
+     <div class="cb-row" style="font-weight:600;"><span>Final retail</span><span style="color:var(--green-dark)">$${fmt(fp)}</span></div>
+    </div>
+    <div class="section">
      <h3>Cost breakdown</h3>
      <div class="cb-cat">Container</div>
-     <div class="cb-row"><span>${r.container||'No container'}</span><span>$${c.vp.toFixed(2)}</span></div>
-     ${c.ap>0?`<div class="cb-row"><span>${r.accent}</span><span>$${c.ap.toFixed(2)}</span></div>`:''}
+     <div class="cb-row"><span>${r.container||'No container'}</span><span>$${fmt(c.vp)}</span></div>
+     ${c.ap>0?`<div class="cb-row"><span>${r.accent}</span><span>$${fmt(c.ap)}</span></div>`:''}
      <div class="cb-cat">Flowers</div>
      ${sd||'<div class="cb-row" style="color:var(--text2)"><span>None</span><span>$0.00</span></div>'}
      ${fd?`<div class="cb-cat">Greenery &amp; filler</div>${fd}`:''}
      <div class="cb-cat">Labor</div>
-     <div class="cb-row"><span>Labor (${c.pct}% of $${r.price.toFixed(2)} retail)</span><span>$${c.labor.toFixed(2)}</span></div>
-     <div class="cb-row total"><span>Total cost</span><span>$${c.total.toFixed(2)}</span></div>
+     <div class="cb-row"><span>Labor (${c.pct}% of $${fmt(fp)} final retail)</span><span>$${fmt(c.labor)}</span></div>
+     <div class="cb-row total"><span>Total cost</span><span>$${fmt(c.total)}</span></div>
     </div>
-    <div class="section">
-     <h3>Projection analysis</h3>
+    ${r.projection?`<div class="section"><h3>Projection analysis</h3>
      <div class="cb-row"><span>Units projected</span><span>${r.projection}</span></div>
-     <div class="cb-row"><span>Projected revenue</span><span>$${(r.price*r.projection).toLocaleString()}</span></div>
+     <div class="cb-row"><span>Projected revenue</span><span>$${(fp*r.projection).toLocaleString()}</span></div>
      <div class="cb-row"><span>Projected cost</span><span>$${(c.total*r.projection).toLocaleString()}</span></div>
      <div class="cb-row total"><span>Projected gross profit</span><span style="color:${projProfit>=0?'#0F6E56':'#A32D2D'}">$${projProfit.toLocaleString()}</span></div>
-    </div>
+    </div>`:''}
    </div>
-   <div>${r.photo?`<div class="photo-box"><h3>Photo</h3><img src="${r.photo}" alt="photo" style="width:100%;border-radius:var(--radius);object-fit:cover;"/></div>`:''}</div>
+   <div>
+    ${r.photo?`<div class="photo-box"><h3>Photo</h3><img src="${r.photo}" alt="photo" style="width:100%;border-radius:var(--radius);object-fit:cover;"/></div>`:''}
+    ${sizeStr(r)?`<div class="section"><h3>Size</h3><div style="font-size:13px;color:var(--text2);">${sizeStr(r)}</div></div>`:''}
+   </div>
   </div>`;
 }
 
-// ── Init ──────────────────────────────────────────────────────
-renderList();
+function showPL(type){
+  activePL=type;
+  ['flowers','fillers','containers','accents','hardgoods'].forEach(t=>{const b=document.getElementById('plnav-'+t);if(b)b.classList.toggle('active',t===type);});
+  const labels={flowers:'Flower costs',fillers:'Greenery & filler costs',containers:'Container costs',accents:'Accent costs',hardgoods:'Hardgoods costs'};
+  document.getElementById('topTitle').textContent=labels[type];
+  document.getElementById('tabBar').style.display='none';
+  document.getElementById('actionBtns').style.display='none';
+  renderPriceList(type);
+}
+function renderPriceList(type){
+  const list=getList(type),mult=getMult(type),multLabel=mult===4?'× 4':'× 3.5';
+  const rows=list.filter(x=>x.n!=='None').map((item,i)=>{
+    const idx=i+1,markup=parseFloat((item.p*mult).toFixed(2));
+    const finalVal=(item.r!==null&&item.r!==undefined)?item.r:markup;
+    const diff=parseFloat((finalVal-markup).toFixed(2)),met=finalVal>=markup;
+    const diffStr=diff===0?'':(diff>0?'+$'+diff.toFixed(2):'-$'+Math.abs(diff).toFixed(2));
+    return`<tr><td style="width:36%"><input type="text" value="${item.n}" onchange="updatePLName('${type}',${idx},this.value)"/></td><td style="width:13%"><input type="number" value="${item.p}" min="0" step="0.01" onchange="updatePLCost('${type}',${idx},this.value,this)"/></td><td style="width:16%"><span class="markup-val ${met?'markup-met':'markup-off'}">$${markup.toFixed(2)}</span></td><td style="width:17%"><input type="number" value="${finalVal.toFixed(2)}" min="0" step="0.01" onchange="updatePLRetail('${type}',${idx},this.value,this)"/></td><td style="width:10%"><span class="diff-val" style="color:${met?'#0F6E56':'#A32D2D'}">${diffStr}</span></td><td style="width:4%"><button class="del-btn" onclick="deletePLItem('${type}',${idx})"><i class="ti ti-x"></i></button></td></tr>`;
+  }).join('');
+  document.getElementById('mainContent').innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+   <div class="legend" style="flex:1;"><span><span class="legend-dot" style="background:#0F6E56;"></span>Green = meets markup (cost ${multLabel})</span><span><span class="legend-dot" style="background:#A32D2D;"></span>Red = below goal</span></div>
+   <button class="pl-save-btn" onclick="savePriceLists()"><i class="ti ti-device-floppy"></i> Save prices</button>
+   <span class="saved-flash" id="savedFlash">Saved!</span>
+  </div>
+  <div class="section"><div class="pl-wrap"><table class="pl-table"><thead><tr><th>Name</th><th>Cost ($)</th><th>Markup (${multLabel})</th><th>Final retail ($)</th><th>Diff</th><th></th></tr></thead><tbody id="plRows">${rows}</tbody></table></div><button class="add-row-btn" onclick="addPLItem('${type}')"><i class="ti ti-plus"></i> Add item</button></div>`;
+}
+function updatePLName(type,idx,val){getList(type)[idx].n=val;}
+function updatePLCost(type,idx,val,el){
+  const item=getList(type)[idx];item.p=parseFloat(val)||0;
+  const mult=getMult(type),markup=parseFloat((item.p*mult).toFixed(2));
+  const row=el.closest('tr');
+  if(item.r===null||item.r===undefined)row.cells[3].querySelector('input').value=markup.toFixed(2);
+  refreshPLRow(row,item,mult);
+}
+function updatePLRetail(type,idx,val,el){getList(type)[idx].r=parseFloat(val)||0;refreshPLRow(el.closest('tr'),getList(type)[idx],getMult(type));}
+function refreshPLRow(row,item,mult){
+  const markup=parseFloat((item.p*mult).toFixed(2)),finalVal=(item.r!==null&&item.r!==undefined)?item.r:markup;
+  const diff=parseFloat((finalVal-markup).toFixed(2)),met=finalVal>=markup;
+  const mk=row.cells[2].querySelector('span')||row.cells[2];mk.textContent='$'+markup.toFixed(2);mk.className='markup-val '+(met?'markup-met':'markup-off');
+  const dc=row.cells[4].querySelector('span')||row.cells[4];dc.style.color=met?'#0F6E56':'#A32D2D';dc.textContent=diff===0?'':(diff>0?'+$'+diff.toFixed(2):'-$'+Math.abs(diff).toFixed(2));
+}
+function deletePLItem(type,idx){getList(type).splice(idx,1);renderPriceList(type);}
+function addPLItem(type){
+  getList(type).push({n:'New item',p:0,r:null});renderPriceList(type);
+  const rows=document.getElementById('plRows').querySelectorAll('tr');if(rows.length)rows[rows.length-1].querySelector('input[type=text]').focus();
+}
+function savePriceLists(){
+  localStorage.setItem('bs_flowers',JSON.stringify(FLOWERS));localStorage.setItem('bs_fillers',JSON.stringify(FILLERS));
+  localStorage.setItem('bs_containers',JSON.stringify(CONTAINERS));localStorage.setItem('bs_hardgoods',JSON.stringify(HARDGOODS));
+  localStorage.setItem('bs_accents',JSON.stringify(ACCENTS));
+  const f=document.getElementById('savedFlash');if(f){f.style.opacity='1';setTimeout(()=>f.style.opacity='0',1800);}
+}
+
+filterRecipes();
 </script>
 </body>
 </html>

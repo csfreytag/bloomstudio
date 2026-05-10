@@ -31,7 +31,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .sidebar-header img.logo { width: 100%; max-width: 210px; display: block; margin: 0 auto 4px; }
 .sidebar-header p { font-size: 11px; color: var(--text3); text-align: center; font-style: italic; letter-spacing: 0.04em; }
 .nav-tabs { display: flex; border-bottom: 0.5px solid var(--border); }
-.nav-tab { flex: 1; padding: 9px 2px; font-size: 11px; text-align: center; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; transition: all 0.15s; }
+.nav-tab { flex: 1; padding: 9px 2px; font-size: 10px; text-align: center; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; transition: all 0.15s; }
 .nav-tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 500; }
 .nav-tab:hover:not(.active) { background: var(--bg2); }
 .search-filter { border-bottom: 0.5px solid var(--border); }
@@ -180,7 +180,9 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
   </div>
   <div class="nav-tabs">
    <button class="nav-tab active" id="nt-recipes" onclick="setNav('recipes')">Recipes</button>
-   <button class="nav-tab" id="nt-prices" onclick="setNav('prices')">Price lists</button>
+   <button class="nav-tab" id="nt-prices" onclick="setNav('prices')">Prices</button>
+   <button class="nav-tab" id="nt-calc" onclick="setNav('calc')">Calculator</button>
+   <button class="nav-tab" id="nt-order" onclick="setNav('order')">Ordering</button>
    <button class="nav-tab" id="nt-tags" onclick="setNav('tags')">Tags</button>
   </div>
   <div id="sidebar-recipes" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
@@ -209,9 +211,20 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
     <p>Edit costs and final retail prices.</p>
     <button class="pl-nav-btn active" id="plnav-flowers" onclick="showPL('flowers')"><i class="ti ti-flower"></i> Flowers</button>
     <button class="pl-nav-btn" id="plnav-fillers" onclick="showPL('fillers')"><i class="ti ti-leaf"></i> Greenery &amp; filler</button>
+    <button class="pl-nav-btn" id="plnav-plants" onclick="showPL('plants')"><i class="ti ti-plant"></i> Plants</button>
     <button class="pl-nav-btn" id="plnav-containers" onclick="showPL('containers')"><i class="ti ti-bottle"></i> Containers</button>
     <button class="pl-nav-btn" id="plnav-accents" onclick="showPL('accents')"><i class="ti ti-sparkles"></i> Accents</button>
     <button class="pl-nav-btn" id="plnav-hardgoods" onclick="showPL('hardgoods')"><i class="ti ti-tools"></i> Hardgoods</button>
+   </div>
+  </div>
+  <div id="sidebar-calc" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+   <div class="pl-nav">
+    <p>Design sandbox — nothing saves. Build up from ingredients or work down from a target price.</p>
+   </div>
+  </div>
+  <div id="sidebar-order" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+   <div class="pl-nav">
+    <p>Filter recipes by tag, enter quantities, and export a stem count spreadsheet.</p>
    </div>
   </div>
   <div id="sidebar-tags" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
@@ -246,7 +259,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 function defR(l){return l.map(x=>({n:x.n,p:x.p,r:x.r!==undefined?x.r:null}));}
 function getMult(t){return(t==='flowers'||t==='fillers')?4:3.5;}
 function gpCost(list,name){const f=list.find(x=>x.n.trim()===name.trim());return f?f.p:0;}
-function getList(t){return t==='flowers'?FLOWERS:t==='fillers'?FILLERS:t==='containers'?CONTAINERS:t==='hardgoods'?HARDGOODS:ACCENTS;}
+function getList(t){return t==='flowers'?FLOWERS:t==='fillers'?FILLERS:t==='containers'?CONTAINERS:t==='hardgoods'?HARDGOODS:t==='plants'?PLANTS:ACCENTS;}
 function fmt(n){return parseFloat(n).toFixed(2);}
 
 let FLOWERS=defR(JSON.parse(localStorage.getItem('bs_flowers')||'null')||[{n:"None",p:0},{n:"Anemone Purple/White",p:8},{n:"Anthurium - Green",p:12.5},{n:"Anemones Blue",p:8},{n:"Alstro - Hot Pink",p:3.5},{n:"Alstro - Lt Pink",p:3.5},{n:"Alstro - Orange",p:3.5},{n:"Alstro - Pink",p:3.5},{n:"Alstro - Purple",p:3.5},{n:"Alstro - Light Yellow",p:3.5},{n:"Alstro - White",p:3.5},{n:"Alstro - Yellow",p:3.5},{n:"Alstro - White/Purple",p:3.5},{n:"Asiatic Lily - Orange",p:6},{n:"Asiatic Lily - Pink",p:6},{n:"Asiatic Lily - Lavender",p:6},{n:"Asiatic Lily - Yellow",p:6},{n:"Asiatic Lily - Red",p:6},{n:"Anemones Hot Pink",p:8},{n:"Bells of Ireland",p:3.5},{n:"Billy Balls",p:3},{n:"Birds of Paradise",p:7.5},{n:"Pink Azalea",p:48},{n:"Callas - Pink",p:12.5},{n:"Callas - Yellow",p:12.5},{n:"Callas - Eggplant",p:12.5},{n:"Callas - Bronze",p:12.5},{n:"Callas (Mini) - White",p:8},{n:"Callas (Mini) - Pink",p:8},{n:"Callas (Mini) - Yellow",p:8},{n:"Callas (Mini) - Purple",p:8},{n:"Callas (Mini) - Bronze",p:8},{n:"Callas (Mini) - Picasso",p:8},{n:"Anemones Dark Purple",p:8},{n:"Anemones White",p:8},{n:"Astilbe Pink",p:4},{n:"Astilbe White",p:4},{n:"Garden Roses Hot Pink",p:9},{n:"Garden Roses Peach",p:8.5},{n:"Garden Roses White",p:8.5},{n:"Garden Roses Yellow",p:8.5},{n:"Green Buttons",p:3},{n:"Green Cymbidium Blooms",p:7.5},{n:"Hypericum Green",p:3.5},{n:"Hypericum Peach",p:3.5},{n:"Lisianthus Purple",p:4},{n:"Lisianthus Lavender",p:4},{n:"Casa Blanca Lilies",p:12.5},{n:"Lisianthus Pale Yellow",p:4},{n:"Lisianthus Pink",p:4.5},{n:"Lisianthus White",p:5.5},{n:"Disbud Purple",p:4},{n:"Disbud Lavender",p:4},{n:"Delphinium",p:4},{n:"Dianthus - Green Trick",p:3},{n:"Protea - Yellow Pin Cushion",p:8},{n:"Ranunculus - Yellow",p:6},{n:"Gerbera - Fuchsia",p:4},{n:"Gerbera - Hot Pink",p:4},{n:"Gerbera - Light Pink",p:4},{n:"Gerbera - Orange",p:4},{n:"Astilbe Hot Pink",p:4},{n:"Buplerum",p:3},{n:"Astilbe Hot Purple",p:4},{n:"Gerbera - White and Violet",p:4},{n:"Gerbera - Yellow",p:4},{n:"Gerbera - Peach",p:4},{n:"Ginger - Pink",p:7.5},{n:"Ginger - Red",p:7.5},{n:"Ranunculus Peach",p:6},{n:"Ranunculus Hot Pink",p:6},{n:"Ranunculus Light Pink",p:6},{n:"Ranunculus Orange",p:6},{n:"Safari Sunset",p:4},{n:"Safflower",p:3},{n:"Scabiosa Pods",p:3},{n:"Silver Protea",p:3},{n:"Veronica Pink",p:4},{n:"Veronica Purple",p:4},{n:"Hydrangea - Blue",p:9},{n:"Hydrangea - White",p:8.5},{n:"Hydrangea - Shamrock",p:10},{n:"Hydrangea - Pink",p:10},{n:"Hydrangea - Mini Green",p:5},{n:"Hydrangea - Purple",p:12},{n:"Hydrangea - Large Green",p:10},{n:"Iris",p:3},{n:"Veronica Blue",p:4},{n:"Larkspur - Purple",p:4},{n:"Larkspur - Pink",p:4},{n:"Liatrice",p:4},{n:"Delphinum - Light Blue",p:4},{n:"Orchids - Dendrobium White",p:6},{n:"Orchids - Mokaras-Fuchsia",p:7},{n:"Orchids - Mokaras-gold",p:7},{n:"Orchids - Mokaras-Purple",p:7},{n:"Orchids - Oncidium Stem",p:10},{n:"Poms - Green",p:3},{n:"Poms - Yellow",p:3},{n:"Poms - White Daisy",p:3},{n:"Protea - Orange Pin Cushion",p:10},{n:"Protea - Pink Velvet",p:7},{n:"Protea - Safari Sunset",p:4},{n:"Bom Bom mums - Yellow",p:3},{n:"Bom Bom mums - Purple",p:3},{n:"Roses - Long Stem Lavender",p:8},{n:"Roses - Long Stem Circus",p:8},{n:"Roses - Long Stem Pink",p:8},{n:"Roses - Long Stem Red",p:8},{n:"Roses - Long Stem White",p:8},{n:"Roses - Long Stem Yellow",p:8},{n:"Roses - Long Stem Cherry/brandy",p:8},{n:"Roses - Long Stem Malibu",p:8},{n:"Roses - Free Spirit",p:5},{n:"Roses - Med Stem Lavender",p:4.5},{n:"Roses - Med Stem Circus",p:4},{n:"Roses - Med Stem Hot Pink",p:4},{n:"Roses - Med Stem Light Pink",p:4},{n:"Roses - Med Stem Red",p:5.5},{n:"Roses - Med Stem Cherry/Brandy",p:4},{n:"Roses - Med Stem Pink",p:4},{n:"Roses - Med Stem Malibu",p:4},{n:"Roses - Med Stem White",p:4},{n:"Roses - Med Stem Orange",p:4},{n:"Roses - Med Stem Peach",p:4},{n:"Rover Mum",p:3.5},{n:"Snaps - Orange",p:4},{n:"Snaps - Pink",p:4},{n:"Snaps - Purple",p:4},{n:"Snaps - Red",p:4},{n:"Snaps - White",p:4},{n:"Snaps - Yellow",p:4},{n:"Solidago Stem",p:2},{n:"Spray Roses - Pink",p:5},{n:"Spray Roses - Red",p:5},{n:"Spray Roses - White",p:5},{n:"Spray Roses - Yellow",p:5},{n:"Spray Roses - Orange",p:5},{n:"Spray Roses - Hot Pink",p:5},{n:"Stargazers",p:8.5},{n:"Double Stem Purple Orchid Plant",p:75},{n:"Stock - Peach",p:4},{n:"Statice Stem - Purple",p:3},{n:"Statice Stem - Fuschia",p:3},{n:"Stock - Fuchsia",p:4.5},{n:"Stock - Lavender",p:5.5},{n:"Stock - Pink",p:4},{n:"Stock - Purple",p:5.5},{n:"Stock - Dark Purple",p:4.5},{n:"Stock - RASPBERRY",p:5.5},{n:"Stock - Pale Yellow",p:5.5},{n:"Sunflower - Large",p:5},{n:"Sunflower - Mini",p:3},{n:"Thistle",p:3},{n:"Tulips - Orange",p:5.5},{n:"Tulips - Pink",p:5.5},{n:"Tulips - Purple",p:5.5},{n:"Tulips - Red",p:5.5},{n:"Tulips - Dark Pink",p:5.5},{n:"Tulips - White",p:5.5},{n:"Tulips - Yellow",p:5.5},{n:"Pink Phalaenopsis Stem",p:50},{n:"Waxflower - White",p:3},{n:"Waxflower - Orange",p:3},{n:"Waxflower - Purple",p:3},{n:"Waxflower - Pink",p:3},{n:"3 inch Succulent",p:12},{n:"White Single Stem Phal Orchid",p:75},{n:"4 inch Succulent",p:10},{n:"Blooming Dianthus",p:3}]);
@@ -254,6 +267,7 @@ let FILLERS=defR(JSON.parse(localStorage.getItem('bs_fillers')||'null')||[{n:"No
 let CONTAINERS=defR(JSON.parse(localStorage.getItem('bs_containers')||'null')||[{n:"None",p:0},{n:"EOS COLLECTION",p:27},{n:"Two dozen vase",p:30},{n:"007 Vase",p:7},{n:"4x4 Cylinder",p:7},{n:"Riviera Vase",p:38},{n:"5x10",p:18},{n:"5x5 Cylinder",p:8},{n:"WD White ceramic 12x6x4",p:30},{n:"White Ginny Pot",p:30},{n:"6x6 Clear Cube",p:17},{n:"6x6 CYLINDER",p:12},{n:"G3 3055CLR Flare Vase",p:19},{n:"C999 Vase",p:5},{n:"7 inch White Cylinder",p:25},{n:"5x5 White Cylinder",p:12},{n:"7X4 White Ceramic Cyl",p:17},{n:"Red 4x4 Cube",p:7},{n:"Red 5x5 Cube",p:20},{n:"Red Upgraded Rose Vase",p:18},{n:"5x6 Clear Cylinder",p:8},{n:"6x8 Cylinder",p:15},{n:"6x6 Frosted Cube",p:25},{n:"6X6 Ginny Pot",p:30},{n:"Jordan Vase",p:16},{n:"6X4X12 Clear Rectangle",p:47},{n:"10x10 Clear Cylinder",p:36},{n:"5X10 Cylinder vase",p:18},{n:"10x10 Bubble Bowl",p:10},{n:"6x10 Cylinder",p:18},{n:"Rectangle Slate Gray Tray",p:18},{n:"White 6 inch Cylinder",p:18},{n:"3x5 Cylinder",p:4}]);
 let ACCENTS=defR(JSON.parse(localStorage.getItem('bs_accents')||'null')||[{n:"None",p:0},{n:"Leaf Wrap",p:5},{n:"Multi-color Gems",p:3},{n:"Pink Ribbon",p:5},{n:"Purple Ribbon",p:5},{n:"Pink Gems",p:3},{n:"Red Gems",p:3},{n:"Red Heart Gems",p:3},{n:"Red Large Glass Gems",p:3},{n:"Red Ribbon",p:5},{n:"Rocks",p:3},{n:"Violet Ribbon",p:5},{n:"Yellow Ribbon",p:5},{n:"Clear Rocks",p:4}]);
 let HARDGOODS=defR(JSON.parse(localStorage.getItem('bs_hardgoods')||'null')||[{n:"None",p:0},{n:"Bamboo Skewer",p:0.25},{n:"Corsage Pin",p:0.1},{n:"Floral Foam Block",p:2},{n:"Floral Tape - Green",p:0.5},{n:"Floral Tape - White",p:0.5},{n:"Floral Wire",p:0.1},{n:"Greening Pins",p:0.1},{n:"Mache Box - Small",p:4},{n:"Mache Box - Medium",p:6},{n:"Mache Box - Large",p:8},{n:"Organza Bag - Small",p:1},{n:"Organza Bag - Large",p:2},{n:"Pick - Wood",p:0.25},{n:"Tissue Paper",p:0.5},{n:"Wrap - Kraft",p:1},{n:"Wrap - Cellophane",p:1.5}]);
+let PLANTS=defR(JSON.parse(localStorage.getItem('bs_plants')||'null')||[{n:"None",p:0},{n:"4\" Succulent",p:8},{n:"6\" Succulent",p:14},{n:"4\" Kalanchoe",p:6},{n:"6\" Kalanchoe",p:12},{n:"4\" Peace Lily",p:8},{n:"6\" Peace Lily",p:18},{n:"10\" Peace Lily",p:35},{n:"4\" Pothos",p:7},{n:"6\" Pothos",p:14},{n:"4\" Snake Plant",p:8},{n:"6\" Snake Plant",p:16},{n:"4\" ZZ Plant",p:10},{n:"6\" ZZ Plant",p:20},{n:"4\" Bromeliad",p:10},{n:"6\" Bromeliad",p:18},{n:"Mini Orchid",p:18},{n:"Single Stem Orchid",p:28},{n:"Double Stem Orchid",p:45},{n:"4\" Fern",p:6},{n:"6\" Fern",p:12},{n:"4\" Croton",p:8},{n:"6\" Croton",p:16},{n:"Dish Garden - Small",p:25},{n:"Dish Garden - Medium",p:45},{n:"Dish Garden - Large",p:75}]);
 let TAGS=JSON.parse(localStorage.getItem('bs_tags')||'null')||["Valentine's Day","Mother's Day","Christmas","Easter","Sympathy","Wedding","Birthday","Spring","Summer","Fall","Winter","Everyday","Premium","Under $75","Under $100","Under $150"];
 let activeTagFilters=[];
 
@@ -287,13 +301,16 @@ function sizeStr(r){const p=[];if(r.sizeH)p.push(r.sizeH+' in. tall');if(r.sizeW
 
 function setNav(nav){
   activeNav=nav;
-  ['recipes','prices','tags'].forEach(n=>{
-    document.getElementById('nt-'+n).classList.toggle('active',n===nav);
+  ['recipes','prices','calc','order','tags'].forEach(n=>{
+    const btn=document.getElementById('nt-'+n);
+    if(btn)btn.classList.toggle('active',n===nav);
     const p=document.getElementById('sidebar-'+n);
     if(p)p.style.display=n===nav?'flex':'none';
   });
   if(nav==='prices')showPL(activePL);
   else if(nav==='tags'){renderSidebarTags();renderTagsMain();}
+  else if(nav==='calc')renderCalculator();
+  else if(nav==='order')renderOrdering();
   else if(nav==='recipes'&&activeId)renderEditor();
   else if(nav==='recipes')resetMain();
 }
@@ -639,8 +656,8 @@ function renderCostsTab(r){
 
 function showPL(type){
   activePL=type;
-  ['flowers','fillers','containers','accents','hardgoods'].forEach(t=>{const b=document.getElementById('plnav-'+t);if(b)b.classList.toggle('active',t===type);});
-  const labels={flowers:'Flower costs',fillers:'Greenery & filler costs',containers:'Container costs',accents:'Accent costs',hardgoods:'Hardgoods costs'};
+  ['flowers','fillers','plants','containers','accents','hardgoods'].forEach(t=>{const b=document.getElementById('plnav-'+t);if(b)b.classList.toggle('active',t===type);});
+  const labels={flowers:'Flower costs',fillers:'Greenery & filler costs',plants:'Plant costs',containers:'Container costs',accents:'Accent costs',hardgoods:'Hardgoods costs'};
   document.getElementById('topTitle').textContent=labels[type];
   document.getElementById('tabBar').style.display='none';
   document.getElementById('actionBtns').style.display='none';
@@ -686,8 +703,281 @@ function addPLItem(type){
 function savePriceLists(){
   localStorage.setItem('bs_flowers',JSON.stringify(FLOWERS));localStorage.setItem('bs_fillers',JSON.stringify(FILLERS));
   localStorage.setItem('bs_containers',JSON.stringify(CONTAINERS));localStorage.setItem('bs_hardgoods',JSON.stringify(HARDGOODS));
-  localStorage.setItem('bs_accents',JSON.stringify(ACCENTS));
+  localStorage.setItem('bs_accents',JSON.stringify(ACCENTS));localStorage.setItem('bs_plants',JSON.stringify(PLANTS));
   const f=document.getElementById('savedFlash');if(f){f.style.opacity='1';setTimeout(()=>f.style.opacity='0',1800);}
+}
+
+// ── Designer Calculator ───────────────────────────────────────
+function renderCalculator(){
+  document.getElementById('topTitle').textContent='Designer Calculator';
+  document.getElementById('tabBar').style.display='none';
+  document.getElementById('actionBtns').style.display='none';
+  document.getElementById('mainContent').innerHTML=`
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;">
+   <div class="price-box" style="background:var(--bg2);">
+    <div class="pb-label">Mode</div>
+    <div style="display:flex;gap:8px;margin-top:6px;">
+     <button id="modeUp" onclick="setCalcMode('up')" style="flex:1;padding:7px;border-radius:var(--radius);border:0.5px solid var(--border2);cursor:pointer;font-size:12px;background:var(--green);color:white;">▲ Build up</button>
+     <button id="modeDown" onclick="setCalcMode('down')" style="flex:1;padding:7px;border-radius:var(--radius);border:0.5px solid var(--border2);cursor:pointer;font-size:12px;background:var(--bg);color:var(--text2);">▼ Work down</button>
+    </div>
+   </div>
+   <div class="price-box" id="calcTargetBox" style="background:var(--bg2);display:none;">
+    <div class="pb-label">Target retail price ($)</div>
+    <input type="number" id="calcTarget" min="0" step="0.01" placeholder="e.g. 85.00" oninput="updateCalc()" style="width:100%;margin-top:4px;font-size:16px;"/>
+   </div>
+   <div class="price-box final" id="calcResultBox">
+    <div class="pb-label" id="calcResultLabel">Total cost</div>
+    <div class="pb-val" id="calcResult">$0.00</div>
+    <div class="pb-note" id="calcResultNote">Add ingredients below</div>
+   </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 220px;gap:14px;align-items:start;">
+   <div>
+    <div class="section">
+     <h3>Container</h3>
+     <div class="field-row">
+      <div class="field"><label>Container</label><select id="calc_container" onchange="updateCalc()">${mkOpts(CONTAINERS,'None')}</select></div>
+      <div class="field"><label>Accent</label><select id="calc_accent" onchange="updateCalc()">${mkOpts(ACCENTS,'None')}</select></div>
+     </div>
+    </div>
+    <div class="section">
+     <h3>Flowers</h3>
+     <table class="ing-table">
+      <thead><tr><th style="width:55%">Flower</th><th>Stems</th><th>Cost</th><th></th></tr></thead>
+      <tbody id="calcFlowerRows">
+       <tr class="calc-flower-row"><td><select class="f-sel" onchange="updateCalc()">${mkOpts(FLOWERS,'None')}</select></td><td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateCalc()"/></td><td class="f-cost" style="color:var(--text2)">$0.00</td><td><button class="del-btn" onclick="removeCalcRow(this,'calcFlowerRows');updateCalc()"><i class="ti ti-x"></i></button></td></tr>
+      </tbody>
+     </table>
+     <button class="add-row-btn" onclick="addCalcRow('calcFlowerRows','flower')"><i class="ti ti-plus"></i> Add flower</button>
+    </div>
+    <div class="section">
+     <h3>Greenery &amp; filler</h3>
+     <table class="ing-table">
+      <thead><tr><th style="width:55%">Filler</th><th>Qty</th><th>Cost</th><th></th></tr></thead>
+      <tbody id="calcFillerRows"></tbody>
+     </table>
+     <button class="add-row-btn" onclick="addCalcRow('calcFillerRows','filler')"><i class="ti ti-plus"></i> Add filler</button>
+    </div>
+    <div class="section">
+     <h3>Plants</h3>
+     <table class="ing-table">
+      <thead><tr><th style="width:55%">Plant</th><th>Qty</th><th>Cost</th><th></th></tr></thead>
+      <tbody id="calcPlantRows"></tbody>
+     </table>
+     <button class="add-row-btn" onclick="addCalcRow('calcPlantRows','plant')"><i class="ti ti-plus"></i> Add plant</button>
+    </div>
+    <div class="section">
+     <h3>Labor</h3>
+     <p style="font-size:12px;color:var(--text2);margin-bottom:8px;font-style:italic;">% of retail price</p>
+     <div class="labor-row">
+      <input type="range" id="calc_labor" min="0" max="40" step="1" value="20" oninput="document.getElementById('calc_labor_label').textContent=this.value+'%';updateCalc()"/>
+      <span class="labor-badge" id="calc_labor_label">20%</span>
+      <span class="labor-dollar" id="calc_labor_dollar">= $0.00</span>
+     </div>
+    </div>
+    <button class="save-btn" style="margin-top:4px;" onclick="resetCalc()"><i class="ti ti-refresh"></i> Reset calculator</button>
+   </div>
+   <div>
+    <div class="section">
+     <h3>Cost summary</h3>
+     <div style="font-size:13px;">
+      <div class="cb-row"><span>Container</span><span id="cs_container">$0.00</span></div>
+      <div class="cb-row"><span>Flowers</span><span id="cs_flowers">$0.00</span></div>
+      <div class="cb-row"><span>Greenery &amp; filler</span><span id="cs_fillers">$0.00</span></div>
+      <div class="cb-row"><span>Plants</span><span id="cs_plants">$0.00</span></div>
+      <div class="cb-row"><span>Labor</span><span id="cs_labor">$0.00</span></div>
+      <div class="cb-row total"><span>Total cost</span><span id="cs_total">$0.00</span></div>
+     </div>
+    </div>
+    <div class="section" id="calcBudgetBox" style="display:none;">
+     <h3>Budget tracker</h3>
+     <div style="font-size:13px;">
+      <div class="cb-row"><span>Target retail</span><span id="cs_target">—</span></div>
+      <div class="cb-row"><span>Max ingredient budget</span><span id="cs_budget">—</span></div>
+      <div class="cb-row"><span>Ingredients spent</span><span id="cs_spent">—</span></div>
+      <div class="cb-row total"><span>Remaining</span><span id="cs_remaining" style="font-weight:600;">—</span></div>
+     </div>
+    </div>
+   </div>
+  </div>`;
+  updateCalc();
+}
+
+let calcMode='up';
+function setCalcMode(mode){
+  calcMode=mode;
+  document.getElementById('modeUp').style.background=mode==='up'?'var(--green)':'var(--bg)';
+  document.getElementById('modeUp').style.color=mode==='up'?'white':'var(--text2)';
+  document.getElementById('modeDown').style.background=mode==='down'?'var(--green)':'var(--bg)';
+  document.getElementById('modeDown').style.color=mode==='down'?'white':'var(--text2)';
+  document.getElementById('calcTargetBox').style.display=mode==='down'?'block':'none';
+  document.getElementById('calcBudgetBox').style.display=mode==='down'?'block':'none';
+  updateCalc();
+}
+
+function addCalcRow(tbodyId,type){
+  const tbody=document.getElementById(tbodyId);
+  const list=type==='flower'?FLOWERS:type==='filler'?FILLERS:PLANTS;
+  const tr=document.createElement('tr');tr.className='calc-'+type+'-row';
+  tr.innerHTML=`<td><select class="f-sel" onchange="updateCalc()">${mkOpts(list,'None')}</select></td><td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateCalc()"/></td><td class="f-cost" style="color:var(--text2)">$0.00</td><td><button class="del-btn" onclick="removeCalcRow(this,'${tbodyId}');updateCalc()"><i class="ti ti-x"></i></button></td>`;
+  tbody.appendChild(tr);
+}
+function removeCalcRow(btn,tbodyId){btn.closest('tr').remove();}
+
+function updateCalc(){
+  if(!document.getElementById('calc_container'))return;
+  const vp=gpCost(CONTAINERS,document.getElementById('calc_container').value);
+  const ap=gpCost(ACCENTS,document.getElementById('calc_accent').value);
+  let fc=0;
+  document.querySelectorAll('#calcFlowerRows tr').forEach(row=>{
+    const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
+    const c=q*gpCost(FLOWERS,n||'None');fc+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
+  });
+  let fil=0;
+  document.querySelectorAll('#calcFillerRows tr').forEach(row=>{
+    const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
+    const c=q*gpCost(FILLERS,n||'None');fil+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
+  });
+  let pl=0;
+  document.querySelectorAll('#calcPlantRows tr').forEach(row=>{
+    const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
+    const c=q*gpCost(PLANTS,n||'None');pl+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
+  });
+  const laborPct=parseFloat(document.getElementById('calc_labor')?.value)||0;
+  const stemTotal=vp+ap+fc+fil+pl;
+  const target=parseFloat(document.getElementById('calcTarget')?.value)||0;
+  const laborBase=calcMode==='down'&&target>0?target:stemTotal/(1-laborPct/100)||stemTotal;
+  const labor=(calcMode==='down'&&target>0?target:laborBase)*laborPct/100;
+  const total=stemTotal+labor;
+  const suggestedRetail=total/(1-(laborPct/100)||1)*1;
+
+  if(document.getElementById('cs_container'))document.getElementById('cs_container').textContent='$'+fmt(vp+ap);
+  if(document.getElementById('cs_flowers'))document.getElementById('cs_flowers').textContent='$'+fmt(fc);
+  if(document.getElementById('cs_fillers'))document.getElementById('cs_fillers').textContent='$'+fmt(fil);
+  if(document.getElementById('cs_plants'))document.getElementById('cs_plants').textContent='$'+fmt(pl);
+  if(document.getElementById('cs_labor'))document.getElementById('cs_labor').textContent='$'+fmt(labor);
+  if(document.getElementById('cs_total'))document.getElementById('cs_total').textContent='$'+fmt(total);
+  if(document.getElementById('calc_labor_dollar'))document.getElementById('calc_labor_dollar').textContent='= $'+fmt(labor);
+
+  if(calcMode==='up'){
+    const retail=total>0?total*(100/(100-laborPct)):0;
+    if(document.getElementById('calcResult'))document.getElementById('calcResult').textContent='$'+fmt(total);
+    if(document.getElementById('calcResultLabel'))document.getElementById('calcResultLabel').textContent='Total cost';
+    if(document.getElementById('calcResultNote'))document.getElementById('calcResultNote').textContent=total>0?`Suggested retail: ~$${fmt(retail)}`:'Add ingredients below';
+  } else {
+    if(target>0){
+      const maxIngredients=target*(1-laborPct/100);
+      const spent=stemTotal;
+      const remaining=maxIngredients-spent;
+      if(document.getElementById('calcResult'))document.getElementById('calcResult').textContent='$'+fmt(Math.max(remaining,0));
+      if(document.getElementById('calcResultLabel'))document.getElementById('calcResultLabel').textContent='Ingredient budget remaining';
+      if(document.getElementById('calcResultNote'))document.getElementById('calcResultNote').textContent=remaining<0?`Over budget by $${fmt(Math.abs(remaining))}`:`of $${fmt(maxIngredients)} total`;
+      const el=document.getElementById('calcResult');
+      if(el)el.style.color=remaining<0?'var(--red)':'var(--green-dark)';
+      if(document.getElementById('cs_target'))document.getElementById('cs_target').textContent='$'+fmt(target);
+      if(document.getElementById('cs_budget'))document.getElementById('cs_budget').textContent='$'+fmt(maxIngredients);
+      if(document.getElementById('cs_spent'))document.getElementById('cs_spent').textContent='$'+fmt(spent);
+      const rem=document.getElementById('cs_remaining');
+      if(rem){rem.textContent='$'+fmt(remaining);rem.style.color=remaining<0?'var(--red)':'var(--stem)';}
+    } else {
+      if(document.getElementById('calcResult'))document.getElementById('calcResult').textContent='—';
+      if(document.getElementById('calcResultNote'))document.getElementById('calcResultNote').textContent='Enter a target price above';
+    }
+  }
+}
+
+function resetCalc(){renderCalculator();}
+
+// ── Ordering Export ───────────────────────────────────────────
+function renderOrdering(){
+  document.getElementById('topTitle').textContent='Ordering Export';
+  document.getElementById('tabBar').style.display='none';
+  document.getElementById('actionBtns').style.display='none';
+
+  const tagOpts=TAGS.map(t=>`<option value="${t.replace(/"/g,'&quot;')}">${t}</option>`).join('');
+
+  document.getElementById('mainContent').innerHTML=`
+  <div class="section">
+   <h3>Step 1 — Select a tag</h3>
+   <p style="font-size:12px;color:var(--text2);margin-bottom:10px;font-style:italic;">Choose the tag you want to order for. All recipes with that tag will be pulled in.</p>
+   <div style="display:flex;gap:10px;align-items:center;">
+    <select id="orderTag" onchange="loadOrderRecipes()" style="flex:1;">
+     <option value="">— Select a tag —</option>
+     ${tagOpts}
+    </select>
+   </div>
+  </div>
+  <div id="orderRecipesSection" style="display:none;">
+   <div class="section">
+    <h3>Step 2 — Enter quantities for this week</h3>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px;font-style:italic;">Based on your sales lookback, enter how many of each arrangement you plan to make.</p>
+    <table class="ing-table">
+     <thead><tr><th style="width:50%">Recipe</th><th style="width:20%">SKU</th><th style="width:30%">Qty this week</th></tr></thead>
+     <tbody id="orderQtyRows"></tbody>
+    </table>
+   </div>
+   <div class="section" id="orderTotalsSection" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+     <h3 style="margin-bottom:0;">Step 3 — Stem &amp; plant totals</h3>
+     <button class="save-btn" onclick="exportOrderCSV()"><i class="ti ti-download"></i> Export CSV</button>
+    </div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px;font-style:italic;">Total stems and units needed across all recipes × your entered quantities.</p>
+    <table class="ing-table" id="orderTotalsTable">
+     <thead><tr><th style="width:50%">Ingredient</th><th style="width:25%">Type</th><th style="width:25%">Total needed</th></tr></thead>
+     <tbody id="orderTotalsRows"></tbody>
+    </table>
+   </div>
+   <button class="save-btn" style="margin-top:4px;" onclick="calcOrderTotals()"><i class="ti ti-calculator"></i> Calculate totals</button>
+  </div>`;
+}
+
+function loadOrderRecipes(){
+  const tag=document.getElementById('orderTag').value;
+  if(!tag){document.getElementById('orderRecipesSection').style.display='none';return;}
+  const filtered=recipes.filter(r=>(r.tags||[]).includes(tag));
+  const tbody=document.getElementById('orderQtyRows');
+  document.getElementById('orderRecipesSection').style.display='block';
+  document.getElementById('orderTotalsSection').style.display='none';
+  tbody.innerHTML=filtered.length
+    ?filtered.map(r=>`<tr data-id="${r.id}"><td>${r.name||'Untitled'}</td><td style="color:var(--text3);font-family:monospace;font-size:11px;">${r.sku||'—'}</td><td><input type="number" class="order-qty" min="0" step="1" placeholder="0" style="width:100px;" oninput="calcOrderTotals()"/></td></tr>`).join('')
+    :`<tr><td colspan="3" style="color:var(--text3);font-style:italic;padding:10px 0;">No recipes tagged "${tag}"</td></tr>`;
+}
+
+function calcOrderTotals(){
+  const totals={};
+  document.querySelectorAll('#orderQtyRows tr[data-id]').forEach(row=>{
+    const id=parseInt(row.dataset.id);
+    const qty=parseFloat(row.querySelector('.order-qty')?.value)||0;
+    if(qty<=0)return;
+    const r=recipes.find(x=>x.id===id);if(!r)return;
+    (r.flowers||[]).forEach(f=>{if(f.name==='None')return;const k=f.name+'||flower';totals[k]=(totals[k]||0)+f.qty*qty;});
+    (r.fillers||[]).forEach(f=>{if(f.name==='None')return;const k=f.name+'||filler';totals[k]=(totals[k]||0)+f.qty*qty;});
+  });
+  const tbody=document.getElementById('orderTotalsRows');
+  const entries=Object.entries(totals).sort((a,b)=>a[0].localeCompare(b[0]));
+  if(entries.length===0){
+    tbody.innerHTML='<tr><td colspan="3" style="color:var(--text3);font-style:italic;padding:10px 0;">Enter quantities above to see totals</td></tr>';
+  } else {
+    tbody.innerHTML=entries.map(([k,v])=>{
+      const [name,type]=k.split('||');
+      const typeLabel=type==='flower'?'Flower':type==='filler'?'Greenery/Filler':'Plant';
+      return`<tr><td>${name}</td><td style="color:var(--text2)">${typeLabel}</td><td style="font-weight:500;">${v} stems</td></tr>`;
+    }).join('');
+  }
+  document.getElementById('orderTotalsSection').style.display='block';
+}
+
+function exportOrderCSV(){
+  const tag=document.getElementById('orderTag')?.value||'order';
+  const rows=[['Ingredient','Type','Total Needed']];
+  document.querySelectorAll('#orderTotalsRows tr').forEach(row=>{
+    const cells=row.querySelectorAll('td');
+    if(cells.length===3)rows.push([cells[0].textContent,cells[1].textContent,cells[2].textContent]);
+  });
+  const csv=rows.map(r=>r.map(c=>'"'+c.replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=tag.replace(/[^a-z0-9]/gi,'_')+'_order.csv';a.click();
 }
 
 function openLightbox(src){

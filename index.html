@@ -242,12 +242,21 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
   <div class="top-bar">
    <h2 id="topTitle">Select a recipe</h2>
    <div class="tab-bar" id="tabBar" style="display:none;">
-    <button class="tab active" onclick="switchTab('recipe')">Recipe</button>
-    <button class="tab" onclick="switchTab('costs')">Cost breakdown</button>
+    <button class="tab active" id="tab-recipe" onclick="switchTab('recipe')">Recipe edit</button>
+    <button class="tab" id="tab-view" onclick="switchTab('view')">Recipe view</button>
+    <button class="tab" id="tab-costs" onclick="switchTab('costs')">Cost breakdown</button>
    </div>
    <div class="action-btns" id="actionBtns" style="display:none;">
     <button class="delete-btn" onclick="deleteRecipe()"><i class="ti ti-trash"></i> Delete</button>
     <button class="save-btn" onclick="saveRecipe()"><i class="ti ti-check"></i> Save</button>
+   </div>
+   <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);border-left:0.5px solid var(--border);padding-left:12px;margin-left:4px;">
+    <span>Role preview:</span>
+    <select id="roleSelect" onchange="applyRole(this.value)" style="font-size:11px;padding:3px 6px;">
+     <option value="admin">Admin</option>
+     <option value="manager">Manager</option>
+     <option value="designer">Designer</option>
+    </select>
    </div>
   </div>
   <div class="content" id="mainContent">
@@ -284,6 +293,56 @@ let recipes=JSON.parse(localStorage.getItem('bs_recipes2')||'null')||[
 ];
 
 let activeId=null,activeTab='recipe',activePL='flowers',activeNav='recipes',nextId=Math.max(...recipes.map(r=>r.id),0)+1;
+let currentRole='admin'; // admin | manager | designer
+
+function applyRole(role){
+  currentRole=role;
+  // Show/hide nav items based on role
+  const isDesigner=role==='designer';
+  const isAdmin=role==='admin';
+  // Prices and ordering hidden from designers
+  document.getElementById('nt-prices').style.display=isDesigner?'none':'';
+  document.getElementById('nt-order').style.display=isDesigner?'none':'';
+  // Rebuild tabs if a recipe is open
+  if(activeId)renderEditor();
+}
+
+function switchTab(tab){
+  activeTab=tab;
+  ['recipe','view','costs'].forEach(t=>{
+    const el=document.getElementById('tab-'+t);
+    if(el)el.classList.toggle('active',t===tab);
+  });
+  renderContent();
+}
+
+function renderEditor(){
+  const r=recipes.find(x=>x.id===activeId);if(!r)return;
+  document.getElementById('topTitle').textContent=r.name||'Untitled recipe';
+  document.getElementById('tabBar').style.display='flex';
+  const isDesigner=currentRole==='designer';
+  const isAdminOrManager=(currentRole==='admin'||currentRole==='manager');
+  // Show/hide tabs based on role
+  document.getElementById('tab-recipe').style.display=isDesigner?'none':'';
+  document.getElementById('tab-costs').style.display=isAdminOrManager?'':'none';
+  // Designers default to view tab, others default to recipe edit
+  if(isDesigner&&activeTab==='recipe'){activeTab='view';}
+  if(!isDesigner&&activeTab==='view'&&currentRole!=='designer'){/* keep */}
+  document.getElementById('actionBtns').style.display=isDesigner?'none':'flex';
+  // Update active tab highlight
+  ['recipe','view','costs'].forEach(t=>{
+    const el=document.getElementById('tab-'+t);
+    if(el)el.classList.toggle('active',t===activeTab);
+  });
+  renderContent();
+}
+
+function renderContent(){
+  const r=recipes.find(x=>x.id===activeId);if(!r)return;
+  if(activeTab==='recipe')renderRecipeTab(r);
+  else if(activeTab==='view')renderRecipeView(r);
+  else renderCostsTab(r);
+}
 
 function finalPrice(r){return(r.adjPrice&&r.adjPrice>0)?r.adjPrice:r.calcPrice;}
 function calcCost(r){
@@ -401,7 +460,7 @@ function filterRecipes(){
   }).join('')||'<div style="padding:14px 16px;font-size:13px;color:var(--text3);font-style:italic;">No recipes found</div>';
 }
 
-function selectRecipe(id){activeId=id;activeTab='recipe';setNav('recipes');filterRecipes();renderEditor();}
+function selectRecipe(id){activeId=id;activeTab=currentRole==='designer'?'view':'recipe';setNav('recipes');filterRecipes();renderEditor();}
 function newRecipe(){
   const r={id:nextId++,sku:'',name:'',calcPrice:0,adjPrice:null,projection:null,container:'None',accent:'None',flowers:[{name:'None',qty:1}],fillers:[],laborPct:13,photo:null,tags:[],notes:'',sizeH:'',sizeW:'',sizeD:''};
   recipes.push(r);activeId=r.id;activeTab='recipe';setNav('recipes');filterRecipes();renderEditor();
@@ -560,6 +619,63 @@ function renderRecipeTab(r){
    <div>
     <div class="photo-box"><h3>Photo</h3>${photoHtml}</div>
     ${sz?`<div class="section"><h3>Size</h3><div style="font-size:13px;color:var(--text2);line-height:1.7;">${sz}</div></div>`:''}
+   </div>
+  </div>`;
+}
+
+function renderRecipeView(r){
+  const fp=finalPrice(r);
+  const sz=sizeStr(r);
+  const tagHtml=(r.tags||[]).map(t=>`<span class="tag-chip" style="font-size:12px;padding:3px 9px;">${t}</span>`).join('');
+  const photoHtml=r.photo
+    ?`<img src="${r.photo}" alt="${r.name}" onclick="openLightbox('${r.photo.replace(/'/g,"\\'")}')}" style="width:100%;border-radius:var(--radius);object-fit:cover;cursor:zoom-in;max-height:280px;" />`
+    :`<div style="width:100%;height:180px;background:var(--bg2);border-radius:var(--radius);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;color:var(--text3);font-style:italic;font-size:13px;">No photo uploaded</div>`;
+
+  const flowerRows=(r.flowers||[]).filter(f=>f.name!=='None').map(f=>`
+    <tr><td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);font-size:13px;">${f.name}</td>
+    <td style="padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px;color:var(--text2);text-align:right;">${f.qty} stem${f.qty!==1?'s':''}</td></tr>`).join('');
+  const fillerRows=(r.fillers||[]).filter(f=>f.name!=='None').map(f=>`
+    <tr><td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);font-size:13px;">${f.name}</td>
+    <td style="padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px;color:var(--text2);text-align:right;">${f.qty} pc${f.qty!==1?'s':''}</td></tr>`).join('');
+
+  document.getElementById('mainContent').innerHTML=`
+  <div style="display:grid;grid-template-columns:1fr 260px;gap:16px;align-items:start;">
+   <div>
+    <div class="section">
+     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;">
+      <div>
+       <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;font-family:monospace;">${r.sku||'—'}</div>
+       <div style="font-size:18px;color:var(--text);margin-top:2px;">${r.name||'Untitled'}</div>
+       ${sz?`<div style="font-size:12px;color:var(--text2);margin-top:4px;font-style:italic;">${sz}</div>`:''}
+      </div>
+      ${tagHtml?`<div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;max-width:200px;">${tagHtml}</div>`:''}
+     </div>
+     ${(r.flowers||[]).filter(f=>f.name!=='None').length?`
+     <h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Flowers</h3>
+     <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">${flowerRows}</table>`:''}
+     ${(r.fillers||[]).filter(f=>f.name!=='None').length?`
+     <h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Greenery &amp; filler</h3>
+     <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">${fillerRows}</table>`:''}
+     <div style="display:flex;gap:16px;flex-wrap:wrap;">
+      ${r.container&&r.container!=='None'?`<div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Container</div><div style="font-size:13px;margin-top:2px;">${r.container}</div></div>`:''}
+      ${r.accent&&r.accent!=='None'?`<div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Accent</div><div style="font-size:13px;margin-top:2px;">${r.accent}</div></div>`:''}
+     </div>
+     ${r.notes?`<div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border);"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:4px;">Notes</div><div style="font-size:13px;color:var(--text2);line-height:1.6;">${r.notes}</div></div>`:''}
+    </div>
+   </div>
+   <div>
+    <div class="photo-box">
+     <h3>Photo <span style="font-size:10px;font-weight:normal;font-style:italic;">(click to enlarge)</span></h3>
+     ${photoHtml}
+    </div>
+    <div class="section">
+     <h3>Quick info</h3>
+     <div style="font-size:13px;">
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Price</span><span style="font-weight:500;color:var(--green-dark);">$${fmt(fp)}</span></div>
+      ${sz?`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Size</span><span style="font-size:12px;">${sz}</span></div>`:''}
+      <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="color:var(--text2);">Stems</span><span>${(r.flowers||[]).filter(f=>f.name!=='None').reduce((s,f)=>s+f.qty,0)} total</span></div>
+     </div>
+    </div>
    </div>
   </div>`;
 }

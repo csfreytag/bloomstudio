@@ -562,13 +562,13 @@ function renderRecipeTab(r){
     </div>
     <div class="section">
      <h3>Flowers</h3>
-     <table class="ing-table"><thead><tr><th style="width:55%">Flower</th><th>Stems</th><th>Cost</th><th></th></tr></thead>
+     <table class="ing-table"><thead><tr><th style="width:45%">Flower</th><th>Stems</th><th>Each</th><th>Total</th><th></th></tr></thead>
      <tbody id="flowerRows">${flowers.map(f=>ingRow(f,'flower')).join('')}</tbody></table>
      <button class="add-row-btn" onclick="addRow('flower')"><i class="ti ti-plus"></i> Add flower</button>
     </div>
     <div class="section">
      <h3>Greenery &amp; filler</h3>
-     <table class="ing-table"><thead><tr><th style="width:55%">Filler</th><th>Qty</th><th>Cost</th><th></th></tr></thead>
+     <table class="ing-table"><thead><tr><th style="width:45%">Filler</th><th>Qty</th><th>Each</th><th>Total</th><th></th></tr></thead>
      <tbody id="fillerRows">${r.fillers.map(f=>ingRow(f,'filler')).join('')}</tbody></table>
      <button class="add-row-btn" onclick="addRow('filler')"><i class="ti ti-plus"></i> Add filler</button>
     </div>
@@ -709,18 +709,32 @@ function refreshSize(){
   const el=document.getElementById('size_display');if(el)el.textContent=p.join(' × ')||'No size entered';
 }
 function ingRow(f,type){
-  const list=type==='flower'?FLOWERS:FILLERS,cost=f.qty*gpCost(list,f.name);
-  return`<tr class="${type}-row"><td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,f.name)}</select></td><td><input class="f-qty" type="number" value="${f.qty}" min="0" step="1" oninput="updateRowCost(this)"/></td><td class="f-cost" style="color:var(--text2)">$${fmt(cost)}</td><td><button class="del-btn" onclick="this.closest('tr').remove()"><i class="ti ti-x"></i></button></td></tr>`;
+  const list=type==='flower'?FLOWERS:FILLERS;
+  const item=list.find(x=>x.n.trim()===f.name.trim());
+  const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*4).toFixed(2));
+  const total=f.qty*each;
+  return`<tr class="${type}-row">
+    <td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,f.name)}</select></td>
+    <td><input class="f-qty" type="number" value="${f.qty}" min="0" step="1" oninput="updateRowCost(this)" style="width:60px;"/></td>
+    <td class="f-each" style="color:var(--text2);font-size:13px;white-space:nowrap;">$${fmt(each)}</td>
+    <td class="f-cost" style="font-size:13px;font-weight:500;white-space:nowrap;">$${fmt(total)}</td>
+    <td><button class="del-btn" onclick="this.closest('tr').remove()"><i class="ti ti-x"></i></button></td>
+  </tr>`;
 }
 function updateRowCost(el){
   const row=el.closest('tr'),type=row.classList.contains('flower-row')?'flower':'filler';
-  const list=type==='flower'?FLOWERS:FILLERS,name=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
-  row.querySelector('.f-cost').textContent='$'+fmt(qty*gpCost(list,name));
+  const list=type==='flower'?FLOWERS:FILLERS;
+  const name=row.querySelector('.f-sel').value;
+  const qty=parseFloat(row.querySelector('.f-qty').value)||0;
+  const item=list.find(x=>x.n.trim()===name.trim());
+  const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*4).toFixed(2));
+  if(row.querySelector('.f-each'))row.querySelector('.f-each').textContent='$'+fmt(each);
+  if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(qty*each);
 }
 function addRow(type){
   const tbody=document.getElementById(type==='flower'?'flowerRows':'fillerRows'),tr=document.createElement('tr');
   tr.className=type+'-row';const list=type==='flower'?FLOWERS:FILLERS;
-  tr.innerHTML=`<td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,'None')}</select></td><td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateRowCost(this)"/></td><td class="f-cost" style="color:var(--text2)">$0.00</td><td><button class="del-btn" onclick="this.closest('tr').remove()"><i class="ti ti-x"></i></button></td>`;
+  tr.innerHTML=`<td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,'None')}</select></td><td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateRowCost(this)" style="width:60px;"/></td><td class="f-each" style="color:var(--text2);font-size:13px;">$0.00</td><td class="f-cost" style="font-size:13px;font-weight:500;">$0.00</td><td><button class="del-btn" onclick="this.closest('tr').remove()"><i class="ti ti-x"></i></button></td>`;
   tbody.appendChild(tr);
 }
 function handlePhoto(e){

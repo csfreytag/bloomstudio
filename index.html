@@ -497,22 +497,6 @@ function saveRecipe(){
 }
 function saveAll(){try{localStorage.setItem('bs_recipes2',JSON.stringify(recipes));}catch(e){alert('Could not save — storage full. Try removing old recipe photos.');}}
 
-function switchTab(tab){
-  activeTab=tab;
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='recipe')||(i===1&&tab==='costs')));
-  renderContent();
-}
-function renderEditor(){
-  const r=recipes.find(x=>x.id===activeId);if(!r)return;
-  document.getElementById('topTitle').textContent=r.name||'Untitled recipe';
-  document.getElementById('tabBar').style.display='flex';
-  document.getElementById('actionBtns').style.display='flex';
-  renderContent();
-}
-function renderContent(){
-  const r=recipes.find(x=>x.id===activeId);if(!r)return;
-  if(activeTab==='recipe')renderRecipeTab(r);else renderCostsTab(r);
-}
 function mkOpts(list,sel){return list.map(f=>`<option value="${f.n}"${f.n.trim()===sel.trim()?' selected':''}>${f.n}${f.p>0?' ($'+f.p+')':''}</option>`).join('');}
 
 function renderRecipeTab(r){
@@ -843,7 +827,7 @@ function renderCalculator(){
    </div>
    <div class="price-box final" id="calcResultBox">
     <div class="pb-label" id="calcResultLabel">Total cost</div>
-    <div class="pb-val" id="calcResult">$0.00</div>
+    <div id="calcResult" style="font-size:36px;font-weight:600;color:var(--green-dark);margin-top:4px;">$0.00</div>
     <div class="pb-note" id="calcResultNote">Add ingredients below</div>
    </div>
   </div>
@@ -1010,25 +994,18 @@ function renderOrdering(){
   document.getElementById('tabBar').style.display='none';
   document.getElementById('actionBtns').style.display='none';
 
-  const tagOpts=TAGS.map(t=>`<option value="${t.replace(/"/g,'&quot;')}">${t}</option>`).join('');
-
   document.getElementById('mainContent').innerHTML=`
   <div class="section">
-   <h3>Step 1 — Select a tag</h3>
-   <p style="font-size:12px;color:var(--text2);margin-bottom:10px;font-style:italic;">Choose the tag you want to order for. All recipes with that tag will be pulled in.</p>
-   <div style="display:flex;gap:10px;align-items:center;">
-    <select id="orderTag" onchange="loadOrderRecipes()" style="flex:1;">
-     <option value="">— Select a tag —</option>
-     ${tagOpts}
-    </select>
-   </div>
+   <h3>Step 1 — Select tags</h3>
+   <p style="font-size:12px;color:var(--text2);margin-bottom:10px;font-style:italic;">Select one or more tags. All recipes with any selected tag will be pulled in — each recipe counted only once even if it has multiple matching tags.</p>
+   <div class="tag-filter-list" id="orderTagList" style="gap:6px;"></div>
   </div>
   <div id="orderRecipesSection" style="display:none;">
    <div class="section">
     <h3>Step 2 — Enter quantities for this week</h3>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:12px;font-style:italic;">Based on your sales lookback, enter how many of each arrangement you plan to make.</p>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px;font-style:italic;">Based on your sales lookback, enter how many of each arrangement you plan to make this week.</p>
     <table class="ing-table">
-     <thead><tr><th style="width:50%">Recipe</th><th style="width:20%">SKU</th><th style="width:30%">Qty this week</th></tr></thead>
+     <thead><tr><th style="width:45%">Recipe</th><th style="width:15%">SKU</th><th style="width:25%">Tags</th><th style="width:15%">Qty</th></tr></thead>
      <tbody id="orderQtyRows"></tbody>
     </table>
    </div>
@@ -1037,26 +1014,45 @@ function renderOrdering(){
      <h3 style="margin-bottom:0;">Step 3 — Stem &amp; plant totals</h3>
      <button class="save-btn" onclick="exportOrderCSV()"><i class="ti ti-download"></i> Export CSV</button>
     </div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:12px;font-style:italic;">Total stems and units needed across all recipes × your entered quantities.</p>
-    <table class="ing-table" id="orderTotalsTable">
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px;font-style:italic;">Total stems and units needed across all recipes × your quantities. Grouped by type.</p>
+    <table class="ing-table">
      <thead><tr><th style="width:50%">Ingredient</th><th style="width:25%">Type</th><th style="width:25%">Total needed</th></tr></thead>
      <tbody id="orderTotalsRows"></tbody>
     </table>
    </div>
    <button class="save-btn" style="margin-top:4px;" onclick="calcOrderTotals()"><i class="ti ti-calculator"></i> Calculate totals</button>
   </div>`;
+
+  // Render tag chips
+  const el=document.getElementById('orderTagList');
+  el.innerHTML=TAGS.map(t=>`<span class="tag-filter-chip" onclick="toggleOrderTag(this,'${t.replace(/'/g,"\\'")}');loadOrderRecipes();" style="font-size:12px;padding:3px 10px;">${t}</span>`).join('');
+}
+
+let activeOrderTags=[];
+function toggleOrderTag(el,tag){
+  const i=activeOrderTags.indexOf(tag);
+  if(i>=0){activeOrderTags.splice(i,1);el.classList.remove('active');}
+  else{activeOrderTags.push(tag);el.classList.add('active');}
 }
 
 function loadOrderRecipes(){
-  const tag=document.getElementById('orderTag').value;
-  if(!tag){document.getElementById('orderRecipesSection').style.display='none';return;}
-  const filtered=recipes.filter(r=>(r.tags||[]).includes(tag));
+  if(activeOrderTags.length===0){document.getElementById('orderRecipesSection').style.display='none';return;}
+  // Deduplicate — each recipe appears once even if it matches multiple selected tags
+  const seen=new Set();
+  const filtered=recipes.filter(r=>{
+    const matches=activeOrderTags.some(t=>(r.tags||[]).includes(t));
+    if(matches&&!seen.has(r.id)){seen.add(r.id);return true;}
+    return false;
+  });
   const tbody=document.getElementById('orderQtyRows');
   document.getElementById('orderRecipesSection').style.display='block';
   document.getElementById('orderTotalsSection').style.display='none';
   tbody.innerHTML=filtered.length
-    ?filtered.map(r=>`<tr data-id="${r.id}"><td>${r.name||'Untitled'}</td><td style="color:var(--text3);font-family:monospace;font-size:11px;">${r.sku||'—'}</td><td><input type="number" class="order-qty" min="0" step="1" placeholder="0" style="width:100px;" oninput="calcOrderTotals()"/></td></tr>`).join('')
-    :`<tr><td colspan="3" style="color:var(--text3);font-style:italic;padding:10px 0;">No recipes tagged "${tag}"</td></tr>`;
+    ?filtered.map(r=>{
+        const tagBadges=(r.tags||[]).filter(t=>activeOrderTags.includes(t)).map(t=>`<span class="tag-chip" style="font-size:10px;">${t}</span>`).join(' ');
+        return`<tr data-id="${r.id}"><td>${r.name||'Untitled'}</td><td style="color:var(--text3);font-family:monospace;font-size:11px;">${r.sku||'—'}</td><td>${tagBadges}</td><td><input type="number" class="order-qty" min="0" step="1" placeholder="0" style="width:80px;" oninput="calcOrderTotals()"/></td></tr>`;
+      }).join('')
+    :`<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:10px 0;">No recipes found for selected tags</td></tr>`;
 }
 
 function calcOrderTotals(){
@@ -1066,25 +1062,29 @@ function calcOrderTotals(){
     const qty=parseFloat(row.querySelector('.order-qty')?.value)||0;
     if(qty<=0)return;
     const r=recipes.find(x=>x.id===id);if(!r)return;
-    (r.flowers||[]).forEach(f=>{if(f.name==='None')return;const k=f.name+'||flower';totals[k]=(totals[k]||0)+f.qty*qty;});
-    (r.fillers||[]).forEach(f=>{if(f.name==='None')return;const k=f.name+'||filler';totals[k]=(totals[k]||0)+f.qty*qty;});
+    (r.flowers||[]).forEach(f=>{if(f.name==='None')return;const k=f.name+'||Flower';totals[k]=(totals[k]||0)+f.qty*qty;});
+    (r.fillers||[]).forEach(f=>{if(f.name==='None')return;const k=f.name+'||Greenery/Filler';totals[k]=(totals[k]||0)+f.qty*qty;});
   });
   const tbody=document.getElementById('orderTotalsRows');
-  const entries=Object.entries(totals).sort((a,b)=>a[0].localeCompare(b[0]));
-  if(entries.length===0){
+  // Group by type
+  const flowers=[],fillers=[];
+  Object.entries(totals).forEach(([k,v])=>{
+    const [name,type]=k.split('||');
+    if(type==='Flower')flowers.push([name,v]);else fillers.push([name,v]);
+  });
+  flowers.sort((a,b)=>a[0].localeCompare(b[0]));
+  fillers.sort((a,b)=>a[0].localeCompare(b[0]));
+  const allEntries=[...flowers.map(([n,v])=>[n,'Flower',v]),...fillers.map(([n,v])=>[n,'Greenery/Filler',v])];
+  if(allEntries.length===0){
     tbody.innerHTML='<tr><td colspan="3" style="color:var(--text3);font-style:italic;padding:10px 0;">Enter quantities above to see totals</td></tr>';
   } else {
-    tbody.innerHTML=entries.map(([k,v])=>{
-      const [name,type]=k.split('||');
-      const typeLabel=type==='flower'?'Flower':type==='filler'?'Greenery/Filler':'Plant';
-      return`<tr><td>${name}</td><td style="color:var(--text2)">${typeLabel}</td><td style="font-weight:500;">${v} stems</td></tr>`;
-    }).join('');
+    tbody.innerHTML=allEntries.map(([name,type,v])=>`<tr><td>${name}</td><td style="color:var(--text2)">${type}</td><td style="font-weight:500;">${v} ${type==='Flower'?'stem'+(v!==1?'s':''):'pc'+(v!==1?'s':'')}</td></tr>`).join('');
   }
   document.getElementById('orderTotalsSection').style.display='block';
 }
 
 function exportOrderCSV(){
-  const tag=document.getElementById('orderTag')?.value||'order';
+  const tagLabel=activeOrderTags.join('_')||'order';
   const rows=[['Ingredient','Type','Total Needed']];
   document.querySelectorAll('#orderTotalsRows tr').forEach(row=>{
     const cells=row.querySelectorAll('td');
@@ -1093,7 +1093,7 @@ function exportOrderCSV(){
   const csv=rows.map(r=>r.map(c=>'"'+c.replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=tag.replace(/[^a-z0-9]/gi,'_')+'_order.csv';a.click();
+  a.download=tagLabel.replace(/[^a-z0-9]/gi,'_')+'_order.csv';a.click();
 }
 
 function openLightbox(src){

@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bloom Studio</title>
+<title>Freytag's Recipe Guide</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #ffffff; --bg2: #f5f5f3; --bg3: #eeede9;
+  --bg: #ffffff; --bg2: #fdf5f7; --bg3: #f7eef1;
   --text: #1a1a18; --text2: #6b6b67; --text3: #9b9b96;
   --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
-  --green: #1D9E75; --green-dark: #0F6E56; --green-light: #E1F5EE;
+  --green: #C4133C; --green-dark: #8f0d2b; --green-light: #fde8ee;
+  --stem: #1a5c2e; --stem-light: #e8f4ec;
   --amber: #854F0B; --amber-light: #FAEEDA;
   --red: #A32D2D; --red-light: #FCEBEB;
   --blue: #185FA5; --blue-light: #E6F1FB;
@@ -26,10 +27,9 @@ input[type=range] { accent-color: var(--green); cursor: pointer; }
 textarea { resize: vertical; width: 100%; min-height: 70px; }
 .app { display: flex; height: 100vh; }
 .sidebar { width: 260px; min-width: 260px; background: var(--bg); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-.sidebar-header { padding: 14px 16px; border-bottom: 0.5px solid var(--border); }
-.sidebar-header h1 { font-size: 16px; font-weight: normal; color: var(--text); display: flex; align-items: center; gap: 8px; }
-.sidebar-header h1 i { color: var(--green); font-size: 18px; }
-.sidebar-header p { font-size: 11px; color: var(--text3); margin-top: 2px; font-style: italic; }
+.sidebar-header { padding: 12px 14px 10px; border-bottom: 0.5px solid var(--border); background: var(--bg); }
+.sidebar-header img.logo { width: 100%; max-width: 210px; display: block; margin: 0 auto 4px; }
+.sidebar-header p { font-size: 11px; color: var(--text3); text-align: center; font-style: italic; letter-spacing: 0.04em; }
 .nav-tabs { display: flex; border-bottom: 0.5px solid var(--border); }
 .nav-tab { flex: 1; padding: 9px 2px; font-size: 11px; text-align: center; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; transition: all 0.15s; }
 .nav-tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 500; }
@@ -39,7 +39,9 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .search-row input { flex: 1; }
 .filter-toggle { background: none; border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 4px 8px; font-size: 11px; cursor: pointer; color: var(--text2); display: flex; align-items: center; gap: 3px; white-space: nowrap; }
 .filter-toggle.active { background: var(--green-light); border-color: var(--green); color: var(--green-dark); }
-.filter-panel { padding: 0 10px 10px; display: none; }
+.filter-toggle .chevron { transition: transform 0.2s; font-size: 12px; }
+.filter-toggle.open .chevron { transform: rotate(180deg); }
+.filter-panel { padding: 0 10px 10px; display: none; border-top: 0.5px solid var(--border); margin-top: 6px; }
 .filter-panel.open { display: block; }
 .filter-label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin: 8px 0 5px; }
 .price-range { display: flex; align-items: center; gap: 6px; }
@@ -47,7 +49,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .price-range span { font-size: 12px; color: var(--text2); }
 .tag-filter-list { display: flex; flex-wrap: wrap; gap: 4px; }
 .tag-filter-chip { font-size: 11px; padding: 2px 7px; border-radius: 10px; border: 0.5px solid var(--border2); cursor: pointer; background: var(--bg); color: var(--text2); }
-.tag-filter-chip.active { background: var(--green); border-color: var(--green); color: white; }
+.tag-filter-chip.active { background: var(--stem); border-color: var(--stem); color: white; }
 .clear-filters { font-size: 11px; color: var(--red); background: none; border: none; cursor: pointer; margin-top: 6px; padding: 0; }
 .recipe-list { flex: 1; overflow-y: auto; padding: 4px 0; }
 .recipe-item { padding: 9px 14px; cursor: pointer; border-left: 3px solid transparent; }
@@ -57,9 +59,9 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .recipe-item .rname { font-size: 13px; color: var(--text); margin-top: 1px; }
 .recipe-item .rprice { font-size: 12px; color: var(--text2); margin-top: 1px; }
 .recipe-item .rtags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
-.tag-chip { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--blue-light); color: var(--blue); }
+.tag-chip { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--stem-light); color: var(--stem); }
 .margin-pill { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 10px; margin-left: 3px; }
-.mg { background: #EAF3DE; color: #3B6D11; }
+.mg { background: #e8f4ec; color: #1a5c2e; }
 .mw { background: var(--amber-light); color: var(--amber); }
 .mb { background: var(--red-light); color: var(--red); }
 .new-btn { margin: 8px 10px; font-size: 13px; padding: 7px; background: var(--green); color: white; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -67,7 +69,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .pl-nav { padding: 10px; display: flex; flex-direction: column; gap: 4px; flex: 1; overflow-y: auto; }
 .pl-nav p { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 6px; font-style: italic; }
 .pl-nav-btn { text-align: left; padding: 7px 10px; font-size: 13px; border: 0.5px solid var(--border); border-radius: var(--radius); cursor: pointer; background: transparent; color: var(--text); display: flex; align-items: center; gap: 8px; }
-.pl-nav-btn:hover, .pl-nav-btn.active { background: var(--bg2); }
+.pl-nav-btn:hover, .pl-nav-btn.active { background: var(--bg2); border-left: 2px solid var(--green); }
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 .top-bar { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 10px 18px; display: flex; align-items: center; gap: 10px; }
 .top-bar h2 { font-size: 15px; font-weight: normal; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -84,7 +86,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .pl-save-btn:hover { background: var(--green-dark); }
 .content { flex: 1; overflow-y: auto; padding: 14px 18px; }
 .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
-.empty-state i { font-size: 40px; display: block; margin-bottom: 10px; color: var(--text3); }
+.empty-state i { font-size: 40px; display: block; margin-bottom: 10px; color: var(--green); }
 .empty-state h3 { font-size: 16px; font-weight: normal; color: var(--text); margin-bottom: 5px; }
 .stat-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 14px; }
 .stat-card { background: var(--bg2); border-radius: var(--radius); padding: 9px 11px; }
@@ -100,7 +102,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .field input, .field select, .field textarea { width: 100%; }
 .pricing-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 4px; }
 .price-box { background: var(--bg2); border-radius: var(--radius); padding: 10px 12px; }
-.price-box.final { background: var(--green-light); border: 0.5px solid rgba(29,158,117,0.3); }
+.price-box.final { background: var(--green-light); border: 0.5px solid rgba(196,19,60,0.25); }
 .price-box .pb-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
 .price-box.final .pb-label { color: var(--green-dark); }
 .price-box .pb-val { font-size: 20px; color: var(--text); }
@@ -114,6 +116,12 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .photo-area .photo-label { font-size: 12px; color: var(--text2); text-align: center; z-index: 1; pointer-events: none; font-style: italic; }
 .photo-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
 .photo-remove { display: block; margin: 5px auto 0; font-size: 12px; color: var(--red); background: none; border: none; cursor: pointer; }
+.photo-area img { cursor: zoom-in; }
+.lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; }
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+.lightbox-close { position: absolute; top: 20px; right: 24px; background: none; border: none; color: white; font-size: 28px; cursor: pointer; line-height: 1; opacity: 0.8; }
+.lightbox-close:hover { opacity: 1; }
 .ing-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ing-table th { text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 8px 6px 0; border-bottom: 0.5px solid var(--border); white-space: nowrap; }
 .ing-table td { padding: 5px 8px 5px 0; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
@@ -121,11 +129,11 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .ing-table input[type=number] { width: 60px; }
 .del-btn { background: none; border: none; cursor: pointer; color: var(--text3); padding: 2px 4px; border-radius: 4px; font-size: 14px; line-height: 1; }
 .del-btn:hover { color: var(--red); }
-.add-row-btn { margin-top: 8px; font-size: 12px; color: var(--green); background: none; border: none; cursor: pointer; padding: 3px 0; display: flex; align-items: center; gap: 4px; }
+.add-row-btn { margin-top: 8px; font-size: 12px; color: var(--stem); background: none; border: none; cursor: pointer; padding: 3px 0; display: flex; align-items: center; gap: 4px; }
 .add-row-btn:hover { text-decoration: underline; }
 .tags-select { display: flex; flex-wrap: wrap; gap: 5px; }
 .recipe-tag-chip { font-size: 12px; padding: 3px 10px; border-radius: 12px; border: 0.5px solid var(--border2); cursor: pointer; background: var(--bg2); color: var(--text2); user-select: none; }
-.recipe-tag-chip.selected { background: var(--blue); border-color: var(--blue); color: white; }
+.recipe-tag-chip.selected { background: var(--stem); border-color: var(--stem); color: white; }
 .no-tags-msg { font-size: 12px; color: var(--text3); font-style: italic; }
 .labor-row { display: flex; align-items: center; gap: 10px; }
 .labor-row input[type=range] { flex: 1; }
@@ -141,18 +149,18 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .pl-table input[type=text] { width: 100%; }
 .pl-table input[type=number] { width: 82px; }
 .markup-val { font-size: 13px; font-weight: 500; white-space: nowrap; }
-.markup-met { color: #0F6E56; }
+.markup-met { color: var(--stem); }
 .markup-off { color: var(--red); }
 .diff-val { font-size: 11px; white-space: nowrap; }
 .legend { display: flex; gap: 14px; font-size: 12px; color: var(--text2); margin-bottom: 10px; align-items: center; flex-wrap: wrap; font-style: italic; }
 .legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
 .saved-flash { font-size: 12px; color: var(--green); margin-left: 6px; opacity: 0; transition: opacity 0.3s; }
-.tag-manage-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 3px 8px; border-radius: 10px; background: var(--blue-light); color: var(--blue); border: 0.5px solid rgba(24,95,165,0.2); margin: 3px; }
-.tag-manage-chip button { background: none; border: none; cursor: pointer; color: var(--blue); font-size: 12px; padding: 0; line-height: 1; opacity: 0.6; }
+.tag-manage-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 3px 8px; border-radius: 10px; background: var(--stem-light); color: var(--stem); border: 0.5px solid rgba(26,92,46,0.2); margin: 3px; }
+.tag-manage-chip button { background: none; border: none; cursor: pointer; color: var(--stem); font-size: 12px; padding: 0; line-height: 1; opacity: 0.6; }
 .tag-manage-chip button:hover { opacity: 1; }
 .add-tag-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
 .add-tag-row input { flex: 1; }
-.add-tag-btn { background: var(--green); color: white; border: none; padding: 5px 12px; border-radius: var(--radius); font-size: 12px; cursor: pointer; white-space: nowrap; }
+.add-tag-btn { background: var(--stem); color: white; border: none; padding: 5px 12px; border-radius: var(--radius); font-size: 12px; cursor: pointer; white-space: nowrap; }
 .size-display { font-size: 13px; color: var(--text2); margin-top: 5px; font-style: italic; }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -161,10 +169,14 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 </head>
 <body>
 <div class="app">
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()"><i class="ti ti-x"></i></button>
+  <img id="lightboxImg" src="" alt="Arrangement photo" onclick="event.stopPropagation()"/>
+</div>
  <div class="sidebar">
   <div class="sidebar-header">
-   <h1><i class="ti ti-plant-2"></i> Bloom Studio</h1>
-   <p>Flower recipe manager</p>
+   <img src="logo.png" alt="Freytag's Florist" class="logo" />
+   <p>Recipe Guide</p>
   </div>
   <div class="nav-tabs">
    <button class="nav-tab active" id="nt-recipes" onclick="setNav('recipes')">Recipes</button>
@@ -175,7 +187,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
    <div class="search-filter">
     <div class="search-row">
      <input type="text" placeholder="Search name, SKU, flower…" id="searchInput" oninput="filterRecipes()" />
-     <button class="filter-toggle" id="filterToggle" onclick="toggleFilters()"><i class="ti ti-adjustments-horizontal"></i> Filter</button>
+     <button class="filter-toggle" id="filterToggle" onclick="toggleFilters()"><i class="ti ti-adjustments-horizontal"></i> Filter <i class="ti ti-chevron-down chevron"></i></button>
     </div>
     <div class="filter-panel" id="filterPanel">
      <div class="filter-label">Price range ($)</div>
@@ -319,7 +331,10 @@ function saveTags(){localStorage.setItem('bs_tags',JSON.stringify(TAGS));}
 
 // Filters
 function toggleFilters(){
-  document.getElementById('filterPanel').classList.toggle('open');
+  const panel=document.getElementById('filterPanel');
+  const btn=document.getElementById('filterToggle');
+  panel.classList.toggle('open');
+  btn.classList.toggle('open');
   renderTagFilterChips();
 }
 function renderTagFilterChips(){
@@ -337,7 +352,8 @@ function clearFilters(){
   activeTagFilters=[];
   const mn=document.getElementById('priceMin'),mx=document.getElementById('priceMax');
   if(mn)mn.value='';if(mx)mx.value='';
-  document.getElementById('filterToggle').classList.remove('active');
+  document.getElementById('filterToggle').classList.remove('active','open');
+  document.getElementById('filterPanel').classList.remove('open');
   renderTagFilterChips();filterRecipes();
 }
 
@@ -428,7 +444,7 @@ function renderRecipeTab(r){
   const c=calcCost(r),fp=finalPrice(r);
   const flowers=r.flowers.length?r.flowers:[{name:'None',qty:1}];
   const photoHtml=r.photo
-    ?`<div class="photo-area"><img src="${r.photo}" alt="Arrangement photo"/><input type="file" accept="image/*" onchange="handlePhoto(event)" title="Change"/></div><button class="photo-remove" onclick="removePhoto()"><i class="ti ti-x"></i> Remove</button>`
+    ?`<div class="photo-area"><img src="${r.photo}" alt="Arrangement photo" onclick="openLightbox('${r.photo.replace(/'/g,"\\'")}')"/><input type="file" accept="image/*" onchange="handlePhoto(event)" title="Change"/></div><button class="photo-remove" onclick="removePhoto()"><i class="ti ti-x"></i> Remove</button>`
     :`<div class="photo-area"><i class="ti ti-camera" style="font-size:28px;color:var(--text3);margin-bottom:6px;"></i><div class="photo-label">Click to upload<br>arrangement photo</div><input type="file" accept="image/*" onchange="handlePhoto(event)"/></div>`;
   const tagsHtml=TAGS.length
     ?TAGS.map(t=>`<span class="recipe-tag-chip${(r.tags||[]).includes(t)?' selected':''}" data-tag="${t.replace(/"/g,'&quot;')}" onclick="this.classList.toggle('selected')">${t}</span>`).join('')
@@ -440,7 +456,7 @@ function renderRecipeTab(r){
   <div class="stat-row">
    <div class="stat-card"><div class="slabel">Final retail</div><div class="sval" style="color:var(--green-dark)">$${fmt(fp)}</div></div>
    <div class="stat-card"><div class="slabel">Total cost</div><div class="sval">$${fmt(c.total)}</div></div>
-   <div class="stat-card"><div class="slabel">Gross margin</div><div class="sval" style="color:${c.margin>=40?'#0F6E56':c.margin>=20?'#854F0B':'#A32D2D'}">${c.margin.toFixed(1)}%</div></div>
+   <div class="stat-card"><div class="slabel">Gross margin</div><div class="sval" style="color:${c.margin>=40?'#1a5c2e':c.margin>=20?'#854F0B':'#A32D2D'}">${c.margin.toFixed(1)}%</div></div>
    <div class="stat-card"><div class="slabel">Projection</div><div class="sval">${r.projection||'—'}</div></div>
   </div>
   <div class="two-col">
@@ -584,7 +600,7 @@ function renderCostsTab(r){
   <div class="stat-row">
    <div class="stat-card"><div class="slabel">Final retail</div><div class="sval" style="color:var(--green-dark)">$${fmt(fp)}</div></div>
    <div class="stat-card"><div class="slabel">Total cost</div><div class="sval">$${fmt(c.total)}</div></div>
-   <div class="stat-card"><div class="slabel">Gross margin</div><div class="sval" style="color:${c.margin>=40?'#0F6E56':c.margin>=20?'#854F0B':'#A32D2D'}">${c.margin.toFixed(1)}%</div></div>
+   <div class="stat-card"><div class="slabel">Gross margin</div><div class="sval" style="color:${c.margin>=40?'#1a5c2e':c.margin>=20?'#854F0B':'#A32D2D'}">${c.margin.toFixed(1)}%</div></div>
    <div class="stat-card"><div class="slabel">Profit / unit</div><div class="sval">$${fmt(fp-c.total)}</div></div>
   </div>
   <div class="two-col">
@@ -611,11 +627,11 @@ function renderCostsTab(r){
      <div class="cb-row"><span>Units projected</span><span>${r.projection}</span></div>
      <div class="cb-row"><span>Projected revenue</span><span>$${(fp*r.projection).toLocaleString()}</span></div>
      <div class="cb-row"><span>Projected cost</span><span>$${(c.total*r.projection).toLocaleString()}</span></div>
-     <div class="cb-row total"><span>Projected gross profit</span><span style="color:${projProfit>=0?'#0F6E56':'#A32D2D'}">$${projProfit.toLocaleString()}</span></div>
+     <div class="cb-row total"><span>Projected gross profit</span><span style="color:${projProfit>=0?'#1a5c2e':'#A32D2D'}">$${projProfit.toLocaleString()}</span></div>
     </div>`:''}
    </div>
    <div>
-    ${r.photo?`<div class="photo-box"><h3>Photo</h3><img src="${r.photo}" alt="photo" style="width:100%;border-radius:var(--radius);object-fit:cover;"/></div>`:''}
+    ${r.photo?`<div class="photo-box"><h3>Photo</h3><img src="${r.photo}" alt="photo" style="width:100%;border-radius:var(--radius);object-fit:cover;cursor:zoom-in;" onclick="openLightbox('${r.photo.replace(/'/g,"\\'")}')"/></div>`:''}
     ${sizeStr(r)?`<div class="section"><h3>Size</h3><div style="font-size:13px;color:var(--text2);">${sizeStr(r)}</div></div>`:''}
    </div>
   </div>`;
@@ -637,11 +653,11 @@ function renderPriceList(type){
     const finalVal=(item.r!==null&&item.r!==undefined)?item.r:markup;
     const diff=parseFloat((finalVal-markup).toFixed(2)),met=finalVal>=markup;
     const diffStr=diff===0?'':(diff>0?'+$'+diff.toFixed(2):'-$'+Math.abs(diff).toFixed(2));
-    return`<tr><td style="width:36%"><input type="text" value="${item.n}" onchange="updatePLName('${type}',${idx},this.value)"/></td><td style="width:13%"><input type="number" value="${item.p}" min="0" step="0.01" onchange="updatePLCost('${type}',${idx},this.value,this)"/></td><td style="width:16%"><span class="markup-val ${met?'markup-met':'markup-off'}">$${markup.toFixed(2)}</span></td><td style="width:17%"><input type="number" value="${finalVal.toFixed(2)}" min="0" step="0.01" onchange="updatePLRetail('${type}',${idx},this.value,this)"/></td><td style="width:10%"><span class="diff-val" style="color:${met?'#0F6E56':'#A32D2D'}">${diffStr}</span></td><td style="width:4%"><button class="del-btn" onclick="deletePLItem('${type}',${idx})"><i class="ti ti-x"></i></button></td></tr>`;
+    return`<tr><td style="width:36%"><input type="text" value="${item.n}" onchange="updatePLName('${type}',${idx},this.value)"/></td><td style="width:13%"><input type="number" value="${item.p}" min="0" step="0.01" onchange="updatePLCost('${type}',${idx},this.value,this)"/></td><td style="width:16%"><span class="markup-val ${met?'markup-met':'markup-off'}">$${markup.toFixed(2)}</span></td><td style="width:17%"><input type="number" value="${finalVal.toFixed(2)}" min="0" step="0.01" onchange="updatePLRetail('${type}',${idx},this.value,this)"/></td><td style="width:10%"><span class="diff-val" style="color:${met?'#1a5c2e':'#A32D2D'}">${diffStr}</span></td><td style="width:4%"><button class="del-btn" onclick="deletePLItem('${type}',${idx})"><i class="ti ti-x"></i></button></td></tr>`;
   }).join('');
   document.getElementById('mainContent').innerHTML=`
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-   <div class="legend" style="flex:1;"><span><span class="legend-dot" style="background:#0F6E56;"></span>Green = meets markup (cost ${multLabel})</span><span><span class="legend-dot" style="background:#A32D2D;"></span>Red = below goal</span></div>
+   <div class="legend" style="flex:1;"><span><span class="legend-dot" style="background:#1a5c2e;"></span>Meets markup goal (cost ${multLabel})</span><span><span class="legend-dot" style="background:#A32D2D;"></span>Red = below goal</span></div>
    <button class="pl-save-btn" onclick="savePriceLists()"><i class="ti ti-device-floppy"></i> Save prices</button>
    <span class="saved-flash" id="savedFlash">Saved!</span>
   </div>
@@ -660,7 +676,7 @@ function refreshPLRow(row,item,mult){
   const markup=parseFloat((item.p*mult).toFixed(2)),finalVal=(item.r!==null&&item.r!==undefined)?item.r:markup;
   const diff=parseFloat((finalVal-markup).toFixed(2)),met=finalVal>=markup;
   const mk=row.cells[2].querySelector('span')||row.cells[2];mk.textContent='$'+markup.toFixed(2);mk.className='markup-val '+(met?'markup-met':'markup-off');
-  const dc=row.cells[4].querySelector('span')||row.cells[4];dc.style.color=met?'#0F6E56':'#A32D2D';dc.textContent=diff===0?'':(diff>0?'+$'+diff.toFixed(2):'-$'+Math.abs(diff).toFixed(2));
+  const dc=row.cells[4].querySelector('span')||row.cells[4];dc.style.color=met?'#1a5c2e':'#A32D2D';dc.textContent=diff===0?'':(diff>0?'+$'+diff.toFixed(2):'-$'+Math.abs(diff).toFixed(2));
 }
 function deletePLItem(type,idx){getList(type).splice(idx,1);renderPriceList(type);}
 function addPLItem(type){
@@ -673,6 +689,18 @@ function savePriceLists(){
   localStorage.setItem('bs_accents',JSON.stringify(ACCENTS));
   const f=document.getElementById('savedFlash');if(f){f.style.opacity='1';setTimeout(()=>f.style.opacity='0',1800);}
 }
+
+function openLightbox(src){
+  document.getElementById('lightboxImg').src=src;
+  document.getElementById('lightbox').classList.add('open');
+  document.addEventListener('keydown',closeLightboxOnEsc);
+}
+function closeLightbox(){
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightboxImg').src='';
+  document.removeEventListener('keydown',closeLightboxOnEsc);
+}
+function closeLightboxOnEsc(e){if(e.key==='Escape')closeLightbox();}
 
 filterRecipes();
 </script>

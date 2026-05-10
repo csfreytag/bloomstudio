@@ -614,25 +614,30 @@ function renderRecipeView(r){
     ?`<img src="${r.photo}" alt="${r.name}" onclick="openLightbox('${r.photo.replace(/'/g,"\\'")}')}" style="width:100%;border-radius:var(--radius);object-fit:cover;cursor:zoom-in;max-height:280px;" />`
     :`<div style="width:100%;height:180px;background:var(--bg2);border-radius:var(--radius);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;color:var(--text3);font-style:italic;font-size:13px;">No photo uploaded</div>`;
 
-  const flowerRows=(r.flowers||[]).filter(f=>f.name!=='None').map(f=>{
-    const retailItem=FLOWERS.find(x=>x.n.trim()===f.name.trim());
-    const retailPrice=(retailItem&&retailItem.r&&retailItem.r>0)?retailItem.r:parseFloat(((retailItem?retailItem.p:0)*4).toFixed(2));
-    const linePrice=f.qty*retailPrice;
-    return`<tr>
-      <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);font-size:13px;">${f.name}</td>
-      <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);font-size:13px;color:var(--text2);text-align:center;">${f.qty} stem${f.qty!==1?'s':''}</td>
-      <td style="padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px;text-align:right;">$${fmt(linePrice)}</td>
-    </tr>`;}).join('');
+  function ingViewTable(list,items,mult){
+    if(!items||!items.length)return'';
+    return`<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px;">
+      <thead><tr>
+        <th style="text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:0 8px 6px 0;border-bottom:0.5px solid var(--border);">Name</th>
+        <th style="text-align:center;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:0 8px 6px;border-bottom:0.5px solid var(--border);">Qty</th>
+        <th style="text-align:right;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:0 8px 6px;border-bottom:0.5px solid var(--border);">Each</th>
+        <th style="text-align:right;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:0 0 6px;border-bottom:0.5px solid var(--border);">Total</th>
+      </tr></thead>
+      <tbody>${items.map(f=>{
+        const item=list.find(x=>x.n.trim()===f.name.trim());
+        const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*mult).toFixed(2));
+        return`<tr>
+          <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);">${f.name}</td>
+          <td style="padding:5px 8px;border-bottom:0.5px solid var(--border);text-align:center;color:var(--text2);">${f.qty}</td>
+          <td style="padding:5px 8px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--text2);">$${fmt(each)}</td>
+          <td style="padding:5px 0;border-bottom:0.5px solid var(--border);text-align:right;font-weight:500;">$${fmt(f.qty*each)}</td>
+        </tr>`;}).join('')}
+      </tbody>
+    </table>`;
+  }
 
-  const fillerRows=(r.fillers||[]).filter(f=>f.name!=='None').map(f=>{
-    const retailItem=FILLERS.find(x=>x.n.trim()===f.name.trim());
-    const retailPrice=(retailItem&&retailItem.r&&retailItem.r>0)?retailItem.r:parseFloat(((retailItem?retailItem.p:0)*4).toFixed(2));
-    const linePrice=f.qty*retailPrice;
-    return`<tr>
-      <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);font-size:13px;">${f.name}</td>
-      <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);font-size:13px;color:var(--text2);text-align:center;">${f.qty} pc${f.qty!==1?'s':''}</td>
-      <td style="padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px;text-align:right;">$${fmt(linePrice)}</td>
-    </tr>`;}).join('');
+  const flowerTableHtml=ingViewTable(FLOWERS,(r.flowers||[]).filter(f=>f.name!=='None'),4);
+  const fillerTableHtml=ingViewTable(FILLERS,(r.fillers||[]).filter(f=>f.name!=='None'),4);
 
   document.getElementById('mainContent').innerHTML=`
   <div style="display:grid;grid-template-columns:1fr 260px;gap:16px;align-items:start;">
@@ -647,27 +652,13 @@ function renderRecipeView(r){
       ${tagHtml?`<div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;max-width:200px;">${tagHtml}</div>`:''}
      </div>
 
-     ${(r.flowers||[]).filter(f=>f.name!=='None').length?`
+     ${flowerTableHtml?`
      <h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Flowers</h3>
-     <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">
-      <thead><tr>
-       <th style="text-align:left;font-size:10px;color:var(--text3);padding:0 8px 6px 0;border-bottom:0.5px solid var(--border);">Name</th>
-       <th style="text-align:center;font-size:10px;color:var(--text3);padding:0 8px 6px 0;border-bottom:0.5px solid var(--border);">Qty</th>
-       <th style="text-align:right;font-size:10px;color:var(--text3);padding:0 0 6px 0;border-bottom:0.5px solid var(--border);">Retail price</th>
-      </tr></thead>
-      <tbody>${flowerRows}</tbody>
-     </table>`:''}
+     ${flowerTableHtml}`:''}
 
-     ${(r.fillers||[]).filter(f=>f.name!=='None').length?`
+     ${fillerTableHtml?`
      <h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Greenery &amp; filler</h3>
-     <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">
-      <thead><tr>
-       <th style="text-align:left;font-size:10px;color:var(--text3);padding:0 8px 6px 0;border-bottom:0.5px solid var(--border);">Name</th>
-       <th style="text-align:center;font-size:10px;color:var(--text3);padding:0 8px 6px 0;border-bottom:0.5px solid var(--border);">Qty</th>
-       <th style="text-align:right;font-size:10px;color:var(--text3);padding:0 0 6px 0;border-bottom:0.5px solid var(--border);">Retail price</th>
-      </tr></thead>
-      <tbody>${fillerRows}</tbody>
-     </table>`:''}
+     ${fillerTableHtml}`:''}
 
      <div style="border-top:0.5px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:5px;">
       ${r.container&&r.container!=='None'?`<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text2);">Container — ${r.container}</span><span>$${fmt(c.vp)}</span></div>`:''}
@@ -742,8 +733,28 @@ function removePhoto(){const r=recipes.find(x=>x.id===activeId);if(!r)return;r.p
 
 function renderCostsTab(r){
   const c=calcCost(r),fp=finalPrice(r);
-  const sd=(r.flowers||[]).map(f=>{const p=gpCost(FLOWERS,f.name);return`<div class="cb-row"><span>${f.qty}× ${f.name}</span><span>$${fmt(f.qty*p)}</span></div>`;}).join('');
-  const fd=(r.fillers||[]).map(f=>{const p=gpCost(FILLERS,f.name);return`<div class="cb-row"><span>${f.qty}× ${f.name}</span><span>$${fmt(f.qty*p)}</span></div>`;}).join('');
+
+  function ingTable(list,items){
+    if(!items||!items.length)return'<div class="cb-row" style="color:var(--text2)"><span>None</span><span>$0.00</span></div>';
+    return`<table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr>
+        <th style="text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:0 8px 6px 0;border-bottom:0.5px solid var(--border);">Name</th>
+        <th style="text-align:center;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:0 8px 6px;border-bottom:0.5px solid var(--border);">Qty</th>
+        <th style="text-align:right;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:0 8px 6px;border-bottom:0.5px solid var(--border);">Each</th>
+        <th style="text-align:right;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:0 0 6px;border-bottom:0.5px solid var(--border);">Total</th>
+      </tr></thead>
+      <tbody>${items.map(f=>{
+        const p=gpCost(list,f.name);
+        return`<tr>
+          <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);">${f.name}</td>
+          <td style="padding:5px 8px;border-bottom:0.5px solid var(--border);text-align:center;color:var(--text2);">${f.qty}</td>
+          <td style="padding:5px 8px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--text2);">$${fmt(p)}</td>
+          <td style="padding:5px 0;border-bottom:0.5px solid var(--border);text-align:right;font-weight:500;">$${fmt(f.qty*p)}</td>
+        </tr>`;}).join('')}
+      </tbody>
+    </table>`;
+  }
+
   const projProfit=r.projection?(fp-c.total)*r.projection:null;
   document.getElementById('mainContent').innerHTML=`
   <div class="stat-row">
@@ -766,8 +777,8 @@ function renderCostsTab(r){
      <div class="cb-row"><span>${r.container||'No container'}</span><span>$${fmt(c.vp)}</span></div>
      ${c.ap>0?`<div class="cb-row"><span>${r.accent}</span><span>$${fmt(c.ap)}</span></div>`:''}
      <div class="cb-cat">Flowers</div>
-     ${sd||'<div class="cb-row" style="color:var(--text2)"><span>None</span><span>$0.00</span></div>'}
-     ${fd?`<div class="cb-cat">Greenery &amp; filler</div>${fd}`:''}
+     ${ingTable(FLOWERS,(r.flowers||[]).filter(f=>f.name!=='None'))}
+     ${(r.fillers||[]).filter(f=>f.name!=='None').length?`<div class="cb-cat">Greenery &amp; filler</div>${ingTable(FILLERS,(r.fillers||[]).filter(f=>f.name!=='None'))}`:''}
      <div class="cb-cat">Labor</div>
      <div class="cb-row"><span>Labor (${c.pct}% of $${fmt(fp)} final retail)</span><span>$${fmt(c.labor)}</span></div>
      <div class="cb-row total"><span>Total cost</span><span>$${fmt(c.total)}</span></div>

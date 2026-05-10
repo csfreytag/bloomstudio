@@ -244,7 +244,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
    <div class="tab-bar" id="tabBar" style="display:none;">
     <button class="tab active" id="tab-recipe" onclick="switchTab('recipe')">Recipe edit</button>
     <button class="tab" id="tab-view" onclick="switchTab('view')">Recipe view</button>
-    <button class="tab" id="tab-costs" onclick="switchTab('costs')">Cost breakdown</button>
+    <button class="tab" id="tab-costs" onclick="switchTab('costs')">Price breakdown</button>
    </div>
    <div class="action-btns" id="actionBtns" style="display:none;">
     <button class="delete-btn" onclick="deleteRecipe()"><i class="ti ti-trash"></i> Delete</button>
@@ -761,7 +761,7 @@ function renderCostsTab(r){
      <div class="cb-row" style="font-weight:600;"><span>Final retail</span><span style="color:var(--green-dark)">$${fmt(fp)}</span></div>
     </div>
     <div class="section">
-     <h3>Cost breakdown</h3>
+     <h3>Price breakdown</h3>
      <div class="cb-cat">Container</div>
      <div class="cb-row"><span>${r.container||'No container'}</span><span>$${fmt(c.vp)}</span></div>
      ${c.ap>0?`<div class="cb-row"><span>${r.accent}</span><span>$${fmt(c.ap)}</span></div>`:''}

@@ -615,19 +615,23 @@ function renderRecipeView(r){
     :`<div style="width:100%;height:180px;background:var(--bg2);border-radius:var(--radius);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;color:var(--text3);font-style:italic;font-size:13px;">No photo uploaded</div>`;
 
   const flowerRows=(r.flowers||[]).filter(f=>f.name!=='None').map(f=>{
-    const cost=f.qty*gpCost(FLOWERS,f.name);
+    const retailItem=FLOWERS.find(x=>x.n.trim()===f.name.trim());
+    const retailPrice=(retailItem&&retailItem.r&&retailItem.r>0)?retailItem.r:parseFloat(((retailItem?retailItem.p:0)*4).toFixed(2));
+    const linePrice=f.qty*retailPrice;
     return`<tr>
       <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);font-size:13px;">${f.name}</td>
       <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);font-size:13px;color:var(--text2);text-align:center;">${f.qty} stem${f.qty!==1?'s':''}</td>
-      <td style="padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px;text-align:right;">$${fmt(cost)}</td>
+      <td style="padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px;text-align:right;">$${fmt(linePrice)}</td>
     </tr>`;}).join('');
 
   const fillerRows=(r.fillers||[]).filter(f=>f.name!=='None').map(f=>{
-    const cost=f.qty*gpCost(FILLERS,f.name);
+    const retailItem=FILLERS.find(x=>x.n.trim()===f.name.trim());
+    const retailPrice=(retailItem&&retailItem.r&&retailItem.r>0)?retailItem.r:parseFloat(((retailItem?retailItem.p:0)*4).toFixed(2));
+    const linePrice=f.qty*retailPrice;
     return`<tr>
       <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);font-size:13px;">${f.name}</td>
       <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);font-size:13px;color:var(--text2);text-align:center;">${f.qty} pc${f.qty!==1?'s':''}</td>
-      <td style="padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px;text-align:right;">$${fmt(cost)}</td>
+      <td style="padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px;text-align:right;">$${fmt(linePrice)}</td>
     </tr>`;}).join('');
 
   document.getElementById('mainContent').innerHTML=`
@@ -649,7 +653,7 @@ function renderRecipeView(r){
       <thead><tr>
        <th style="text-align:left;font-size:10px;color:var(--text3);padding:0 8px 6px 0;border-bottom:0.5px solid var(--border);">Name</th>
        <th style="text-align:center;font-size:10px;color:var(--text3);padding:0 8px 6px 0;border-bottom:0.5px solid var(--border);">Qty</th>
-       <th style="text-align:right;font-size:10px;color:var(--text3);padding:0 0 6px 0;border-bottom:0.5px solid var(--border);">Cost</th>
+       <th style="text-align:right;font-size:10px;color:var(--text3);padding:0 0 6px 0;border-bottom:0.5px solid var(--border);">Retail price</th>
       </tr></thead>
       <tbody>${flowerRows}</tbody>
      </table>`:''}
@@ -660,7 +664,7 @@ function renderRecipeView(r){
       <thead><tr>
        <th style="text-align:left;font-size:10px;color:var(--text3);padding:0 8px 6px 0;border-bottom:0.5px solid var(--border);">Name</th>
        <th style="text-align:center;font-size:10px;color:var(--text3);padding:0 8px 6px 0;border-bottom:0.5px solid var(--border);">Qty</th>
-       <th style="text-align:right;font-size:10px;color:var(--text3);padding:0 0 6px 0;border-bottom:0.5px solid var(--border);">Cost</th>
+       <th style="text-align:right;font-size:10px;color:var(--text3);padding:0 0 6px 0;border-bottom:0.5px solid var(--border);">Retail price</th>
       </tr></thead>
       <tbody>${fillerRows}</tbody>
      </table>`:''}
@@ -669,7 +673,7 @@ function renderRecipeView(r){
       ${r.container&&r.container!=='None'?`<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text2);">Container — ${r.container}</span><span>$${fmt(c.vp)}</span></div>`:''}
       ${r.accent&&r.accent!=='None'?`<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text2);">Accent — ${r.accent}</span><span>$${fmt(c.ap)}</span></div>`:''}
       <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text2);">Labor (${c.pct}% of $${fmt(fp)} retail)</span><span>$${fmt(c.labor)}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;padding-top:6px;border-top:0.5px solid var(--border);margin-top:4px;"><span>Total cost</span><span>$${fmt(c.total)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;padding-top:6px;border-top:0.5px solid var(--border);margin-top:4px;"><span>Total retail price</span><span style="color:var(--green-dark);">$${fmt(fp)}</span></div>
      </div>
 
      ${r.notes?`<div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border);"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:4px;">Notes</div><div style="font-size:13px;color:var(--text2);line-height:1.6;">${r.notes}</div></div>`:''}
@@ -684,7 +688,6 @@ function renderRecipeView(r){
      <h3>Summary</h3>
      <div style="font-size:13px;">
       <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Retail price</span><span style="font-weight:500;color:var(--green-dark);">$${fmt(fp)}</span></div>
-      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Total cost</span><span>$${fmt(c.total)}</span></div>
       ${sz?`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Size</span><span style="font-size:12px;">${sz}</span></div>`:''}
       <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="color:var(--text2);">Total stems</span><span>${(r.flowers||[]).filter(f=>f.name!=='None').reduce((s,f)=>s+f.qty,0)}</span></div>
      </div>

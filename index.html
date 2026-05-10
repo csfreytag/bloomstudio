@@ -162,6 +162,24 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .add-tag-row input { flex: 1; }
 .add-tag-btn { background: var(--stem); color: white; border: none; padding: 5px 12px; border-radius: var(--radius); font-size: 12px; cursor: pointer; white-space: nowrap; }
 .size-display { font-size: 13px; color: var(--text2); margin-top: 5px; font-style: italic; }
+.status-chip { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; cursor: pointer; border: 0.5px solid var(--border2); background: var(--bg); color: var(--text2); transition: all 0.1s; user-select: none; }
+.status-chip.active { background: var(--green); border-color: var(--green); color: white; }
+.status-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 8px; margin-left: 5px; vertical-align: middle; }
+.s-active { background: #e8f4ec; color: #1a5c2e; }
+.s-draft { background: #E6F1FB; color: #185FA5; }
+.s-pending { background: var(--amber-light); color: var(--amber); }
+.s-discontinued { background: var(--bg3); color: var(--text3); }
+.report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.report-table th { text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 10px 8px 0; border-bottom: 0.5px solid var(--border); white-space: nowrap; cursor: pointer; }
+.report-table th:hover { color: var(--text); }
+.report-table td { padding: 7px 10px 7px 0; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
+.report-table tr:hover td { background: var(--bg2); }
+.approval-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 10px; }
+.approval-card h4 { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+.approval-card p { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+.approval-btns { display: flex; gap: 8px; }
+.approve-btn { background: var(--stem); color: white; border: none; padding: 6px 14px; border-radius: var(--radius); font-size: 12px; cursor: pointer; }
+.sendback-btn { background: none; border: 0.5px solid var(--border2); padding: 6px 14px; border-radius: var(--radius); font-size: 12px; cursor: pointer; color: var(--amber); }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
@@ -181,8 +199,9 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
   <div class="nav-tabs">
    <button class="nav-tab active" id="nt-recipes" onclick="setNav('recipes')">Recipes</button>
    <button class="nav-tab" id="nt-prices" onclick="setNav('prices')">Prices</button>
-   <button class="nav-tab" id="nt-calc" onclick="setNav('calc')">Calculator</button>
-   <button class="nav-tab" id="nt-order" onclick="setNav('order')">Ordering</button>
+   <button class="nav-tab" id="nt-calc" onclick="setNav('calc')">Calc</button>
+   <button class="nav-tab" id="nt-order" onclick="setNav('order')">Order</button>
+   <button class="nav-tab" id="nt-reports" onclick="setNav('reports')">Reports</button>
    <button class="nav-tab" id="nt-tags" onclick="setNav('tags')">Tags</button>
   </div>
   <div id="sidebar-recipes" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
@@ -190,6 +209,13 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
     <div class="search-row">
      <input type="text" placeholder="Search name, SKU, flower…" id="searchInput" oninput="filterRecipes()" />
      <button class="filter-toggle" id="filterToggle" onclick="toggleFilters()"><i class="ti ti-adjustments-horizontal"></i> Filter <i class="ti ti-chevron-down chevron"></i></button>
+    </div>
+    <div style="display:flex;gap:4px;padding:0 10px 8px;flex-wrap:wrap;">
+     <span class="status-chip active" onclick="toggleStatusFilter('all')" id="sf-all">All</span>
+     <span class="status-chip" onclick="toggleStatusFilter('active')" id="sf-active">Active</span>
+     <span class="status-chip" onclick="toggleStatusFilter('draft')" id="sf-draft">Draft</span>
+     <span class="status-chip" onclick="toggleStatusFilter('pending')" id="sf-pending">Pending</span>
+     <span class="status-chip" onclick="toggleStatusFilter('discontinued')" id="sf-discontinued">Discontinued</span>
     </div>
     <div class="filter-panel" id="filterPanel">
      <div class="filter-label">Price range ($)</div>
@@ -225,6 +251,14 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
   <div id="sidebar-order" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
    <div class="pl-nav">
     <p>Filter recipes by tag, enter quantities, and export a stem count spreadsheet.</p>
+   </div>
+  </div>
+  <div id="sidebar-reports" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+   <div class="pl-nav">
+    <p>Business reports and planning views.</p>
+    <button class="pl-nav-btn active" id="rpnav-margins" onclick="showReport('margins')"><i class="ti ti-chart-bar"></i> Margin report</button>
+    <button class="pl-nav-btn" id="rpnav-seasonal" onclick="showReport('seasonal')"><i class="ti ti-calendar-event"></i> Seasonal planning</button>
+    <button class="pl-nav-btn" id="rpnav-approvals" onclick="showReport('approvals')"><i class="ti ti-checks"></i> Approvals queue</button>
    </div>
   </div>
   <div id="sidebar-tags" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
@@ -281,30 +315,50 @@ let TAGS=JSON.parse(localStorage.getItem('bs_tags')||'null')||["Valentine's Day"
 let activeTagFilters=[];
 
 let recipes=JSON.parse(localStorage.getItem('bs_recipes2')||'null')||[
-{id:1,sku:"FE2409",name:"Twenty Spring Tulips",calcPrice:120,adjPrice:null,projection:300,container:"C999 Vase",accent:"None",flowers:[{name:"Tulips - Yellow",qty:5},{name:"Tulips - Orange",qty:5},{name:"Tulips - Pink",qty:5},{name:"Tulips - Dark Pink",qty:5}],fillers:[],laborPct:13,photo:null,tags:["Spring","Everyday"],notes:"",sizeH:"",sizeW:"",sizeD:""},
-{id:2,sku:"FE2408",name:"Ten Spring Tulips",calcPrice:65,adjPrice:null,projection:350,container:"007 Vase",accent:"None",flowers:[{name:"Tulips - Yellow",qty:2},{name:"Tulips - Pink",qty:2},{name:"Tulips - Orange",qty:2},{name:"Tulips - Dark Pink",qty:4}],fillers:[],laborPct:13,photo:null,tags:["Spring","Under $75"],notes:"",sizeH:"",sizeW:"",sizeD:""},
-{id:3,sku:"FMD2600",name:"Twilight Meadow",calcPrice:85,adjPrice:null,projection:800,container:"4x4 Cylinder",accent:"None",flowers:[{name:"Hydrangea - Mini Green",qty:2},{name:"Spray Roses - Yellow",qty:4},{name:"Lisianthus Purple",qty:4},{name:"Alstro - Hot Pink",qty:3},{name:"Blooming Dianthus",qty:3}],fillers:[],laborPct:13,photo:null,tags:["Everyday","Under $100"],notes:"",sizeH:"",sizeW:"",sizeD:""},
-{id:4,sku:"FMD2601",name:"Garden Jewels",calcPrice:125,adjPrice:null,projection:475,container:"5x5 Cylinder",accent:"None",flowers:[{name:"Stock - Pink",qty:4},{name:"Spray Roses - Yellow",qty:3},{name:"Garden Roses Hot Pink",qty:3},{name:"Alstro - Purple",qty:3},{name:"Thistle",qty:2},{name:"Hydrangea - Blue",qty:2}],fillers:[],laborPct:20,photo:null,tags:["Birthday","Spring"],notes:"",sizeH:"",sizeW:"",sizeD:""},
-{id:5,sku:"FMD2602",name:"Citrine Glow",calcPrice:165,adjPrice:null,projection:375,container:"5x5 White Cylinder",accent:"None",flowers:[{name:"Roses - Free Spirit",qty:3},{name:"Hydrangea - Shamrock",qty:2},{name:"Ranunculus Peach",qty:3},{name:"Alstro - Orange",qty:3},{name:"Spray Roses - Hot Pink",qty:3},{name:"Stock - Fuchsia",qty:3},{name:"Anemones Hot Pink",qty:3}],fillers:[],laborPct:20,photo:null,tags:["Premium","Mother's Day"],notes:"",sizeH:"",sizeW:"",sizeD:""},
-{id:6,sku:"FMD2603",name:"Candied Clementine",calcPrice:200,adjPrice:null,projection:175,container:"6x6 CYLINDER",accent:"None",flowers:[{name:"Roses - Free Spirit",qty:6},{name:"Callas (Mini) - Pink",qty:3},{name:"Alstro - Orange",qty:4},{name:"Spray Roses - Yellow",qty:4},{name:"Stock - Fuchsia",qty:3},{name:"Hydrangea - Mini Green",qty:3},{name:"Ranunculus Peach",qty:5}],fillers:[],laborPct:20,photo:null,tags:["Premium","Birthday"],notes:"",sizeH:"",sizeW:"",sizeD:""},
-{id:7,sku:"FMD2604",name:"French Meadow",calcPrice:250,adjPrice:null,projection:90,container:"6x6 CYLINDER",accent:"None",flowers:[{name:"Hydrangea - Large Green",qty:2},{name:"Stock - Peach",qty:6},{name:"Delphinum - Light Blue",qty:5},{name:"Veronica Blue",qty:6},{name:"Lisianthus Pink",qty:3},{name:"Ranunculus Light Pink",qty:3},{name:"Roses - Med Stem Lavender",qty:5},{name:"Spray Roses - Yellow",qty:3},{name:"Disbud Lavender",qty:3},{name:"Hypericum Green",qty:5}],fillers:[],laborPct:20,photo:null,tags:["Premium","Wedding"],notes:"",sizeH:"",sizeW:"",sizeD:""},
-{id:8,sku:"FMD2605",name:"Midnight Moonlight",calcPrice:300,adjPrice:null,projection:40,container:"White 6 inch Cylinder",accent:"None",flowers:[{name:"Stock - Dark Purple",qty:5},{name:"Astilbe Hot Purple",qty:4},{name:"Blooming Dianthus",qty:3},{name:"Disbud Lavender",qty:3},{name:"Anemones Dark Purple",qty:4},{name:"Callas (Mini) - Picasso",qty:3},{name:"Garden Roses Yellow",qty:5},{name:"Lisianthus Purple",qty:6},{name:"Alstro - Light Yellow",qty:3},{name:"Hypericum Green",qty:5}],fillers:[{name:"GUNNI EUC",qty:3}],laborPct:20,photo:null,tags:["Premium","Sympathy"],notes:"",sizeH:"",sizeW:"",sizeD:""},
-{id:9,sku:"FMD2606",name:"Spring Luxe",calcPrice:350,adjPrice:null,projection:10,container:"WD White ceramic 12x6x4",accent:"None",flowers:[{name:"Delphinum - Light Blue",qty:5},{name:"Snaps - White",qty:4},{name:"Stock - Peach",qty:7},{name:"Hydrangea - Large Green",qty:4},{name:"Garden Roses Yellow",qty:5},{name:"Spray Roses - White",qty:3},{name:"Lisianthus Pink",qty:4},{name:"Ranunculus Orange",qty:6},{name:"Alstro - White",qty:5}],fillers:[{name:"GUNNI EUC",qty:3},{name:"Curly Willow tall",qty:1}],laborPct:20,photo:null,tags:["Premium","Spring","Wedding"],notes:"Bestseller in April. Consider upselling to garden box.",sizeH:"13",sizeW:"15",sizeD:"13"}
+{id:1,sku:"FE2409",name:"Twenty Spring Tulips",status:"active",calcPrice:120,adjPrice:null,projection:300,container:"C999 Vase",accent:"None",flowers:[{name:"Tulips - Yellow",qty:5},{name:"Tulips - Orange",qty:5},{name:"Tulips - Pink",qty:5},{name:"Tulips - Dark Pink",qty:5}],fillers:[],laborPct:13,photo:null,tags:["Spring","Everyday"],notes:"",sizeH:"",sizeW:"",sizeD:"",approvalNote:""},
+{id:2,sku:"FE2408",name:"Ten Spring Tulips",status:"active",calcPrice:65,adjPrice:null,projection:350,container:"007 Vase",accent:"None",flowers:[{name:"Tulips - Yellow",qty:2},{name:"Tulips - Pink",qty:2},{name:"Tulips - Orange",qty:2},{name:"Tulips - Dark Pink",qty:4}],fillers:[],laborPct:13,photo:null,tags:["Spring","Under $75"],notes:"",sizeH:"",sizeW:"",sizeD:"",approvalNote:""},
+{id:3,sku:"FMD2600",name:"Twilight Meadow",status:"active",calcPrice:85,adjPrice:null,projection:800,container:"4x4 Cylinder",accent:"None",flowers:[{name:"Hydrangea - Mini Green",qty:2},{name:"Spray Roses - Yellow",qty:4},{name:"Lisianthus Purple",qty:4},{name:"Alstro - Hot Pink",qty:3},{name:"Blooming Dianthus",qty:3}],fillers:[],laborPct:13,photo:null,tags:["Everyday","Under $100"],notes:"",sizeH:"",sizeW:"",sizeD:"",approvalNote:""},
+{id:4,sku:"FMD2601",name:"Garden Jewels",status:"active",calcPrice:125,adjPrice:null,projection:475,container:"5x5 Cylinder",accent:"None",flowers:[{name:"Stock - Pink",qty:4},{name:"Spray Roses - Yellow",qty:3},{name:"Garden Roses Hot Pink",qty:3},{name:"Alstro - Purple",qty:3},{name:"Thistle",qty:2},{name:"Hydrangea - Blue",qty:2}],fillers:[],laborPct:20,photo:null,tags:["Birthday","Spring"],notes:"",sizeH:"",sizeW:"",sizeD:"",approvalNote:""},
+{id:5,sku:"FMD2602",name:"Citrine Glow",status:"active",calcPrice:165,adjPrice:null,projection:375,container:"5x5 White Cylinder",accent:"None",flowers:[{name:"Roses - Free Spirit",qty:3},{name:"Hydrangea - Shamrock",qty:2},{name:"Ranunculus Peach",qty:3},{name:"Alstro - Orange",qty:3},{name:"Spray Roses - Hot Pink",qty:3},{name:"Stock - Fuchsia",qty:3},{name:"Anemones Hot Pink",qty:3}],fillers:[],laborPct:20,photo:null,tags:["Premium","Mother's Day"],notes:"",sizeH:"",sizeW:"",sizeD:"",approvalNote:""},
+{id:6,sku:"FMD2603",name:"Candied Clementine",status:"active",calcPrice:200,adjPrice:null,projection:175,container:"6x6 CYLINDER",accent:"None",flowers:[{name:"Roses - Free Spirit",qty:6},{name:"Callas (Mini) - Pink",qty:3},{name:"Alstro - Orange",qty:4},{name:"Spray Roses - Yellow",qty:4},{name:"Stock - Fuchsia",qty:3},{name:"Hydrangea - Mini Green",qty:3},{name:"Ranunculus Peach",qty:5}],fillers:[],laborPct:20,photo:null,tags:["Premium","Birthday"],notes:"",sizeH:"",sizeW:"",sizeD:"",approvalNote:""},
+{id:7,sku:"FMD2604",name:"French Meadow",status:"pending",calcPrice:250,adjPrice:null,projection:90,container:"6x6 CYLINDER",accent:"None",flowers:[{name:"Hydrangea - Large Green",qty:2},{name:"Stock - Peach",qty:6},{name:"Delphinum - Light Blue",qty:5},{name:"Veronica Blue",qty:6},{name:"Lisianthus Pink",qty:3},{name:"Ranunculus Light Pink",qty:3},{name:"Roses - Med Stem Lavender",qty:5},{name:"Spray Roses - Yellow",qty:3},{name:"Disbud Lavender",qty:3},{name:"Hypericum Green",qty:5}],fillers:[],laborPct:20,photo:null,tags:["Premium","Wedding"],notes:"",sizeH:"",sizeW:"",sizeD:"",approvalNote:"Please review flower selection"},
+{id:8,sku:"FMD2605",name:"Midnight Moonlight",status:"discontinued",calcPrice:300,adjPrice:null,projection:40,container:"White 6 inch Cylinder",accent:"None",flowers:[{name:"Stock - Dark Purple",qty:5},{name:"Astilbe Hot Purple",qty:4},{name:"Blooming Dianthus",qty:3},{name:"Disbud Lavender",qty:3},{name:"Anemones Dark Purple",qty:4},{name:"Callas (Mini) - Picasso",qty:3},{name:"Garden Roses Yellow",qty:5},{name:"Lisianthus Purple",qty:6},{name:"Alstro - Light Yellow",qty:3},{name:"Hypericum Green",qty:5}],fillers:[{name:"GUNNI EUC",qty:3}],laborPct:20,photo:null,tags:["Premium","Sympathy"],notes:"",sizeH:"",sizeW:"",sizeD:"",approvalNote:""},
+{id:9,sku:"FMD2606",name:"Spring Luxe",status:"draft",calcPrice:350,adjPrice:null,projection:10,container:"WD White ceramic 12x6x4",accent:"None",flowers:[{name:"Delphinum - Light Blue",qty:5},{name:"Snaps - White",qty:4},{name:"Stock - Peach",qty:7},{name:"Hydrangea - Large Green",qty:4},{name:"Garden Roses Yellow",qty:5},{name:"Spray Roses - White",qty:3},{name:"Lisianthus Pink",qty:4},{name:"Ranunculus Orange",qty:6},{name:"Alstro - White",qty:5}],fillers:[{name:"GUNNI EUC",qty:3},{name:"Curly Willow tall",qty:1}],laborPct:20,photo:null,tags:["Premium","Spring","Wedding"],notes:"Bestseller in April. Consider upselling to garden box.",sizeH:"13",sizeW:"15",sizeD:"13",approvalNote:""}
 ];
 
 let activeId=null,activeTab='recipe',activePL='flowers',activeNav='recipes',nextId=Math.max(...recipes.map(r=>r.id),0)+1;
-let currentRole='admin'; // admin | manager | designer
+let currentRole='admin';
+let activeStatusFilter='all';
+let activeReportView='margins';
+
+// Migrate old recipes missing status/approvalNote
+recipes.forEach(r=>{
+  if(!r.status)r.status='active';
+  if(!r.approvalNote)r.approvalNote='';
+});
 
 function applyRole(role){
   currentRole=role;
-  // Show/hide nav items based on role
   const isDesigner=role==='designer';
-  const isAdmin=role==='admin';
-  // Prices and ordering hidden from designers
   document.getElementById('nt-prices').style.display=isDesigner?'none':'';
   document.getElementById('nt-order').style.display=isDesigner?'none':'';
-  // Rebuild tabs if a recipe is open
+  document.getElementById('nt-reports').style.display=isDesigner?'none':'';
   if(activeId)renderEditor();
+}
+
+function toggleStatusFilter(status){
+  activeStatusFilter=status;
+  ['all','active','draft','pending','discontinued'].forEach(s=>{
+    const el=document.getElementById('sf-'+s);
+    if(el)el.classList.toggle('active',s===status);
+  });
+  filterRecipes();
+}
+
+function statusBadge(status){
+  const labels={active:'Active',draft:'Draft',pending:'Pending review',discontinued:'Discontinued'};
+  const cls={active:'s-active',draft:'s-draft',pending:'s-pending',discontinued:'s-discontinued'};
+  return`<span class="status-badge ${cls[status]||'s-draft'}">${labels[status]||status}</span>`;
 }
 
 function switchTab(tab){
@@ -359,7 +413,7 @@ function sizeStr(r){const p=[];if(r.sizeH)p.push(r.sizeH+' in. tall');if(r.sizeW
 
 function setNav(nav){
   activeNav=nav;
-  ['recipes','prices','calc','order','tags'].forEach(n=>{
+  ['recipes','prices','calc','order','reports','tags'].forEach(n=>{
     const btn=document.getElementById('nt-'+n);
     if(btn)btn.classList.toggle('active',n===nav);
     const p=document.getElementById('sidebar-'+n);
@@ -369,6 +423,7 @@ function setNav(nav){
   else if(nav==='tags'){renderSidebarTags();renderTagsMain();}
   else if(nav==='calc')renderCalculator();
   else if(nav==='order')renderOrdering();
+  else if(nav==='reports'){showReport(activeReportView);}
   else if(nav==='recipes'&&activeId)renderEditor();
   else if(nav==='recipes')resetMain();
 }
@@ -445,13 +500,15 @@ function filterRecipes(){
     const matchQ=!q||(r.name||'').toLowerCase().includes(q)||(r.sku||'').toLowerCase().includes(q)||flowerTxt.includes(q)||fillerTxt.includes(q);
     const matchP=fp>=mn&&fp<=mx;
     const matchT=activeTagFilters.length===0||activeTagFilters.every(t=>(r.tags||[]).includes(t));
-    return matchQ&&matchP&&matchT;
+    const matchS=activeStatusFilter==='all'||(r.status||'active')===activeStatusFilter;
+    return matchQ&&matchP&&matchT&&matchS;
   });
   el.innerHTML=filtered.map(r=>{
     const fp=finalPrice(r);const{margin}=calcCost(r);
     const tagHtml=(r.tags||[]).map(t=>`<span class="tag-chip">${t}</span>`).join('');
+    const st=r.status||'active';
     return`<div class="recipe-item${r.id===activeId?' active':''}" onclick="selectRecipe(${r.id})">
-      <div class="sku">${r.sku||'—'}</div>
+      <div class="sku">${r.sku||'—'} ${statusBadge(st)}</div>
       <div class="rname">${r.name||'Untitled'}</div>
       <div class="rprice">$${fmt(fp)} <span class="margin-pill ${mc(margin)}">${margin.toFixed(0)}%</span></div>
       ${tagHtml?`<div class="rtags">${tagHtml}</div>`:''}
@@ -461,7 +518,8 @@ function filterRecipes(){
 
 function selectRecipe(id){activeId=id;activeTab=currentRole==='designer'?'view':'recipe';setNav('recipes');filterRecipes();renderEditor();}
 function newRecipe(){
-  const r={id:nextId++,sku:'',name:'',calcPrice:0,adjPrice:null,projection:null,container:'None',accent:'None',flowers:[{name:'None',qty:1}],fillers:[],laborPct:13,photo:null,tags:[],notes:'',sizeH:'',sizeW:'',sizeD:''};
+  const defaultStatus=currentRole==='designer'?'draft':'draft';
+  const r={id:nextId++,sku:'',name:'',status:defaultStatus,calcPrice:0,adjPrice:null,projection:null,container:'None',accent:'None',flowers:[{name:'None',qty:1}],fillers:[],laborPct:13,photo:null,tags:[],notes:'',sizeH:'',sizeW:'',sizeD:'',approvalNote:''};
   recipes.push(r);activeId=r.id;activeTab='recipe';setNav('recipes');filterRecipes();renderEditor();
 }
 function deleteRecipe(){
@@ -481,6 +539,8 @@ function saveRecipe(){
   r.accent=document.getElementById('f_accent').value;
   r.laborPct=parseFloat(document.getElementById('f_laborpct').value)||0;
   r.notes=document.getElementById('f_notes').value;
+  r.status=document.getElementById('f_status')?.value||r.status||'draft';
+  r.approvalNote=document.getElementById('f_approvalNote')?.value||'';
   r.sizeH=document.getElementById('f_sizeh').value;
   r.sizeW=document.getElementById('f_sizew').value;
   r.sizeD=document.getElementById('f_sized').value;
@@ -597,6 +657,30 @@ function renderRecipeTab(r){
     <div class="section">
      <h3>Notes</h3>
      <textarea id="f_notes" placeholder="Sourcing tips, design intent, substitution ideas, customer feedback…">${r.notes||''}</textarea>
+    </div>
+    <div class="section">
+     <h3>Status</h3>
+     <div class="field-row">
+      <div class="field">
+       <label>Recipe status</label>
+       <select id="f_status">
+        <option value="draft"${(r.status||'draft')==='draft'?' selected':''}>Draft</option>
+        <option value="pending"${r.status==='pending'?' selected':''}>Pending review</option>
+        <option value="active"${r.status==='active'?' selected':''}>Active</option>
+        <option value="discontinued"${r.status==='discontinued'?' selected':''}>Discontinued</option>
+       </select>
+      </div>
+      <div class="field">
+       <label>Note to reviewer <span style="font-style:italic;color:var(--text3)">(optional)</span></label>
+       <input id="f_approvalNote" type="text" value="${r.approvalNote||''}" placeholder="Any notes for the approver…"/>
+      </div>
+     </div>
+     ${currentRole==='manager'||currentRole==='admin'?`
+     <div style="display:flex;gap:8px;margin-top:8px;">
+      <button onclick="approveRecipe()" style="background:var(--stem);color:white;border:none;padding:6px 14px;border-radius:var(--radius);font-size:12px;cursor:pointer;"><i class="ti ti-check"></i> Approve → Active</button>
+      <button onclick="sendBackRecipe()" style="background:none;border:0.5px solid var(--border2);padding:6px 14px;border-radius:var(--radius);font-size:12px;cursor:pointer;color:var(--amber);">Send back → Draft</button>
+      <button onclick="discontinueRecipe()" style="background:none;border:0.5px solid var(--border2);padding:6px 14px;border-radius:var(--radius);font-size:12px;cursor:pointer;color:var(--text3);">Discontinue</button>
+     </div>`:''}
     </div>
    </div>
    <div>
@@ -865,6 +949,217 @@ function savePriceLists(){
 }
 
 // ── Designer Calculator ───────────────────────────────────────
+// ── Approval workflow ─────────────────────────────────────────
+function approveRecipe(){
+  const r=recipes.find(x=>x.id===activeId);if(!r)return;
+  r.status='active';r.approvalNote='';
+  saveAll();filterRecipes();renderEditor();
+}
+function sendBackRecipe(){
+  const r=recipes.find(x=>x.id===activeId);if(!r)return;
+  const note=prompt('Add a note explaining what needs to change (optional):','');
+  r.status='draft';if(note)r.approvalNote=note;
+  saveAll();filterRecipes();renderEditor();
+}
+function discontinueRecipe(){
+  if(!confirm('Mark this recipe as discontinued?'))return;
+  const r=recipes.find(x=>x.id===activeId);if(!r)return;
+  r.status='discontinued';saveAll();filterRecipes();renderEditor();
+}
+
+// ── Reports ───────────────────────────────────────────────────
+function showReport(view){
+  activeReportView=view;
+  ['margins','seasonal','approvals'].forEach(v=>{
+    const b=document.getElementById('rpnav-'+v);
+    if(b)b.classList.toggle('active',v===view);
+  });
+  document.getElementById('tabBar').style.display='none';
+  document.getElementById('actionBtns').style.display='none';
+  if(view==='margins')renderMarginReport();
+  else if(view==='seasonal')renderSeasonalReport();
+  else renderApprovalsQueue();
+}
+
+function renderMarginReport(){
+  document.getElementById('topTitle').textContent='Margin Report';
+  const active=recipes.filter(r=>(r.status||'active')!=='discontinued');
+  const rows=active.map(r=>{
+    const c=calcCost(r),fp=finalPrice(r);
+    return{r,c,fp};
+  }).sort((a,b)=>b.c.margin-a.c.margin);
+
+  const tableRows=rows.map(({r,c,fp})=>{
+    const mColor=c.margin>=40?'#1a5c2e':c.margin>=20?'#854F0B':'#A32D2D';
+    const mBg=c.margin>=40?'#e8f4ec':c.margin>=20?'var(--amber-light)':'var(--red-light)';
+    return`<tr onclick="selectRecipeFromReport(${r.id})" style="cursor:pointer;">
+      <td style="font-family:monospace;font-size:11px;color:var(--text3);">${r.sku||'—'}</td>
+      <td>${r.name||'Untitled'} ${statusBadge(r.status||'active')}</td>
+      <td style="text-align:right;">$${fmt(fp)}</td>
+      <td style="text-align:right;">$${fmt(c.total)}</td>
+      <td style="text-align:right;"><span style="background:${mBg};color:${mColor};font-weight:600;padding:2px 8px;border-radius:8px;font-size:12px;">${c.margin.toFixed(1)}%</span></td>
+      <td style="text-align:right;">$${fmt(fp-c.total)}</td>
+      <td style="text-align:right;color:var(--text2);">${(r.tags||[]).join(', ')||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  const avgMargin=rows.length?rows.reduce((s,{c})=>s+c.margin,0)/rows.length:0;
+  const underpriced=rows.filter(({c})=>c.margin<20).length;
+
+  document.getElementById('mainContent').innerHTML=`
+  <div class="stat-row" style="grid-template-columns:repeat(3,minmax(0,1fr));">
+   <div class="stat-card"><div class="slabel">Recipes analysed</div><div class="sval">${rows.length}</div></div>
+   <div class="stat-card"><div class="slabel">Avg gross margin</div><div class="sval" style="color:${avgMargin>=40?'#1a5c2e':avgMargin>=20?'#854F0B':'#A32D2D'}">${avgMargin.toFixed(1)}%</div></div>
+   <div class="stat-card"><div class="slabel">Need price review <span style="font-size:10px;">(margin &lt;20%)</span></div><div class="sval" style="color:${underpriced>0?'#A32D2D':'#1a5c2e'}">${underpriced}</div></div>
+  </div>
+  <div class="section">
+   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <p style="font-size:12px;color:var(--text2);font-style:italic;">All active &amp; draft recipes ranked by margin. Click a row to open the recipe.</p>
+    <div style="display:flex;gap:6px;font-size:11px;color:var(--text2);align-items:center;">
+     <span style="background:#e8f4ec;color:#1a5c2e;padding:2px 8px;border-radius:8px;font-weight:600;">≥40% healthy</span>
+     <span style="background:var(--amber-light);color:var(--amber);padding:2px 8px;border-radius:8px;font-weight:600;">20–39% watch</span>
+     <span style="background:var(--red-light);color:var(--red);padding:2px 8px;border-radius:8px;font-weight:600;">&lt;20% review</span>
+    </div>
+   </div>
+   <div style="overflow-x:auto;">
+    <table class="report-table">
+     <thead><tr>
+      <th>SKU</th><th>Name</th>
+      <th style="text-align:right;">Retail</th>
+      <th style="text-align:right;">Cost</th>
+      <th style="text-align:right;">Margin</th>
+      <th style="text-align:right;">Profit/unit</th>
+      <th style="text-align:right;">Tags</th>
+     </tr></thead>
+     <tbody>${tableRows}</tbody>
+    </table>
+   </div>
+  </div>`;
+}
+
+function renderSeasonalReport(){
+  document.getElementById('topTitle').textContent='Seasonal Planning';
+  const tagOpts=TAGS.map(t=>`<option value="${t.replace(/"/g,'&quot;')}">${t}</option>`).join('');
+  document.getElementById('mainContent').innerHTML=`
+  <div class="section">
+   <h3>Select a season or holiday</h3>
+   <select id="seasonTag" onchange="loadSeasonalData()" style="width:260px;font-size:14px;padding:7px 10px;">
+    <option value="">— Choose a tag —</option>
+    ${tagOpts}
+   </select>
+  </div>
+  <div id="seasonContent"></div>`;
+}
+
+function loadSeasonalData(){
+  const tag=document.getElementById('seasonTag').value;
+  if(!tag){document.getElementById('seasonContent').innerHTML='';return;}
+  const filtered=recipes.filter(r=>(r.tags||[]).includes(tag)&&(r.status||'active')!=='discontinued');
+  if(!filtered.length){
+    document.getElementById('seasonContent').innerHTML='<div class="section"><p style="font-size:13px;color:var(--text3);font-style:italic;">No active recipes tagged "'+tag+'"</p></div>';
+    return;
+  }
+  let totalRevenue=0,totalCost=0,totalStems=0;
+  const rows=filtered.map(r=>{
+    const c=calcCost(r),fp=finalPrice(r);
+    const proj=r.projection||0;
+    const projRev=fp*proj,projCost=c.total*proj;
+    totalRevenue+=projRev;totalCost+=projCost;
+    const stems=(r.flowers||[]).filter(f=>f.name!=='None').reduce((s,f)=>s+f.qty,0);
+    totalStems+=stems*proj;
+    const mColor=c.margin>=40?'#1a5c2e':c.margin>=20?'#854F0B':'#A32D2D';
+    return`<tr onclick="selectRecipeFromReport(${r.id})" style="cursor:pointer;">
+      <td>${r.name||'Untitled'} ${statusBadge(r.status||'active')}</td>
+      <td style="text-align:right;">$${fmt(fp)}</td>
+      <td style="text-align:right;color:${mColor};font-weight:600;">${c.margin.toFixed(1)}%</td>
+      <td style="text-align:right;"><input type="number" value="${r.projection||''}" placeholder="—" onclick="event.stopPropagation()" onchange="updateProjection(${r.id},this.value)" style="width:70px;text-align:right;font-size:13px;" /></td>
+      <td style="text-align:right;">${proj?'$'+Math.round(projRev).toLocaleString():'—'}</td>
+      <td style="text-align:right;color:var(--text2);">${proj?'$'+Math.round(projCost).toLocaleString():'—'}</td>
+      <td style="text-align:right;">${proj?'$'+(projRev-projCost).toLocaleString():'—'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('seasonContent').innerHTML=`
+  <div class="stat-row" style="grid-template-columns:repeat(4,minmax(0,1fr));">
+   <div class="stat-card"><div class="slabel">Recipes</div><div class="sval">${filtered.length}</div></div>
+   <div class="stat-card"><div class="slabel">Proj. revenue</div><div class="sval">$${Math.round(totalRevenue).toLocaleString()}</div></div>
+   <div class="stat-card"><div class="slabel">Proj. cost</div><div class="sval">$${Math.round(totalCost).toLocaleString()}</div></div>
+   <div class="stat-card"><div class="slabel">Proj. profit</div><div class="sval" style="color:${totalRevenue-totalCost>=0?'#1a5c2e':'#A32D2D'}">$${Math.round(totalRevenue-totalCost).toLocaleString()}</div></div>
+  </div>
+  <div class="section">
+   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <p style="font-size:12px;color:var(--text2);font-style:italic;">Edit projections inline. Click a row to open the recipe. Jump to ordering export when ready.</p>
+    <button class="save-btn" onclick="setNav('order')" style="font-size:12px;"><i class="ti ti-file-spreadsheet"></i> Order for ${tag}</button>
+   </div>
+   <div style="overflow-x:auto;">
+    <table class="report-table">
+     <thead><tr>
+      <th>Recipe</th>
+      <th style="text-align:right;">Price</th>
+      <th style="text-align:right;">Margin</th>
+      <th style="text-align:right;">Projection</th>
+      <th style="text-align:right;">Proj. revenue</th>
+      <th style="text-align:right;">Proj. cost</th>
+      <th style="text-align:right;">Proj. profit</th>
+     </tr></thead>
+     <tbody>${rows}</tbody>
+    </table>
+   </div>
+  </div>`;
+}
+
+function updateProjection(id,val){
+  const r=recipes.find(x=>x.id===id);if(!r)return;
+  r.projection=parseFloat(val)||null;
+  saveAll();
+}
+
+function renderApprovalsQueue(){
+  document.getElementById('topTitle').textContent='Approvals Queue';
+  const pending=recipes.filter(r=>r.status==='pending');
+  if(!pending.length){
+    document.getElementById('mainContent').innerHTML=`<div class="empty-state"><i class="ti ti-checks"></i><h3>All clear!</h3><p>No recipes pending approval.</p></div>`;
+    return;
+  }
+  document.getElementById('mainContent').innerHTML=`
+  <p style="font-size:13px;color:var(--text2);margin-bottom:16px;font-style:italic;">${pending.length} recipe${pending.length!==1?'s':''} waiting for review.</p>
+  ${pending.map(r=>{
+    const c=calcCost(r),fp=finalPrice(r);
+    const flowers=(r.flowers||[]).filter(f=>f.name!=='None').map(f=>`${f.qty}× ${f.name}`).join(', ');
+    return`<div class="approval-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;">
+       <div>
+        <h4>${r.name||'Untitled'} <span style="font-size:11px;color:var(--text3);font-family:monospace;">${r.sku||''}</span></h4>
+        <p style="margin-bottom:4px;">$${fmt(fp)} retail · ${c.margin.toFixed(1)}% margin · ${r.container||'no container'}</p>
+        <p style="font-size:12px;color:var(--text2);">${flowers||'No flowers listed'}</p>
+        ${r.approvalNote?`<p style="font-size:12px;color:var(--amber);margin-top:6px;"><i class="ti ti-message"></i> "${r.approvalNote}"</p>`:''}
+       </div>
+       <button onclick="selectRecipeFromReport(${r.id})" style="background:none;border:0.5px solid var(--border2);padding:5px 10px;border-radius:var(--radius);font-size:11px;cursor:pointer;white-space:nowrap;"><i class="ti ti-external-link"></i> Open</button>
+      </div>
+      <div class="approval-btns">
+       <button class="approve-btn" onclick="approveFromQueue(${r.id})"><i class="ti ti-check"></i> Approve</button>
+       <button class="sendback-btn" onclick="sendBackFromQueue(${r.id})">Send back</button>
+      </div>
+    </div>`;
+  }).join('')}`;
+}
+
+function approveFromQueue(id){
+  const r=recipes.find(x=>x.id===id);if(!r)return;
+  r.status='active';r.approvalNote='';
+  saveAll();filterRecipes();renderApprovalsQueue();
+}
+function sendBackFromQueue(id){
+  const r=recipes.find(x=>x.id===id);if(!r)return;
+  const note=prompt('Note for the designer (optional):','');
+  r.status='draft';if(note)r.approvalNote=note;
+  saveAll();filterRecipes();renderApprovalsQueue();
+}
+function selectRecipeFromReport(id){
+  activeId=id;activeTab=currentRole==='designer'?'view':'recipe';
+  setNav('recipes');filterRecipes();renderEditor();
+}
+
 function renderCalculator(){
   document.getElementById('topTitle').textContent='Designer Calculator';
   document.getElementById('tabBar').style.display='none';

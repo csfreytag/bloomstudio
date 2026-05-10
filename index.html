@@ -309,10 +309,9 @@ function applyRole(role){
 
 function switchTab(tab){
   activeTab=tab;
-  ['recipe','view','costs'].forEach(t=>{
-    const el=document.getElementById('tab-'+t);
-    if(el)el.classList.toggle('active',t===tab);
-  });
+  document.getElementById('tab-recipe').classList.toggle('active',tab==='recipe');
+  document.getElementById('tab-view').classList.toggle('active',tab==='view');
+  document.getElementById('tab-costs').classList.toggle('active',tab==='costs');
   renderContent();
 }
 
@@ -671,9 +670,10 @@ function renderRecipeView(r){
     <div class="section">
      <h3>Quick info</h3>
      <div style="font-size:13px;">
-      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Price</span><span style="font-weight:500;color:var(--green-dark);">$${fmt(fp)}</span></div>
       ${sz?`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Size</span><span style="font-size:12px;">${sz}</span></div>`:''}
-      <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="color:var(--text2);">Stems</span><span>${(r.flowers||[]).filter(f=>f.name!=='None').reduce((s,f)=>s+f.qty,0)} total</span></div>
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Flower stems</span><span>${(r.flowers||[]).filter(f=>f.name!=='None').reduce((s,f)=>s+f.qty,0)} total</span></div>
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Container</span><span>${r.container&&r.container!=='None'?r.container:'—'}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="color:var(--text2);">Accent</span><span>${r.accent&&r.accent!=='None'?r.accent:'—'}</span></div>
      </div>
     </div>
    </div>
@@ -790,11 +790,11 @@ function renderPriceList(type){
   }).join('');
   document.getElementById('mainContent').innerHTML=`
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-   <div class="legend" style="flex:1;"><span><span class="legend-dot" style="background:#1a5c2e;"></span>Meets markup goal (cost ${multLabel})</span><span><span class="legend-dot" style="background:#A32D2D;"></span>Red = below goal</span></div>
+   <div class="legend" style="flex:1;"><span><span class="legend-dot" style="background:#1a5c2e;"></span>Green = your price meets or beats calculated retail</span><span><span class="legend-dot" style="background:#A32D2D;"></span>Red = below calculated retail</span></div>
    <button class="pl-save-btn" onclick="savePriceLists()"><i class="ti ti-device-floppy"></i> Save prices</button>
    <span class="saved-flash" id="savedFlash">Saved!</span>
   </div>
-  <div class="section"><div class="pl-wrap"><table class="pl-table"><thead><tr><th>Name</th><th>Cost ($)</th><th>Markup (${multLabel})</th><th>Final retail ($)</th><th>Diff</th><th></th></tr></thead><tbody id="plRows">${rows}</tbody></table></div><button class="add-row-btn" onclick="addPLItem('${type}')"><i class="ti ti-plus"></i> Add item</button></div>`;
+  <div class="section"><div class="pl-wrap"><table class="pl-table"><thead><tr><th>Name</th><th>Cost ($)</th><th>Calculated retail (${multLabel})</th><th>Your final price ($)</th><th>Diff</th><th></th></tr></thead><tbody id="plRows">${rows}</tbody></table></div><button class="add-row-btn" onclick="addPLItem('${type}')"><i class="ti ti-plus"></i> Add item</button></div>`;
 }
 function updatePLName(type,idx,val){getList(type)[idx].n=val;}
 function updatePLCost(type,idx,val,el){

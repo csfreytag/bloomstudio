@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "freytags-purchasing"
+  },
+  "targets": {
+    "freytags-purchasing": {
+      "hosting": {
+        "freytags-recipes": [
+          "freytags-recipes"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

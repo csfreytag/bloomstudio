@@ -1,0 +1,16 @@
+{
+  "name": "bloomstudio-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Server-side scripts for Freytag's Recipe Guide (Google Sheet -> Firestore pricing sync).",
+  "type": "commonjs",
+  "scripts": {
+    "sync:read": "node sync-pricing.js",
+    "sync:write:staging": "node sync-pricing.js --write --project=freytags-recipes-staging --yes",
+    "sync:write:prod": "node sync-pricing.js --write --project=freytags-purchasing --yes"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "googleapis": "^144.0.0"
+  }
+}

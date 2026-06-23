@@ -1,0 +1,42 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────
+// Freytag's — Cloud Storage security rules (Recipe Guide photos)
+//
+// DEPLOY TO STAGING ONLY during the migration:
+//   firebase deploy --only storage --project staging
+// ─────────────────────────────────────────────────────────────
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function recipeRole() {
+      return isSignedIn() && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+        ? firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.recipeGuideRole
+        : null;
+    }
+
+    function isStaff() {
+      return recipeRole() in ['admin', 'manager'];
+    }
+
+    function isRecipeUser() {
+      return recipeRole() in ['admin', 'manager', 'designer'];
+    }
+
+    // Recipe arrangement photos: recipes/{recipeId}/{fileName}
+    // Any Recipe Guide user can view; only staff can upload/replace.
+    // Uploads limited to images under 8 MB.
+    match /recipes/{recipeId}/{fileName} {
+      allow read: if isRecipeUser();
+      allow write: if isStaff()
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isStaff();
+    }
+  }
+}

@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Freytag's Recipe Guide</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+<script src="firebase.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -263,12 +268,12 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Margin targets</div>
      <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Healthy <span style="background:#e8f4ec;color:#1a5c2e;padding:1px 6px;border-radius:6px;font-size:11px;font-weight:600;">≥ green</span></div>
      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-      <input type="number" id="marginGoodInput" value="${localStorage.getItem('bs_margin_good')||40}" min="1" max="99" style="width:60px;" oninput="updateMarginTargets()"/>
+      <input type="number" id="marginGoodInput" value="${MARGIN_GOOD}" min="1" max="99" style="width:60px;" oninput="updateMarginTargets()"/>
       <span style="font-size:12px;color:var(--text2);">%</span>
      </div>
      <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Watch <span style="background:var(--amber-light);color:var(--amber);padding:1px 6px;border-radius:6px;font-size:11px;font-weight:600;">≥ amber</span></div>
      <div style="display:flex;align-items:center;gap:6px;">
-      <input type="number" id="marginWarnInput" value="${localStorage.getItem('bs_margin_warn')||20}" min="1" max="99" style="width:60px;" oninput="updateMarginTargets()"/>
+      <input type="number" id="marginWarnInput" value="${MARGIN_WARN}" min="1" max="99" style="width:60px;" oninput="updateMarginTargets()"/>
       <span style="font-size:12px;color:var(--text2);">%</span>
      </div>
      <p style="font-size:11px;color:var(--text3);margin-top:6px;font-style:italic;">Below warn = red. Saved automatically.</p>
@@ -298,13 +303,17 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
     <button class="delete-btn" onclick="deleteRecipe()"><i class="ti ti-trash"></i> Delete</button>
     <button class="save-btn" onclick="saveRecipe()"><i class="ti ti-check"></i> Save</button>
    </div>
-   <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);border-left:0.5px solid var(--border);padding-left:12px;margin-left:4px;">
+   <div id="rolePreviewWrap" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text2);border-left:0.5px solid var(--border);padding-left:12px;margin-left:4px;">
     <span>Role preview:</span>
     <select id="roleSelect" onchange="applyRole(this.value)" style="font-size:11px;padding:3px 6px;">
      <option value="admin">Admin</option>
      <option value="manager">Manager</option>
      <option value="designer">Designer</option>
     </select>
+   </div>
+   <div id="userBox" style="display:none;align-items:center;gap:8px;font-size:11px;color:var(--text2);border-left:0.5px solid var(--border);padding-left:12px;margin-left:4px;">
+    <span id="userLabel"></span>
+    <button onclick="signOutApp()" style="font-size:11px;padding:3px 8px;background:none;border:0.5px solid var(--border2);border-radius:6px;cursor:pointer;color:var(--text2);"><i class="ti ti-logout"></i> Sign out</button>
    </div>
   </div>
   <div class="content" id="mainContent">
@@ -319,16 +328,16 @@ function gpCost(list,name){const f=list.find(x=>x.n.trim()===name.trim());return
 function getList(t){return t==='flowers'?FLOWERS:t==='fillers'?FILLERS:t==='containers'?CONTAINERS:t==='hardgoods'?HARDGOODS:t==='plants'?PLANTS:ACCENTS;}
 function fmt(n){return parseFloat(n).toFixed(2);}
 
-let FLOWERS=defR(JSON.parse(localStorage.getItem('bs_flowers')||'null')||[{n:"None",p:0},{n:"Anemone Purple/White",p:8},{n:"Anthurium - Green",p:12.5},{n:"Anemones Blue",p:8},{n:"Alstro - Hot Pink",p:3.5},{n:"Alstro - Lt Pink",p:3.5},{n:"Alstro - Orange",p:3.5},{n:"Alstro - Pink",p:3.5},{n:"Alstro - Purple",p:3.5},{n:"Alstro - Light Yellow",p:3.5},{n:"Alstro - White",p:3.5},{n:"Alstro - Yellow",p:3.5},{n:"Alstro - White/Purple",p:3.5},{n:"Asiatic Lily - Orange",p:6},{n:"Asiatic Lily - Pink",p:6},{n:"Asiatic Lily - Lavender",p:6},{n:"Asiatic Lily - Yellow",p:6},{n:"Asiatic Lily - Red",p:6},{n:"Anemones Hot Pink",p:8},{n:"Bells of Ireland",p:3.5},{n:"Billy Balls",p:3},{n:"Birds of Paradise",p:7.5},{n:"Pink Azalea",p:48},{n:"Callas - Pink",p:12.5},{n:"Callas - Yellow",p:12.5},{n:"Callas - Eggplant",p:12.5},{n:"Callas - Bronze",p:12.5},{n:"Callas (Mini) - White",p:8},{n:"Callas (Mini) - Pink",p:8},{n:"Callas (Mini) - Yellow",p:8},{n:"Callas (Mini) - Purple",p:8},{n:"Callas (Mini) - Bronze",p:8},{n:"Callas (Mini) - Picasso",p:8},{n:"Anemones Dark Purple",p:8},{n:"Anemones White",p:8},{n:"Astilbe Pink",p:4},{n:"Astilbe White",p:4},{n:"Garden Roses Hot Pink",p:9},{n:"Garden Roses Peach",p:8.5},{n:"Garden Roses White",p:8.5},{n:"Garden Roses Yellow",p:8.5},{n:"Green Buttons",p:3},{n:"Green Cymbidium Blooms",p:7.5},{n:"Hypericum Green",p:3.5},{n:"Hypericum Peach",p:3.5},{n:"Lisianthus Purple",p:4},{n:"Lisianthus Lavender",p:4},{n:"Casa Blanca Lilies",p:12.5},{n:"Lisianthus Pale Yellow",p:4},{n:"Lisianthus Pink",p:4.5},{n:"Lisianthus White",p:5.5},{n:"Disbud Purple",p:4},{n:"Disbud Lavender",p:4},{n:"Delphinium",p:4},{n:"Dianthus - Green Trick",p:3},{n:"Protea - Yellow Pin Cushion",p:8},{n:"Ranunculus - Yellow",p:6},{n:"Gerbera - Fuchsia",p:4},{n:"Gerbera - Hot Pink",p:4},{n:"Gerbera - Light Pink",p:4},{n:"Gerbera - Orange",p:4},{n:"Astilbe Hot Pink",p:4},{n:"Buplerum",p:3},{n:"Astilbe Hot Purple",p:4},{n:"Gerbera - White and Violet",p:4},{n:"Gerbera - Yellow",p:4},{n:"Gerbera - Peach",p:4},{n:"Ginger - Pink",p:7.5},{n:"Ginger - Red",p:7.5},{n:"Ranunculus Peach",p:6},{n:"Ranunculus Hot Pink",p:6},{n:"Ranunculus Light Pink",p:6},{n:"Ranunculus Orange",p:6},{n:"Safari Sunset",p:4},{n:"Safflower",p:3},{n:"Scabiosa Pods",p:3},{n:"Silver Protea",p:3},{n:"Veronica Pink",p:4},{n:"Veronica Purple",p:4},{n:"Hydrangea - Blue",p:9},{n:"Hydrangea - White",p:8.5},{n:"Hydrangea - Shamrock",p:10},{n:"Hydrangea - Pink",p:10},{n:"Hydrangea - Mini Green",p:5},{n:"Hydrangea - Purple",p:12},{n:"Hydrangea - Large Green",p:10},{n:"Iris",p:3},{n:"Veronica Blue",p:4},{n:"Larkspur - Purple",p:4},{n:"Larkspur - Pink",p:4},{n:"Liatrice",p:4},{n:"Delphinum - Light Blue",p:4},{n:"Orchids - Dendrobium White",p:6},{n:"Orchids - Mokaras-Fuchsia",p:7},{n:"Orchids - Mokaras-gold",p:7},{n:"Orchids - Mokaras-Purple",p:7},{n:"Orchids - Oncidium Stem",p:10},{n:"Poms - Green",p:3},{n:"Poms - Yellow",p:3},{n:"Poms - White Daisy",p:3},{n:"Protea - Orange Pin Cushion",p:10},{n:"Protea - Pink Velvet",p:7},{n:"Protea - Safari Sunset",p:4},{n:"Bom Bom mums - Yellow",p:3},{n:"Bom Bom mums - Purple",p:3},{n:"Roses - Long Stem Lavender",p:8},{n:"Roses - Long Stem Circus",p:8},{n:"Roses - Long Stem Pink",p:8},{n:"Roses - Long Stem Red",p:8},{n:"Roses - Long Stem White",p:8},{n:"Roses - Long Stem Yellow",p:8},{n:"Roses - Long Stem Cherry/brandy",p:8},{n:"Roses - Long Stem Malibu",p:8},{n:"Roses - Free Spirit",p:5},{n:"Roses - Med Stem Lavender",p:4.5},{n:"Roses - Med Stem Circus",p:4},{n:"Roses - Med Stem Hot Pink",p:4},{n:"Roses - Med Stem Light Pink",p:4},{n:"Roses - Med Stem Red",p:5.5},{n:"Roses - Med Stem Cherry/Brandy",p:4},{n:"Roses - Med Stem Pink",p:4},{n:"Roses - Med Stem Malibu",p:4},{n:"Roses - Med Stem White",p:4},{n:"Roses - Med Stem Orange",p:4},{n:"Roses - Med Stem Peach",p:4},{n:"Rover Mum",p:3.5},{n:"Snaps - Orange",p:4},{n:"Snaps - Pink",p:4},{n:"Snaps - Purple",p:4},{n:"Snaps - Red",p:4},{n:"Snaps - White",p:4},{n:"Snaps - Yellow",p:4},{n:"Solidago Stem",p:2},{n:"Spray Roses - Pink",p:5},{n:"Spray Roses - Red",p:5},{n:"Spray Roses - White",p:5},{n:"Spray Roses - Yellow",p:5},{n:"Spray Roses - Orange",p:5},{n:"Spray Roses - Hot Pink",p:5},{n:"Stargazers",p:8.5},{n:"Double Stem Purple Orchid Plant",p:75},{n:"Stock - Peach",p:4},{n:"Statice Stem - Purple",p:3},{n:"Statice Stem - Fuschia",p:3},{n:"Stock - Fuchsia",p:4.5},{n:"Stock - Lavender",p:5.5},{n:"Stock - Pink",p:4},{n:"Stock - Purple",p:5.5},{n:"Stock - Dark Purple",p:4.5},{n:"Stock - RASPBERRY",p:5.5},{n:"Stock - Pale Yellow",p:5.5},{n:"Sunflower - Large",p:5},{n:"Sunflower - Mini",p:3},{n:"Thistle",p:3},{n:"Tulips - Orange",p:5.5},{n:"Tulips - Pink",p:5.5},{n:"Tulips - Purple",p:5.5},{n:"Tulips - Red",p:5.5},{n:"Tulips - Dark Pink",p:5.5},{n:"Tulips - White",p:5.5},{n:"Tulips - Yellow",p:5.5},{n:"Pink Phalaenopsis Stem",p:50},{n:"Waxflower - White",p:3},{n:"Waxflower - Orange",p:3},{n:"Waxflower - Purple",p:3},{n:"Waxflower - Pink",p:3},{n:"3 inch Succulent",p:12},{n:"White Single Stem Phal Orchid",p:75},{n:"4 inch Succulent",p:10},{n:"Blooming Dianthus",p:3}]);
-let FILLERS=defR(JSON.parse(localStorage.getItem('bs_fillers')||'null')||[{n:"None",p:0},{n:"Babys Breath Stem",p:3},{n:"Babys Breath Bunch",p:25},{n:"Bear Grass Stem",p:0.1},{n:"Cattails",p:0.5},{n:"Curly Willow short",p:3},{n:"Curly Willow tall",p:5},{n:"Green Asp Leaves",p:1},{n:"Echeveria",p:15},{n:"Aralia Leaf",p:2},{n:"Bell Cups",p:3},{n:"Bromeliad Blooms",p:25},{n:"Dried Fan Palms",p:3},{n:"Lotus Pod",p:2},{n:"Mushroom",p:2.5},{n:"Pheasant Feathers",p:2},{n:"Flat Fern",p:0.5},{n:"Kiwi Vine",p:4},{n:"GUNNI EUC",p:4},{n:"Medium Monstera",p:5},{n:"Spiral Euc",p:1.5},{n:"Seeded Euc",p:2},{n:"Italian Ruscus Stem",p:3},{n:"Jade/Commodore Stem",p:0.3},{n:"James Storie Orchid",p:7},{n:"Misty Limonium",p:3},{n:"Plumosus (Asparagus Fern)",p:0.4},{n:"Tree Fern Stem",p:0.4},{n:"Varnished Natraj Stick",p:6},{n:"Ting - Gold",p:0.3},{n:"Ting - Red",p:0.3},{n:"Ting - Silver",p:0.3},{n:"Willow - Gold",p:2},{n:"Willow - Silver",p:2},{n:"Berries - Gold",p:3},{n:"Berries - Red",p:3},{n:"Berries - Silver",p:3},{n:"Red Glitter Sticks",p:2.5},{n:"Blue Glitter Sticks",p:2.5},{n:"Silver Glitter Sticks",p:2.5},{n:"Preserved Millet - Natural",p:0.25},{n:"Preserved Millet - Green",p:0.25},{n:"Preserved Millet - Red",p:0.25},{n:"Red Ti Leaves",p:1.5},{n:"Ivy",p:2},{n:"Monstera Leaves",p:5},{n:"Flax",p:2.5},{n:"Galax Leaves",p:0.25},{n:"Foxtail fern",p:1},{n:"Bundle Birch",p:20},{n:"Sm driftwood",p:10},{n:"Med driftwood",p:15},{n:"Lg driftwood",p:20},{n:"Lg willow orb",p:13},{n:"Grape Vine",p:10}]);
-let CONTAINERS=defR(JSON.parse(localStorage.getItem('bs_containers')||'null')||[{n:"None",p:0},{n:"EOS COLLECTION",p:27},{n:"Two dozen vase",p:30},{n:"007 Vase",p:7},{n:"4x4 Cylinder",p:7},{n:"Riviera Vase",p:38},{n:"5x10",p:18},{n:"5x5 Cylinder",p:8},{n:"WD White ceramic 12x6x4",p:30},{n:"White Ginny Pot",p:30},{n:"6x6 Clear Cube",p:17},{n:"6x6 CYLINDER",p:12},{n:"G3 3055CLR Flare Vase",p:19},{n:"C999 Vase",p:5},{n:"7 inch White Cylinder",p:25},{n:"5x5 White Cylinder",p:12},{n:"7X4 White Ceramic Cyl",p:17},{n:"Red 4x4 Cube",p:7},{n:"Red 5x5 Cube",p:20},{n:"Red Upgraded Rose Vase",p:18},{n:"5x6 Clear Cylinder",p:8},{n:"6x8 Cylinder",p:15},{n:"6x6 Frosted Cube",p:25},{n:"6X6 Ginny Pot",p:30},{n:"Jordan Vase",p:16},{n:"6X4X12 Clear Rectangle",p:47},{n:"10x10 Clear Cylinder",p:36},{n:"5X10 Cylinder vase",p:18},{n:"10x10 Bubble Bowl",p:10},{n:"6x10 Cylinder",p:18},{n:"Rectangle Slate Gray Tray",p:18},{n:"White 6 inch Cylinder",p:18},{n:"3x5 Cylinder",p:4}]);
-let ACCENTS=defR(JSON.parse(localStorage.getItem('bs_accents')||'null')||[{n:"None",p:0},{n:"Leaf Wrap",p:5},{n:"Multi-color Gems",p:3},{n:"Pink Ribbon",p:5},{n:"Purple Ribbon",p:5},{n:"Pink Gems",p:3},{n:"Red Gems",p:3},{n:"Red Heart Gems",p:3},{n:"Red Large Glass Gems",p:3},{n:"Red Ribbon",p:5},{n:"Rocks",p:3},{n:"Violet Ribbon",p:5},{n:"Yellow Ribbon",p:5},{n:"Clear Rocks",p:4}]);
-let HARDGOODS=defR(JSON.parse(localStorage.getItem('bs_hardgoods')||'null')||[{n:"None",p:0},{n:"Bamboo Skewer",p:0.25},{n:"Corsage Pin",p:0.1},{n:"Floral Foam Block",p:2},{n:"Floral Tape - Green",p:0.5},{n:"Floral Tape - White",p:0.5},{n:"Floral Wire",p:0.1},{n:"Greening Pins",p:0.1},{n:"Mache Box - Small",p:4},{n:"Mache Box - Medium",p:6},{n:"Mache Box - Large",p:8},{n:"Organza Bag - Small",p:1},{n:"Organza Bag - Large",p:2},{n:"Pick - Wood",p:0.25},{n:"Tissue Paper",p:0.5},{n:"Wrap - Kraft",p:1},{n:"Wrap - Cellophane",p:1.5}]);
-let PLANTS=defR(JSON.parse(localStorage.getItem('bs_plants')||'null')||[{n:"None",p:0},{n:"4\" Succulent",p:8},{n:"6\" Succulent",p:14},{n:"4\" Kalanchoe",p:6},{n:"6\" Kalanchoe",p:12},{n:"4\" Peace Lily",p:8},{n:"6\" Peace Lily",p:18},{n:"10\" Peace Lily",p:35},{n:"4\" Pothos",p:7},{n:"6\" Pothos",p:14},{n:"4\" Snake Plant",p:8},{n:"6\" Snake Plant",p:16},{n:"4\" ZZ Plant",p:10},{n:"6\" ZZ Plant",p:20},{n:"4\" Bromeliad",p:10},{n:"6\" Bromeliad",p:18},{n:"Mini Orchid",p:18},{n:"Single Stem Orchid",p:28},{n:"Double Stem Orchid",p:45},{n:"4\" Fern",p:6},{n:"6\" Fern",p:12},{n:"4\" Croton",p:8},{n:"6\" Croton",p:16},{n:"Dish Garden - Small",p:25},{n:"Dish Garden - Medium",p:45},{n:"Dish Garden - Large",p:75}]);
-let TAGS=JSON.parse(localStorage.getItem('bs_tags')||'null')||["Valentine's Day","Mother's Day","Christmas","Easter","Sympathy","Wedding","Birthday","Spring","Summer","Fall","Winter","Everyday","Premium","Under $75","Under $100","Under $150"];
+let FLOWERS=[];const DEFAULT_FLOWERS=defR([{n:"None",p:0},{n:"Anemone Purple/White",p:8},{n:"Anthurium - Green",p:12.5},{n:"Anemones Blue",p:8},{n:"Alstro - Hot Pink",p:3.5},{n:"Alstro - Lt Pink",p:3.5},{n:"Alstro - Orange",p:3.5},{n:"Alstro - Pink",p:3.5},{n:"Alstro - Purple",p:3.5},{n:"Alstro - Light Yellow",p:3.5},{n:"Alstro - White",p:3.5},{n:"Alstro - Yellow",p:3.5},{n:"Alstro - White/Purple",p:3.5},{n:"Asiatic Lily - Orange",p:6},{n:"Asiatic Lily - Pink",p:6},{n:"Asiatic Lily - Lavender",p:6},{n:"Asiatic Lily - Yellow",p:6},{n:"Asiatic Lily - Red",p:6},{n:"Anemones Hot Pink",p:8},{n:"Bells of Ireland",p:3.5},{n:"Billy Balls",p:3},{n:"Birds of Paradise",p:7.5},{n:"Pink Azalea",p:48},{n:"Callas - Pink",p:12.5},{n:"Callas - Yellow",p:12.5},{n:"Callas - Eggplant",p:12.5},{n:"Callas - Bronze",p:12.5},{n:"Callas (Mini) - White",p:8},{n:"Callas (Mini) - Pink",p:8},{n:"Callas (Mini) - Yellow",p:8},{n:"Callas (Mini) - Purple",p:8},{n:"Callas (Mini) - Bronze",p:8},{n:"Callas (Mini) - Picasso",p:8},{n:"Anemones Dark Purple",p:8},{n:"Anemones White",p:8},{n:"Astilbe Pink",p:4},{n:"Astilbe White",p:4},{n:"Garden Roses Hot Pink",p:9},{n:"Garden Roses Peach",p:8.5},{n:"Garden Roses White",p:8.5},{n:"Garden Roses Yellow",p:8.5},{n:"Green Buttons",p:3},{n:"Green Cymbidium Blooms",p:7.5},{n:"Hypericum Green",p:3.5},{n:"Hypericum Peach",p:3.5},{n:"Lisianthus Purple",p:4},{n:"Lisianthus Lavender",p:4},{n:"Casa Blanca Lilies",p:12.5},{n:"Lisianthus Pale Yellow",p:4},{n:"Lisianthus Pink",p:4.5},{n:"Lisianthus White",p:5.5},{n:"Disbud Purple",p:4},{n:"Disbud Lavender",p:4},{n:"Delphinium",p:4},{n:"Dianthus - Green Trick",p:3},{n:"Protea - Yellow Pin Cushion",p:8},{n:"Ranunculus - Yellow",p:6},{n:"Gerbera - Fuchsia",p:4},{n:"Gerbera - Hot Pink",p:4},{n:"Gerbera - Light Pink",p:4},{n:"Gerbera - Orange",p:4},{n:"Astilbe Hot Pink",p:4},{n:"Buplerum",p:3},{n:"Astilbe Hot Purple",p:4},{n:"Gerbera - White and Violet",p:4},{n:"Gerbera - Yellow",p:4},{n:"Gerbera - Peach",p:4},{n:"Ginger - Pink",p:7.5},{n:"Ginger - Red",p:7.5},{n:"Ranunculus Peach",p:6},{n:"Ranunculus Hot Pink",p:6},{n:"Ranunculus Light Pink",p:6},{n:"Ranunculus Orange",p:6},{n:"Safari Sunset",p:4},{n:"Safflower",p:3},{n:"Scabiosa Pods",p:3},{n:"Silver Protea",p:3},{n:"Veronica Pink",p:4},{n:"Veronica Purple",p:4},{n:"Hydrangea - Blue",p:9},{n:"Hydrangea - White",p:8.5},{n:"Hydrangea - Shamrock",p:10},{n:"Hydrangea - Pink",p:10},{n:"Hydrangea - Mini Green",p:5},{n:"Hydrangea - Purple",p:12},{n:"Hydrangea - Large Green",p:10},{n:"Iris",p:3},{n:"Veronica Blue",p:4},{n:"Larkspur - Purple",p:4},{n:"Larkspur - Pink",p:4},{n:"Liatrice",p:4},{n:"Delphinum - Light Blue",p:4},{n:"Orchids - Dendrobium White",p:6},{n:"Orchids - Mokaras-Fuchsia",p:7},{n:"Orchids - Mokaras-gold",p:7},{n:"Orchids - Mokaras-Purple",p:7},{n:"Orchids - Oncidium Stem",p:10},{n:"Poms - Green",p:3},{n:"Poms - Yellow",p:3},{n:"Poms - White Daisy",p:3},{n:"Protea - Orange Pin Cushion",p:10},{n:"Protea - Pink Velvet",p:7},{n:"Protea - Safari Sunset",p:4},{n:"Bom Bom mums - Yellow",p:3},{n:"Bom Bom mums - Purple",p:3},{n:"Roses - Long Stem Lavender",p:8},{n:"Roses - Long Stem Circus",p:8},{n:"Roses - Long Stem Pink",p:8},{n:"Roses - Long Stem Red",p:8},{n:"Roses - Long Stem White",p:8},{n:"Roses - Long Stem Yellow",p:8},{n:"Roses - Long Stem Cherry/brandy",p:8},{n:"Roses - Long Stem Malibu",p:8},{n:"Roses - Free Spirit",p:5},{n:"Roses - Med Stem Lavender",p:4.5},{n:"Roses - Med Stem Circus",p:4},{n:"Roses - Med Stem Hot Pink",p:4},{n:"Roses - Med Stem Light Pink",p:4},{n:"Roses - Med Stem Red",p:5.5},{n:"Roses - Med Stem Cherry/Brandy",p:4},{n:"Roses - Med Stem Pink",p:4},{n:"Roses - Med Stem Malibu",p:4},{n:"Roses - Med Stem White",p:4},{n:"Roses - Med Stem Orange",p:4},{n:"Roses - Med Stem Peach",p:4},{n:"Rover Mum",p:3.5},{n:"Snaps - Orange",p:4},{n:"Snaps - Pink",p:4},{n:"Snaps - Purple",p:4},{n:"Snaps - Red",p:4},{n:"Snaps - White",p:4},{n:"Snaps - Yellow",p:4},{n:"Solidago Stem",p:2},{n:"Spray Roses - Pink",p:5},{n:"Spray Roses - Red",p:5},{n:"Spray Roses - White",p:5},{n:"Spray Roses - Yellow",p:5},{n:"Spray Roses - Orange",p:5},{n:"Spray Roses - Hot Pink",p:5},{n:"Stargazers",p:8.5},{n:"Double Stem Purple Orchid Plant",p:75},{n:"Stock - Peach",p:4},{n:"Statice Stem - Purple",p:3},{n:"Statice Stem - Fuschia",p:3},{n:"Stock - Fuchsia",p:4.5},{n:"Stock - Lavender",p:5.5},{n:"Stock - Pink",p:4},{n:"Stock - Purple",p:5.5},{n:"Stock - Dark Purple",p:4.5},{n:"Stock - RASPBERRY",p:5.5},{n:"Stock - Pale Yellow",p:5.5},{n:"Sunflower - Large",p:5},{n:"Sunflower - Mini",p:3},{n:"Thistle",p:3},{n:"Tulips - Orange",p:5.5},{n:"Tulips - Pink",p:5.5},{n:"Tulips - Purple",p:5.5},{n:"Tulips - Red",p:5.5},{n:"Tulips - Dark Pink",p:5.5},{n:"Tulips - White",p:5.5},{n:"Tulips - Yellow",p:5.5},{n:"Pink Phalaenopsis Stem",p:50},{n:"Waxflower - White",p:3},{n:"Waxflower - Orange",p:3},{n:"Waxflower - Purple",p:3},{n:"Waxflower - Pink",p:3},{n:"3 inch Succulent",p:12},{n:"White Single Stem Phal Orchid",p:75},{n:"4 inch Succulent",p:10},{n:"Blooming Dianthus",p:3}]);
+let FILLERS=[];const DEFAULT_FILLERS=defR([{n:"None",p:0},{n:"Babys Breath Stem",p:3},{n:"Babys Breath Bunch",p:25},{n:"Bear Grass Stem",p:0.1},{n:"Cattails",p:0.5},{n:"Curly Willow short",p:3},{n:"Curly Willow tall",p:5},{n:"Green Asp Leaves",p:1},{n:"Echeveria",p:15},{n:"Aralia Leaf",p:2},{n:"Bell Cups",p:3},{n:"Bromeliad Blooms",p:25},{n:"Dried Fan Palms",p:3},{n:"Lotus Pod",p:2},{n:"Mushroom",p:2.5},{n:"Pheasant Feathers",p:2},{n:"Flat Fern",p:0.5},{n:"Kiwi Vine",p:4},{n:"GUNNI EUC",p:4},{n:"Medium Monstera",p:5},{n:"Spiral Euc",p:1.5},{n:"Seeded Euc",p:2},{n:"Italian Ruscus Stem",p:3},{n:"Jade/Commodore Stem",p:0.3},{n:"James Storie Orchid",p:7},{n:"Misty Limonium",p:3},{n:"Plumosus (Asparagus Fern)",p:0.4},{n:"Tree Fern Stem",p:0.4},{n:"Varnished Natraj Stick",p:6},{n:"Ting - Gold",p:0.3},{n:"Ting - Red",p:0.3},{n:"Ting - Silver",p:0.3},{n:"Willow - Gold",p:2},{n:"Willow - Silver",p:2},{n:"Berries - Gold",p:3},{n:"Berries - Red",p:3},{n:"Berries - Silver",p:3},{n:"Red Glitter Sticks",p:2.5},{n:"Blue Glitter Sticks",p:2.5},{n:"Silver Glitter Sticks",p:2.5},{n:"Preserved Millet - Natural",p:0.25},{n:"Preserved Millet - Green",p:0.25},{n:"Preserved Millet - Red",p:0.25},{n:"Red Ti Leaves",p:1.5},{n:"Ivy",p:2},{n:"Monstera Leaves",p:5},{n:"Flax",p:2.5},{n:"Galax Leaves",p:0.25},{n:"Foxtail fern",p:1},{n:"Bundle Birch",p:20},{n:"Sm driftwood",p:10},{n:"Med driftwood",p:15},{n:"Lg driftwood",p:20},{n:"Lg willow orb",p:13},{n:"Grape Vine",p:10}]);
+let CONTAINERS=[];const DEFAULT_CONTAINERS=defR([{n:"None",p:0},{n:"EOS COLLECTION",p:27},{n:"Two dozen vase",p:30},{n:"007 Vase",p:7},{n:"4x4 Cylinder",p:7},{n:"Riviera Vase",p:38},{n:"5x10",p:18},{n:"5x5 Cylinder",p:8},{n:"WD White ceramic 12x6x4",p:30},{n:"White Ginny Pot",p:30},{n:"6x6 Clear Cube",p:17},{n:"6x6 CYLINDER",p:12},{n:"G3 3055CLR Flare Vase",p:19},{n:"C999 Vase",p:5},{n:"7 inch White Cylinder",p:25},{n:"5x5 White Cylinder",p:12},{n:"7X4 White Ceramic Cyl",p:17},{n:"Red 4x4 Cube",p:7},{n:"Red 5x5 Cube",p:20},{n:"Red Upgraded Rose Vase",p:18},{n:"5x6 Clear Cylinder",p:8},{n:"6x8 Cylinder",p:15},{n:"6x6 Frosted Cube",p:25},{n:"6X6 Ginny Pot",p:30},{n:"Jordan Vase",p:16},{n:"6X4X12 Clear Rectangle",p:47},{n:"10x10 Clear Cylinder",p:36},{n:"5X10 Cylinder vase",p:18},{n:"10x10 Bubble Bowl",p:10},{n:"6x10 Cylinder",p:18},{n:"Rectangle Slate Gray Tray",p:18},{n:"White 6 inch Cylinder",p:18},{n:"3x5 Cylinder",p:4}]);
+let ACCENTS=[];const DEFAULT_ACCENTS=defR([{n:"None",p:0},{n:"Leaf Wrap",p:5},{n:"Multi-color Gems",p:3},{n:"Pink Ribbon",p:5},{n:"Purple Ribbon",p:5},{n:"Pink Gems",p:3},{n:"Red Gems",p:3},{n:"Red Heart Gems",p:3},{n:"Red Large Glass Gems",p:3},{n:"Red Ribbon",p:5},{n:"Rocks",p:3},{n:"Violet Ribbon",p:5},{n:"Yellow Ribbon",p:5},{n:"Clear Rocks",p:4}]);
+let HARDGOODS=[];const DEFAULT_HARDGOODS=defR([{n:"None",p:0},{n:"Bamboo Skewer",p:0.25},{n:"Corsage Pin",p:0.1},{n:"Floral Foam Block",p:2},{n:"Floral Tape - Green",p:0.5},{n:"Floral Tape - White",p:0.5},{n:"Floral Wire",p:0.1},{n:"Greening Pins",p:0.1},{n:"Mache Box - Small",p:4},{n:"Mache Box - Medium",p:6},{n:"Mache Box - Large",p:8},{n:"Organza Bag - Small",p:1},{n:"Organza Bag - Large",p:2},{n:"Pick - Wood",p:0.25},{n:"Tissue Paper",p:0.5},{n:"Wrap - Kraft",p:1},{n:"Wrap - Cellophane",p:1.5}]);
+let PLANTS=[];const DEFAULT_PLANTS=defR([{n:"None",p:0},{n:"4\" Succulent",p:8},{n:"6\" Succulent",p:14},{n:"4\" Kalanchoe",p:6},{n:"6\" Kalanchoe",p:12},{n:"4\" Peace Lily",p:8},{n:"6\" Peace Lily",p:18},{n:"10\" Peace Lily",p:35},{n:"4\" Pothos",p:7},{n:"6\" Pothos",p:14},{n:"4\" Snake Plant",p:8},{n:"6\" Snake Plant",p:16},{n:"4\" ZZ Plant",p:10},{n:"6\" ZZ Plant",p:20},{n:"4\" Bromeliad",p:10},{n:"6\" Bromeliad",p:18},{n:"Mini Orchid",p:18},{n:"Single Stem Orchid",p:28},{n:"Double Stem Orchid",p:45},{n:"4\" Fern",p:6},{n:"6\" Fern",p:12},{n:"4\" Croton",p:8},{n:"6\" Croton",p:16},{n:"Dish Garden - Small",p:25},{n:"Dish Garden - Medium",p:45},{n:"Dish Garden - Large",p:75}]);
+let TAGS=[];const DEFAULT_TAGS=["Valentine's Day","Mother's Day","Christmas","Easter","Sympathy","Wedding","Birthday","Spring","Summer","Fall","Winter","Everyday","Premium","Under $75","Under $100","Under $150"];
 let activeTagFilters=[];
 
-let recipes=JSON.parse(localStorage.getItem('bs_recipes2')||'null')||[
+let recipes=[];const DEFAULT_RECIPES=[
 {id:1,sku:"FE2409",name:"Twenty Spring Tulips",status:"active",calcPrice:120,adjPrice:null,projection:300,container:"C999 Vase",accent:"None",flowers:[{name:"Tulips - Yellow",qty:5},{name:"Tulips - Orange",qty:5},{name:"Tulips - Pink",qty:5},{name:"Tulips - Dark Pink",qty:5}],fillers:[],laborPct:13,photo:null,tags:["Spring","Everyday"],notes:"",sizeH:"",sizeW:"",sizeD:"",approvalNote:""},
 {id:2,sku:"FE2408",name:"Ten Spring Tulips",status:"active",calcPrice:65,adjPrice:null,projection:350,container:"007 Vase",accent:"None",flowers:[{name:"Tulips - Yellow",qty:2},{name:"Tulips - Pink",qty:2},{name:"Tulips - Orange",qty:2},{name:"Tulips - Dark Pink",qty:4}],fillers:[],laborPct:13,photo:null,tags:["Spring","Under $75"],notes:"",sizeH:"",sizeW:"",sizeD:"",approvalNote:""},
 {id:3,sku:"FMD2600",name:"Twilight Meadow",status:"active",calcPrice:85,adjPrice:null,projection:800,container:"4x4 Cylinder",accent:"None",flowers:[{name:"Hydrangea - Mini Green",qty:2},{name:"Spray Roses - Yellow",qty:4},{name:"Lisianthus Purple",qty:4},{name:"Alstro - Hot Pink",qty:3},{name:"Blooming Dianthus",qty:3}],fillers:[],laborPct:13,photo:null,tags:["Everyday","Under $100"],notes:"",sizeH:"",sizeW:"",sizeD:"",approvalNote:""},
@@ -344,14 +353,16 @@ let activeId=null,activeTab='recipe',activePL='flowers',activeNav='recipes',next
 let currentRole='admin';
 let activeStatusFilter='all';
 let activeReportView='margins';
-let MARGIN_GOOD=parseInt(localStorage.getItem('bs_margin_good')||'40');
-let MARGIN_WARN=parseInt(localStorage.getItem('bs_margin_warn')||'20');
+let MARGIN_GOOD=40;
+let MARGIN_WARN=20;
 
-// Migrate old recipes missing status/approvalNote
-recipes.forEach(r=>{
-  if(!r.status)r.status='active';
-  if(!r.approvalNote)r.approvalNote='';
-});
+// Migrate old recipes missing status/approvalNote (run after cloud load)
+function migrateRecipeShape(){
+  recipes.forEach(r=>{
+    if(!r.status)r.status='active';
+    if(!r.approvalNote)r.approvalNote='';
+  });
+}
 
 function applyRole(role){
   currentRole=role;
@@ -475,7 +486,7 @@ function addTagMain(){
   TAGS.push(v);saveTags();renderTagsMain();renderSidebarTags();renderTagFilterChips();
 }
 function deleteTag(i){TAGS.splice(i,1);saveTags();renderSidebarTags();renderTagFilterChips();}
-function saveTags(){localStorage.setItem('bs_tags',JSON.stringify(TAGS));}
+function saveTags(){RecipeStore.saveTags(TAGS).catch(e=>alert('Could not save tags: '+(e.message||e)));}
 
 // Filters
 function toggleFilters(){
@@ -542,7 +553,9 @@ function newRecipe(){
 }
 function deleteRecipe(){
   if(!activeId||!confirm('Delete this recipe?'))return;
-  recipes=recipes.filter(r=>r.id!==activeId);activeId=null;saveAll();filterRecipes();resetMain();
+  const id=activeId;
+  recipes=recipes.filter(r=>r.id!==id);activeId=null;filterRecipes();resetMain();
+  RecipeStore.deleteRecipe(id).catch(e=>alert('Could not delete from the cloud: '+(e.message||e)));
 }
 function saveRecipe(){
   const r=recipes.find(x=>x.id===activeId);if(!r)return;
@@ -573,7 +586,16 @@ function saveRecipe(){
   });
   saveAll();filterRecipes();renderEditor();
 }
-function saveAll(){try{localStorage.setItem('bs_recipes2',JSON.stringify(recipes));}catch(e){alert('Could not save — storage full. Try removing old recipe photos.');}}
+async function saveAll(){
+  const r=recipes.find(x=>x.id===activeId);
+  if(!r)return;
+  try{
+    if(r.photo&&/^data:/.test(r.photo)){
+      r.photo=await RecipeStore.uploadPhoto(r.id,r.photo);
+    }
+    await RecipeStore.saveRecipe(r);
+  }catch(e){alert('Could not save to the cloud: '+(e.message||e));}
+}
 
 function mkOpts(list,sel){return list.map(f=>`<option value="${f.n}"${f.n.trim()===sel.trim()?' selected':''}>${f.n}${f.p>0?' ($'+f.p+')':''}</option>`).join('');}
 
@@ -994,10 +1016,9 @@ function addPLItem(type){
   const rows=document.getElementById('plRows').querySelectorAll('tr');if(rows.length)rows[rows.length-1].querySelector('input[type=text]').focus();
 }
 function savePriceLists(){
-  localStorage.setItem('bs_flowers',JSON.stringify(FLOWERS));localStorage.setItem('bs_fillers',JSON.stringify(FILLERS));
-  localStorage.setItem('bs_containers',JSON.stringify(CONTAINERS));localStorage.setItem('bs_hardgoods',JSON.stringify(HARDGOODS));
-  localStorage.setItem('bs_accents',JSON.stringify(ACCENTS));localStorage.setItem('bs_plants',JSON.stringify(PLANTS));
-  const f=document.getElementById('savedFlash');if(f){f.style.opacity='1';setTimeout(()=>f.style.opacity='0',1800);}
+  RecipeStore.savePriceLists({flowers:FLOWERS,fillers:FILLERS,containers:CONTAINERS,hardgoods:HARDGOODS,accents:ACCENTS,plants:PLANTS})
+    .then(()=>{const f=document.getElementById('savedFlash');if(f){f.style.opacity='1';setTimeout(()=>f.style.opacity='0',1800);}})
+    .catch(e=>alert('Could not save price lists: '+(e.message||e)));
 }
 
 // ── Designer Calculator ───────────────────────────────────────
@@ -1005,8 +1026,7 @@ function updateMarginTargets(){
   const g=parseInt(document.getElementById('marginGoodInput')?.value)||40;
   const w=parseInt(document.getElementById('marginWarnInput')?.value)||20;
   MARGIN_GOOD=g;MARGIN_WARN=w;
-  localStorage.setItem('bs_margin_good',g);
-  localStorage.setItem('bs_margin_warn',w);
+  RecipeStore.saveSettings({marginGood:g,marginWarn:w}).catch(e=>console.error('saveSettings',e));
   // Refresh report if visible
   if(activeNav==='reports'&&activeReportView==='margins')renderMarginReport();
   filterRecipes();
@@ -1523,7 +1543,52 @@ function closeLightbox(){
 }
 function closeLightboxOnEsc(e){if(e.key==='Escape')closeLightbox();}
 
-filterRecipes();
+// ── Auth + boot ───────────────────────────────────────────────
+function signOutApp(){RecipeStore.signOut();}
+
+function applyAuthRole(c){
+  currentRole=c.role;
+  const sel=document.getElementById('roleSelect');
+  if(sel)sel.value=c.role;
+  // Admins keep the role-preview tool; everyone else is locked to their real role.
+  const wrap=document.getElementById('rolePreviewWrap');
+  if(wrap)wrap.style.display=(c.role==='admin')?'flex':'none';
+  const userBox=document.getElementById('userBox');
+  if(userBox){
+    userBox.style.display='flex';
+    const lbl=document.getElementById('userLabel');
+    if(lbl)lbl.textContent=(c.user.displayName||c.user.email||'')+' · '+c.role;
+  }
+  applyRole(c.role);
+}
+
+async function boot(){
+  try{
+    const c=await RecipeStore.init();
+    const data=await RecipeStore.loadAll({
+      recipes:DEFAULT_RECIPES,
+      priceLists:{flowers:DEFAULT_FLOWERS,fillers:DEFAULT_FILLERS,containers:DEFAULT_CONTAINERS,accents:DEFAULT_ACCENTS,hardgoods:DEFAULT_HARDGOODS,plants:DEFAULT_PLANTS},
+      tags:DEFAULT_TAGS
+    });
+    FLOWERS=defR(data.priceLists.flowers);
+    FILLERS=defR(data.priceLists.fillers);
+    CONTAINERS=defR(data.priceLists.containers);
+    ACCENTS=defR(data.priceLists.accents);
+    HARDGOODS=defR(data.priceLists.hardgoods);
+    PLANTS=defR(data.priceLists.plants);
+    TAGS=data.tags||[];
+    recipes=data.recipes||[];
+    MARGIN_GOOD=data.marginGood;MARGIN_WARN=data.marginWarn;
+    nextId=Math.max(0,...recipes.map(r=>Number(r.id)||0))+1;
+    migrateRecipeShape();
+    applyAuthRole(c);
+    filterRecipes();
+  }catch(e){
+    alert('Could not start the app: '+(e.message||e));
+    console.error(e);
+  }
+}
+boot();
 </script>
 </body>
 </html>

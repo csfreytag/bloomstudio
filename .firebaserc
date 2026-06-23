@@ -1,12 +1,20 @@
 {
   "projects": {
-    "default": "freytags-purchasing"
+    "default": "freytags-purchasing",
+    "staging": "freytags-recipes-staging"
   },
   "targets": {
     "freytags-purchasing": {
       "hosting": {
         "freytags-recipes": [
           "freytags-recipes"
+        ]
+      }
+    },
+    "freytags-recipes-staging": {
+      "hosting": {
+        "freytags-recipes-staging": [
+          "freytags-recipes-staging"
         ]
       }
     }

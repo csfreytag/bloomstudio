@@ -67,3 +67,11 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# service account keys — never commit
+*-service-account*.json
+*serviceAccount*.json
+.secrets/
+
+# pricing sync preview output (contains pricing data)
+scripts/pricing-preview.json

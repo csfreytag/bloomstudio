@@ -1,0 +1,114 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────
+// Freytag's — shared Firestore security rules
+//
+// Scoped to the Recipe Guide app's needs. The Purchasing app
+// shares this database; collections it owns are given sensible
+// defaults here but are managed from the Purchasing repo.
+//
+// DEPLOY TO STAGING ONLY during the migration:
+//   firebase deploy --only firestore:rules --project staging
+// Never deploy to production until verified on staging.
+// ─────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- helpers -------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // The signed-in user's own user record (source of roles).
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function recipeRole() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? userDoc().recipeGuideRole
+        : null;
+    }
+
+    function isAdmin()   { return recipeRole() == 'admin'; }
+    function isManager() { return recipeRole() == 'manager'; }
+    // Admin + Manager — can create/edit recipes, tags, see pricing.
+    function isStaff()   { return recipeRole() in ['admin', 'manager']; }
+    // Any Recipe Guide user, including read-only Designers.
+    function isRecipeUser() { return recipeRole() in ['admin', 'manager', 'designer']; }
+
+    // ---- users ---------------------------------------------------
+    // A user may read their own record (to learn their role).
+    // Only admins may list/read others or write any user record.
+    match /users/{uid} {
+      allow get: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ---- recipes -------------------------------------------------
+    // All Recipe Guide users can read; only staff can write.
+    match /recipes/{recipeId} {
+      allow read:  if isRecipeUser();
+      allow write: if isStaff();
+    }
+
+    // ---- tags ----------------------------------------------------
+    match /tags/{tagId} {
+      allow read:  if isRecipeUser();
+      allow write: if isStaff();
+    }
+
+    // ---- pricing (synced one-way from Google Sheet) --------------
+    // Read: staff only (Designers must NOT see pricing).
+    // Write: never from the client — the Sheet→Firestore sync uses
+    // the Admin SDK, which bypasses these rules.
+    match /pricing/{docId} {
+      allow read:  if isStaff();
+      allow write: if false;
+    }
+
+    // ---- products (shared master list) ---------------------------
+    // Recipe Guide reads products. Designers may read product names
+    // (no cost/pricing lives on the product doc that they shouldn't
+    // see beyond what the UI shows). Writes: staff for this app;
+    // Purchasing manages its own writes from its repo.
+    match /products/{productId} {
+      allow read:  if isRecipeUser();
+      allow write: if isStaff();
+    }
+
+    // ---- app-wide settings --------------------------------------
+    // e.g. settings/recipeGuide  (margin thresholds, etc.)
+    match /settings/{docId} {
+      allow read:  if isRecipeUser();
+      allow write: if isStaff();
+    }
+
+    // ---- change logs (append-only activity feed) -----------------
+    // Any signed-in app user may append; only staff may read back.
+    // No updates or deletes from the client.
+    match /changeLogs/{logId} {
+      allow read:   if isStaff();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // ---- vendors (shared) ---------------------------------------
+    match /vendors/{vendorId} {
+      allow read:  if isRecipeUser();
+      allow write: if isStaff();
+    }
+
+    // ---- collections owned by the Purchasing app -----------------
+    // Defaults: readable by signed-in staff, not writable from the
+    // Recipe Guide client. The Purchasing repo defines its own rules
+    // when it deploys; on this (recipe) staging project these stay
+    // locked to avoid accidental writes from this app.
+    match /pendingProducts/{id} {
+      allow read:  if isStaff();
+      allow write: if false;
+    }
+  }
+}

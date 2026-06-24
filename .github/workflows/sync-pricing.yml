@@ -19,7 +19,7 @@ on:
       project:
         description: 'Target Firestore project'
         required: true
-        default: 'freytags-recipes-staging'
+        default: 'freytags-purchasing'
 
 jobs:
   sync:
@@ -43,7 +43,7 @@ jobs:
 
       - name: Run pricing sync
         working-directory: scripts
-        run: node sync-pricing.js --write --project="${{ github.event.inputs.project || 'freytags-recipes-staging' }}" --keyfile=sa-key.json --yes
+        run: node sync-pricing.js --write --project="${{ github.event.inputs.project || 'freytags-purchasing' }}" --keyfile=sa-key.json --yes
 
       - name: Clean up key
         if: always()

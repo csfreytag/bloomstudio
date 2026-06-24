@@ -14,12 +14,16 @@
  * The user must already exist in Firebase Auth — i.e. they've signed in once
  * (Google or email/password). Identify them by --uid or --email.
  *
- * Uses the Admin SDK (bypasses security rules). Run with the claude-llm-access
- * service-account key, which has Firebase Authentication Admin on this project.
+ * Uses the Admin SDK (bypasses security rules). Run with the PRODUCTION
+ * project's own admin key (firebase-adminsdk-fbsvc@freytags-purchasing,
+ * i.e. C:\Keys\freytags-service-account.json) — it has native Firebase Auth
+ * access. NOTE: the claude-llm-access (analytics) key used by the price sync
+ * does NOT work here — it can write Firestore cross-project but lacks
+ * Identity Toolkit (Auth) permission on freytags-purchasing.
  *
  * Usage:
  *   node grant-recipe-access.js --email=chad@freytags.com --role=admin \
- *     --project=freytags-purchasing --keyfile=C:\Keys\claude-llm-access.json
+ *     --project=freytags-purchasing --keyfile=C:\Keys\freytags-service-account.json
  *   node grant-recipe-access.js --uid=<authUid> --role=manager --project=... --keyfile=...
  *
  * After running, the user signs out and back in (or reloads) to pick up the

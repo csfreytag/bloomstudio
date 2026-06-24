@@ -202,14 +202,49 @@ async function writeFirestore(priceLists) {
   const db = admin.firestore();
   const projectId = (admin.app().options.projectId) || TARGET_PROJECT || '(from credential)';
 
-  console.log(`\n>>> WRITING priceLists to Firestore project: ${projectId}`);
-  console.log('    doc: settings/' + SETTINGS_DOC + ' (field: priceLists, merged)\n');
+  const ref = db.collection('settings').doc(SETTINGS_DOC);
 
-  await db.collection('settings').doc(SETTINGS_DOC).set(
-    { priceLists, pricingSyncedAt: admin.firestore.FieldValue.serverTimestamp() },
-    { merge: true }
-  );
+  // Diff against what's currently stored so the app can flag what changed.
+  const snap = await ref.get();
+  const prev = (snap.exists && snap.data().priceLists) || {};
+  const changes = diffPriceLists(prev, priceLists);
+
+  console.log(`\n>>> WRITING priceLists to Firestore project: ${projectId}`);
+  console.log('    doc: settings/' + SETTINGS_DOC);
+  if (changes.length) {
+    console.log(`    ${changes.length} change(s) vs current:`);
+    changes.slice(0, 25).forEach(c => {
+      const label = c.type === 'added' ? `added @ $${c.to}` : c.type === 'removed' ? `removed (was $${c.from})` : `$${c.from} → $${c.to}`;
+      console.log(`      · [${c.cat}] ${c.name}: ${label}`);
+    });
+    if (changes.length > 25) console.log(`      … +${changes.length - 25} more`);
+  } else {
+    console.log('    no price changes vs current.');
+  }
+
+  await ref.set({
+    priceLists,
+    pricingSyncedAt: admin.firestore.FieldValue.serverTimestamp(),
+    pricingSync: { at: new Date().toISOString(), changedCount: changes.length, changes: changes.slice(0, 200) }
+  }, { merge: true });
   console.log('Write complete.');
+}
+
+function priceOf(item) { return (item.r !== null && item.r !== undefined) ? item.r : null; }
+function diffPriceLists(prev, next) {
+  const changes = [];
+  for (const cat of Object.keys(next)) {
+    const prevMap = {}; (prev[cat] || []).forEach(it => { prevMap[(it.n || '').trim()] = priceOf(it); });
+    const nextMap = {}; (next[cat] || []).forEach(it => { nextMap[(it.n || '').trim()] = priceOf(it); });
+    for (const name of Object.keys(nextMap)) {
+      if (!(name in prevMap)) changes.push({ cat, name, type: 'added', from: null, to: nextMap[name] });
+      else if (prevMap[name] !== nextMap[name]) changes.push({ cat, name, type: 'changed', from: prevMap[name], to: nextMap[name] });
+    }
+    for (const name of Object.keys(prevMap)) {
+      if (!(name in nextMap)) changes.push({ cat, name, type: 'removed', from: prevMap[name], to: null });
+    }
+  }
+  return changes;
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────--

@@ -271,7 +271,8 @@
           priceLists: priceLists,
           tags: s.tags || (defaults.tags || []),
           marginGood: typeof s.marginGood === 'number' ? s.marginGood : 40,
-          marginWarn: typeof s.marginWarn === 'number' ? s.marginWarn : 20
+          marginWarn: typeof s.marginWarn === 'number' ? s.marginWarn : 20,
+          pricingSync: s.pricingSync || null
         };
       });
     },

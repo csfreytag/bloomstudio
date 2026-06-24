@@ -333,7 +333,8 @@ function gpPrice(list,name,mult){const f=list.find(x=>x.n.trim()===name.trim());
 function suggestedRetail(r){
   const ing=gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)+gpPrice(HARDGOODS,r.hardgood||'None',3.5)
     +(r.flowers||[]).reduce((s,f)=>s+f.qty*gpPrice(FLOWERS,f.name,4),0)
-    +(r.fillers||[]).reduce((s,f)=>s+f.qty*gpPrice(FILLERS,f.name,4),0);
+    +(r.fillers||[]).reduce((s,f)=>s+f.qty*gpPrice(FILLERS,f.name,4),0)
+    +(r.plants||[]).reduce((s,f)=>s+f.qty*gpPrice(PLANTS,f.name,3.5),0);
   const pct=r.laborPct||0;
   return pct<100?ing/(1-pct/100):ing;
 }
@@ -392,6 +393,7 @@ function migrateRecipeShape(){
     if(!r.approvalNote)r.approvalNote='';
     if(r.webItem===undefined)r.webItem=false;
     if(!r.hardgood)r.hardgood='None';
+    if(!r.plants)r.plants=[];
   });
 }
 
@@ -461,10 +463,11 @@ function calcCost(r){
   const vp=gpCost(CONTAINERS,r.container||'None'),ap=gpCost(ACCENTS,r.accent||'None'),hp=gpCost(HARDGOODS,r.hardgood||'None');
   const fc=(r.flowers||[]).reduce((s,f)=>s+f.qty*gpCost(FLOWERS,f.name),0);
   const fil=(r.fillers||[]).reduce((s,f)=>s+f.qty*gpCost(FILLERS,f.name),0);
+  const pc=(r.plants||[]).reduce((s,f)=>s+f.qty*gpCost(PLANTS,f.name),0);
   const labor=fp*(r.laborPct||0)/100;
-  const total=vp+ap+hp+fc+fil+labor;
+  const total=vp+ap+hp+fc+fil+pc+labor;
   const margin=fp>0?(fp-total)/fp*100:0;
-  return{vp,ap,hp,fc,fil,labor,total,margin,pct:r.laborPct||0,fp};
+  return{vp,ap,hp,fc,fil,pc,labor,total,margin,pct:r.laborPct||0,fp};
 }
 function mc(m){return m>=MARGIN_GOOD?'mg':m>=MARGIN_WARN?'mw':'mb';}
 function mColor(m){return m>=MARGIN_GOOD?'#1a5c2e':m>=MARGIN_WARN?'#854F0B':'#A32D2D';}
@@ -580,7 +583,7 @@ function filterRecipes(){
 function selectRecipe(id){activeId=id;activeTab=currentRole==='designer'?'view':'recipe';setNav('recipes');filterRecipes();renderEditor();}
 function newRecipe(){
   const defaultStatus=currentRole==='designer'?'draft':'draft';
-  const r={id:nextId++,sku:'',name:'',status:defaultStatus,calcPrice:0,adjPrice:null,projection:null,container:'None',accent:'None',flowers:[{name:'None',qty:1}],fillers:[],laborPct:13,photo:null,tags:[],notes:'',sizeH:'',sizeW:'',sizeD:'',approvalNote:'',webItem:false,hardgood:'None'};
+  const r={id:nextId++,sku:'',name:'',status:defaultStatus,calcPrice:0,adjPrice:null,projection:null,container:'None',accent:'None',flowers:[{name:'None',qty:1}],fillers:[],laborPct:13,photo:null,tags:[],notes:'',sizeH:'',sizeW:'',sizeD:'',approvalNote:'',webItem:false,hardgood:'None',plants:[]};
   recipes.push(r);activeId=r.id;activeTab='recipe';setNav('recipes');filterRecipes();renderEditor();
 }
 function deleteRecipe(){
@@ -617,6 +620,10 @@ function saveRecipe(){
   r.fillers=[];document.querySelectorAll('.filler-row').forEach(row=>{
     const sel=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
     if(sel!=='None'&&qty>0)r.fillers.push({name:sel,qty});
+  });
+  r.plants=[];document.querySelectorAll('.plant-row').forEach(row=>{
+    const sel=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
+    if(sel!=='None'&&qty>0)r.plants.push({name:sel,qty});
   });
   saveAll();filterRecipes();renderEditor();
 }
@@ -712,6 +719,12 @@ function renderRecipeTab(r){
      <button class="add-row-btn" onclick="addRow('filler')"><i class="ti ti-plus"></i> Add filler</button>
     </div>
     <div class="section">
+     <h3>Plants <span style="font-weight:normal;font-style:italic;font-size:10px;">(for plant gardens)</span></h3>
+     <table class="ing-table"><thead><tr><th style="width:45%">Plant</th><th>Qty</th><th>Each</th><th>Total</th><th></th></tr></thead>
+     <tbody id="plantRows">${(r.plants||[]).map(f=>ingRow(f,'plant')).join('')}</tbody></table>
+     <button class="add-row-btn" onclick="addRow('plant')"><i class="ti ti-plus"></i> Add plant</button>
+    </div>
+    <div class="section">
      <h3>Labor</h3>
      <p style="font-size:12px;color:var(--text2);margin-bottom:8px;font-style:italic;">% of final retail price ($${fmt(fp)})</p>
      <div class="labor-row" style="display:flex;align-items:center;gap:8px;">
@@ -805,6 +818,7 @@ function renderRecipeView(r){
 
   const flowerTableHtml=ingViewTable(FLOWERS,(r.flowers||[]).filter(f=>f.name!=='None'),4);
   const fillerTableHtml=ingViewTable(FILLERS,(r.fillers||[]).filter(f=>f.name!=='None'),4);
+  const plantTableHtml=ingViewTable(PLANTS,(r.plants||[]).filter(f=>f.name!=='None'),3.5);
 
   document.getElementById('mainContent').innerHTML=`
   <div style="display:grid;grid-template-columns:1fr 260px;gap:16px;align-items:start;">
@@ -826,6 +840,10 @@ function renderRecipeView(r){
      ${fillerTableHtml?`
      <h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Greenery &amp; filler</h3>
      ${fillerTableHtml}`:''}
+
+     ${plantTableHtml?`
+     <h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Plants</h3>
+     ${plantTableHtml}`:''}
 
      <div style="border-top:0.5px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:5px;">
       ${r.container&&r.container!=='None'?`<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text2);">Container — ${r.container}</span><span>$${fmt(gpPrice(CONTAINERS,r.container,3.5))}</span></div>`:''}
@@ -879,9 +897,10 @@ function refreshSize(){
   const el=document.getElementById('size_display');if(el)el.textContent=p.join(' × ')||'No size entered';
 }
 function ingRow(f,type){
-  const list=type==='flower'?FLOWERS:FILLERS;
+  const list=type==='flower'?FLOWERS:type==='plant'?PLANTS:FILLERS;
+  const mult=type==='plant'?3.5:4;
   const item=list.find(x=>x.n.trim()===f.name.trim());
-  const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*4).toFixed(2));
+  const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*mult).toFixed(2));
   const total=f.qty*each;
   return`<tr class="${type}-row">
     <td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,f.name)}</select></td>
@@ -911,8 +930,13 @@ function refreshStatCards(){
     const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
     fil+=q*gpCost(FILLERS,n||'None');
   });
+  let pc=0;
+  document.querySelectorAll('.plant-row').forEach(row=>{
+    const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
+    pc+=q*gpCost(PLANTS,n||'None');
+  });
   const labor=fp*laborPct/100;
-  const total=vp+ap+hp+fc+fil+labor;
+  const total=vp+ap+hp+fc+fil+pc+labor;
   const margin=fp>0?(fp-total)/fp*100:0;
   const lr=document.getElementById('live_retail');
   const lc=document.getElementById('live_cost');
@@ -928,7 +952,8 @@ function buildToHtml(r){
   if(!target) return '<span style="color:var(--text3);font-style:italic;">Set a price above to track your ingredient budget as you build.</span>';
   const ing=gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)+gpPrice(HARDGOODS,r.hardgood||'None',3.5)
     +(r.flowers||[]).reduce((s,f)=>s+f.qty*gpPrice(FLOWERS,f.name,4),0)
-    +(r.fillers||[]).reduce((s,f)=>s+f.qty*gpPrice(FILLERS,f.name,4),0);
+    +(r.fillers||[]).reduce((s,f)=>s+f.qty*gpPrice(FILLERS,f.name,4),0)
+    +(r.plants||[]).reduce((s,f)=>s+f.qty*gpPrice(PLANTS,f.name,3.5),0);
   const budget=target*(1-laborPct/100),remaining=budget-ing,over=remaining<0;
   return `Toward <strong>$${fmt(target)}</strong> · ingredients <strong>$${fmt(ing)}</strong> of $${fmt(budget)} · <span style="color:${over?'var(--red)':'var(--stem)'};font-weight:600;">${over?'$'+fmt(-remaining)+' over':'$'+fmt(remaining)+' left'}</span> <span style="color:var(--text3);">(after ${laborPct}% labor)</span>`;
 }
@@ -943,24 +968,25 @@ function refreshBudget(){
   let ing=gpPrice(CONTAINERS,document.getElementById('f_container')?.value||'None',3.5)+gpPrice(ACCENTS,document.getElementById('f_accent')?.value||'None',3.5)+gpPrice(HARDGOODS,document.getElementById('f_hardgood')?.value||'None',3.5);
   document.querySelectorAll('#flowerRows tr').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FLOWERS,n||'None',4);});
   document.querySelectorAll('#fillerRows tr').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FILLERS,n||'None',4);});
+  document.querySelectorAll('#plantRows tr').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(PLANTS,n||'None',3.5);});
   const budget=target*(1-laborPct/100),remaining=budget-ing,over=remaining<0;
   el.innerHTML=`Toward <strong>$${fmt(target)}</strong> · ingredients <strong>$${fmt(ing)}</strong> of $${fmt(budget)} · <span style="color:${over?'var(--red)':'var(--stem)'};font-weight:600;">${over?'$'+fmt(-remaining)+' over':'$'+fmt(remaining)+' left'}</span> <span style="color:var(--text3);">(after ${laborPct}% labor)</span>`;
 }
 
 function updateRowCost(el){
-  const row=el.closest('tr'),type=row.classList.contains('flower-row')?'flower':'filler';
-  const list=type==='flower'?FLOWERS:FILLERS;
+  const row=el.closest('tr'),type=row.classList.contains('flower-row')?'flower':row.classList.contains('plant-row')?'plant':'filler';
+  const list=type==='flower'?FLOWERS:type==='plant'?PLANTS:FILLERS;
   const name=row.querySelector('.f-sel').value;
   const qty=parseFloat(row.querySelector('.f-qty').value)||0;
   const item=list.find(x=>x.n.trim()===name.trim());
-  const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*4).toFixed(2));
+  const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*(type==='plant'?3.5:4)).toFixed(2));
   if(row.querySelector('.f-each'))row.querySelector('.f-each').textContent='$'+fmt(each);
   if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(qty*each);
   refreshStatCards();
 }
 function addRow(type){
-  const tbody=document.getElementById(type==='flower'?'flowerRows':'fillerRows'),tr=document.createElement('tr');
-  tr.className=type+'-row';const list=type==='flower'?FLOWERS:FILLERS;
+  const tbody=document.getElementById(type==='flower'?'flowerRows':type==='plant'?'plantRows':'fillerRows'),tr=document.createElement('tr');
+  tr.className=type+'-row';const list=type==='flower'?FLOWERS:type==='plant'?PLANTS:FILLERS;
   tr.innerHTML=`<td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,'None')}</select></td><td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateRowCost(this)" style="width:60px;"/></td><td class="f-each" style="color:var(--text2);font-size:13px;">$0.00</td><td class="f-cost" style="font-size:13px;font-weight:500;">$0.00</td><td><button class="del-btn" onclick="this.closest('tr').remove();refreshStatCards()"><i class="ti ti-x"></i></button></td>`;
   tbody.appendChild(tr);
   refreshStatCards();

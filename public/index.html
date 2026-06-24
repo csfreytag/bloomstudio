@@ -331,7 +331,7 @@ function gpCost(list,name){const f=list.find(x=>x.n.trim()===name.trim());return
 function gpPrice(list,name,mult){const f=list.find(x=>x.n.trim()===name.trim());if(!f)return 0;return(f.r!==null&&f.r!==undefined&&f.r>0)?f.r:(f.p||0)*(mult||1);}
 // What this recipe would retail at against CURRENT ingredient prices (retail + labor).
 function suggestedRetail(r){
-  const ing=gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)
+  const ing=gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)+gpPrice(HARDGOODS,r.hardgood||'None',3.5)
     +(r.flowers||[]).reduce((s,f)=>s+f.qty*gpPrice(FLOWERS,f.name,4),0)
     +(r.fillers||[]).reduce((s,f)=>s+f.qty*gpPrice(FILLERS,f.name,4),0);
   const pct=r.laborPct||0;
@@ -391,6 +391,7 @@ function migrateRecipeShape(){
     if(!r.status)r.status='active';
     if(!r.approvalNote)r.approvalNote='';
     if(r.webItem===undefined)r.webItem=false;
+    if(!r.hardgood)r.hardgood='None';
   });
 }
 
@@ -457,13 +458,13 @@ function renderContent(){
 function finalPrice(r){return(r.adjPrice&&r.adjPrice>0)?r.adjPrice:r.calcPrice;}
 function calcCost(r){
   const fp=finalPrice(r);
-  const vp=gpCost(CONTAINERS,r.container||'None'),ap=gpCost(ACCENTS,r.accent||'None');
+  const vp=gpCost(CONTAINERS,r.container||'None'),ap=gpCost(ACCENTS,r.accent||'None'),hp=gpCost(HARDGOODS,r.hardgood||'None');
   const fc=(r.flowers||[]).reduce((s,f)=>s+f.qty*gpCost(FLOWERS,f.name),0);
   const fil=(r.fillers||[]).reduce((s,f)=>s+f.qty*gpCost(FILLERS,f.name),0);
   const labor=fp*(r.laborPct||0)/100;
-  const total=vp+ap+fc+fil+labor;
+  const total=vp+ap+hp+fc+fil+labor;
   const margin=fp>0?(fp-total)/fp*100:0;
-  return{vp,ap,fc,fil,labor,total,margin,pct:r.laborPct||0,fp};
+  return{vp,ap,hp,fc,fil,labor,total,margin,pct:r.laborPct||0,fp};
 }
 function mc(m){return m>=MARGIN_GOOD?'mg':m>=MARGIN_WARN?'mw':'mb';}
 function mColor(m){return m>=MARGIN_GOOD?'#1a5c2e':m>=MARGIN_WARN?'#854F0B':'#A32D2D';}
@@ -579,7 +580,7 @@ function filterRecipes(){
 function selectRecipe(id){activeId=id;activeTab=currentRole==='designer'?'view':'recipe';setNav('recipes');filterRecipes();renderEditor();}
 function newRecipe(){
   const defaultStatus=currentRole==='designer'?'draft':'draft';
-  const r={id:nextId++,sku:'',name:'',status:defaultStatus,calcPrice:0,adjPrice:null,projection:null,container:'None',accent:'None',flowers:[{name:'None',qty:1}],fillers:[],laborPct:13,photo:null,tags:[],notes:'',sizeH:'',sizeW:'',sizeD:'',approvalNote:'',webItem:false};
+  const r={id:nextId++,sku:'',name:'',status:defaultStatus,calcPrice:0,adjPrice:null,projection:null,container:'None',accent:'None',flowers:[{name:'None',qty:1}],fillers:[],laborPct:13,photo:null,tags:[],notes:'',sizeH:'',sizeW:'',sizeD:'',approvalNote:'',webItem:false,hardgood:'None'};
   recipes.push(r);activeId=r.id;activeTab='recipe';setNav('recipes');filterRecipes();renderEditor();
 }
 function deleteRecipe(){
@@ -599,6 +600,7 @@ function saveRecipe(){
   r.projection=(proj&&parseFloat(proj)>0)?parseFloat(proj):null;
   r.container=document.getElementById('f_container').value;
   r.accent=document.getElementById('f_accent').value;
+  r.hardgood=document.getElementById('f_hardgood')?.value||'None';
   r.laborPct=parseFloat(document.getElementById('f_laborpct').value)||0;
   r.notes=document.getElementById('f_notes').value;
   r.status=document.getElementById('f_status')?.value||r.status||'draft';
@@ -688,10 +690,13 @@ function renderRecipeTab(r){
      <div style="margin-top:10px;padding:8px 10px;background:var(--bg2);border-radius:var(--radius);font-size:13px;"><i class="ti ti-target" style="color:var(--green);"></i> <span id="buildToText">${buildToHtml(r)}</span></div>
     </div>
     <div class="section">
-     <h3>Container</h3>
+     <h3>Container, accent &amp; hardgoods</h3>
      <div class="field-row">
-      <div class="field"><label>Container</label><select id="f_container">${mkOpts(CONTAINERS,r.container||'None')}</select></div>
-      <div class="field"><label>Accent</label><select id="f_accent">${mkOpts(ACCENTS,r.accent||'None')}</select></div>
+      <div class="field"><label>Container</label><select id="f_container" onchange="refreshStatCards()">${mkOpts(CONTAINERS,r.container||'None')}</select></div>
+      <div class="field"><label>Accent</label><select id="f_accent" onchange="refreshStatCards()">${mkOpts(ACCENTS,r.accent||'None')}</select></div>
+     </div>
+     <div class="field-row">
+      <div class="field"><label>Hardgood <span style="font-style:italic;color:var(--text3)">(funeral base, etc.)</span></label><select id="f_hardgood" onchange="refreshStatCards()">${mkOpts(HARDGOODS,r.hardgood||'None')}</select></div>
      </div>
     </div>
     <div class="section">
@@ -825,6 +830,7 @@ function renderRecipeView(r){
      <div style="border-top:0.5px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:5px;">
       ${r.container&&r.container!=='None'?`<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text2);">Container — ${r.container}</span><span>$${fmt(gpPrice(CONTAINERS,r.container,3.5))}</span></div>`:''}
       ${r.accent&&r.accent!=='None'?`<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text2);">Accent — ${r.accent}</span><span>$${fmt(gpPrice(ACCENTS,r.accent,3.5))}</span></div>`:''}
+      ${r.hardgood&&r.hardgood!=='None'?`<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text2);">Hardgood — ${r.hardgood}</span><span>$${fmt(gpPrice(HARDGOODS,r.hardgood,3.5))}</span></div>`:''}
       <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text2);">Labor (${c.pct}% of $${fmt(fp)} retail)</span><span>$${fmt(c.labor)}</span></div>
       <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;padding-top:6px;border-top:0.5px solid var(--border);margin-top:4px;"><span>Total retail price</span><span style="color:var(--green-dark);">$${fmt(fp)}</span></div>
      </div>
@@ -894,6 +900,7 @@ function refreshStatCards(){
   const laborPct=parseFloat(document.getElementById('f_laborpct')?.value)||0;
   const vp=gpCost(CONTAINERS,document.getElementById('f_container')?.value||'None');
   const ap=gpCost(ACCENTS,document.getElementById('f_accent')?.value||'None');
+  const hp=gpCost(HARDGOODS,document.getElementById('f_hardgood')?.value||'None');
   let fc=0;
   document.querySelectorAll('.flower-row').forEach(row=>{
     const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
@@ -905,7 +912,7 @@ function refreshStatCards(){
     fil+=q*gpCost(FILLERS,n||'None');
   });
   const labor=fp*laborPct/100;
-  const total=vp+ap+fc+fil+labor;
+  const total=vp+ap+hp+fc+fil+labor;
   const margin=fp>0?(fp-total)/fp*100:0;
   const lr=document.getElementById('live_retail');
   const lc=document.getElementById('live_cost');
@@ -919,7 +926,7 @@ function refreshStatCards(){
 function buildToHtml(r){
   const target=finalPrice(r),laborPct=r.laborPct||0;
   if(!target) return '<span style="color:var(--text3);font-style:italic;">Set a price above to track your ingredient budget as you build.</span>';
-  const ing=gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)
+  const ing=gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)+gpPrice(HARDGOODS,r.hardgood||'None',3.5)
     +(r.flowers||[]).reduce((s,f)=>s+f.qty*gpPrice(FLOWERS,f.name,4),0)
     +(r.fillers||[]).reduce((s,f)=>s+f.qty*gpPrice(FILLERS,f.name,4),0);
   const budget=target*(1-laborPct/100),remaining=budget-ing,over=remaining<0;
@@ -933,7 +940,7 @@ function refreshBudget(){
   const target=adj>0?adj:calc;
   const laborPct=parseFloat(document.getElementById('f_laborpct')?.value)||0;
   if(!target){el.innerHTML='<span style="color:var(--text3);font-style:italic;">Set a price above to track your ingredient budget as you build.</span>';return;}
-  let ing=gpPrice(CONTAINERS,document.getElementById('f_container')?.value||'None',3.5)+gpPrice(ACCENTS,document.getElementById('f_accent')?.value||'None',3.5);
+  let ing=gpPrice(CONTAINERS,document.getElementById('f_container')?.value||'None',3.5)+gpPrice(ACCENTS,document.getElementById('f_accent')?.value||'None',3.5)+gpPrice(HARDGOODS,document.getElementById('f_hardgood')?.value||'None',3.5);
   document.querySelectorAll('#flowerRows tr').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FLOWERS,n||'None',4);});
   document.querySelectorAll('#fillerRows tr').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FILLERS,n||'None',4);});
   const budget=target*(1-laborPct/100),remaining=budget-ing,over=remaining<0;

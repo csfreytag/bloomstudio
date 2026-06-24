@@ -680,8 +680,9 @@ function renderRecipeTab(r){
       </div>
      </div>
      <div style="margin-top:10px;">
-      <div class="field" style="max-width:160px;"><label>Set calculated retail ($)</label><input id="f_calcprice" type="number" value="${r.calcPrice||''}" min="0" step="0.01" oninput="refreshFinalPrice()"/></div>
+      <div class="field" style="max-width:160px;"><label>Set price / build-to target ($)</label><input id="f_calcprice" type="number" value="${r.calcPrice||''}" min="0" step="0.01" oninput="refreshFinalPrice()"/></div>
      </div>
+     <div style="margin-top:10px;padding:8px 10px;background:var(--bg2);border-radius:var(--radius);font-size:13px;"><i class="ti ti-target" style="color:var(--green);"></i> <span id="buildToText"></span></div>
     </div>
     <div class="section">
      <h3>Container</h3>
@@ -705,9 +706,9 @@ function renderRecipeTab(r){
     <div class="section">
      <h3>Labor</h3>
      <p style="font-size:12px;color:var(--text2);margin-bottom:8px;font-style:italic;">% of final retail price ($${fmt(fp)})</p>
-     <div class="labor-row">
-      <input type="range" id="f_laborpct" min="0" max="40" step="1" value="${r.laborPct||0}" oninput="refreshLaborDollar()"/>
-      <span class="labor-badge" id="labor_pct_label">${r.laborPct||0}%</span>
+     <div class="labor-row" style="display:flex;align-items:center;gap:8px;">
+      <input type="number" id="f_laborpct" min="0" max="100" step="1" value="${r.laborPct||0}" oninput="refreshLaborDollar()" style="width:80px;"/>
+      <span style="font-size:13px;color:var(--text2);">% of final retail</span>
       <span class="labor-dollar" id="labor_dollar">= $${fmt(c.labor)}</span>
      </div>
     </div>
@@ -842,7 +843,7 @@ function renderRecipeView(r){
      </div>
     </div>
    </div>
-  </div>`;}
+  </div>`;refreshBudget();}
 
 
 function refreshFinalPrice(){
@@ -909,6 +910,21 @@ function refreshStatCards(){
   if(lr)lr.textContent='$'+fmt(fp);
   if(lc)lc.textContent='$'+fmt(total);
   if(lm){lm.textContent=margin.toFixed(1)+'%';lm.style.color=mColor(margin);}
+  refreshBudget();
+}
+// Live "build to a price" tracker — ingredient retail used vs the target price.
+function refreshBudget(){
+  const el=document.getElementById('buildToText'); if(!el) return;
+  const calc=parseFloat(document.getElementById('f_calcprice')?.value)||0;
+  const adj=parseFloat(document.getElementById('f_adjprice')?.value)||0;
+  const target=adj>0?adj:calc;
+  const laborPct=parseFloat(document.getElementById('f_laborpct')?.value)||0;
+  if(!target){el.innerHTML='<span style="color:var(--text3);font-style:italic;">Set a price above to track your ingredient budget as you build.</span>';return;}
+  let ing=gpPrice(CONTAINERS,document.getElementById('f_container')?.value||'None',3.5)+gpPrice(ACCENTS,document.getElementById('f_accent')?.value||'None',3.5);
+  document.querySelectorAll('#flowerRows tr').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FLOWERS,n||'None',4);});
+  document.querySelectorAll('#fillerRows tr').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FILLERS,n||'None',4);});
+  const budget=target*(1-laborPct/100),remaining=budget-ing,over=remaining<0;
+  el.innerHTML=`Toward <strong>$${fmt(target)}</strong> · ingredients <strong>$${fmt(ing)}</strong> of $${fmt(budget)} · <span style="color:${over?'var(--red)':'var(--stem)'};font-weight:600;">${over?'$'+fmt(-remaining)+' over':'$'+fmt(remaining)+' left'}</span> <span style="color:var(--text3);">(after ${laborPct}% labor)</span>`;
 }
 
 function updateRowCost(el){
@@ -1340,9 +1356,9 @@ function renderCalculator(){
     <div class="section">
      <h3>Labor</h3>
      <p style="font-size:12px;color:var(--text2);margin-bottom:8px;font-style:italic;">% of retail price</p>
-     <div class="labor-row">
-      <input type="range" id="calc_labor" min="0" max="40" step="1" value="20" oninput="document.getElementById('calc_labor_label').textContent=this.value+'%';updateCalc()"/>
-      <span class="labor-badge" id="calc_labor_label">20%</span>
+     <div class="labor-row" style="display:flex;align-items:center;gap:8px;">
+      <input type="number" id="calc_labor" min="0" max="100" step="1" value="20" oninput="updateCalc()" style="width:80px;"/>
+      <span style="font-size:13px;color:var(--text2);">% of retail</span>
       <span class="labor-dollar" id="calc_labor_dollar">= $0.00</span>
      </div>
     </div>

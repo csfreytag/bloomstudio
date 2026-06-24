@@ -1150,6 +1150,9 @@ function updateMarginTargets(){
   const g=parseInt(document.getElementById('marginGoodInput')?.value)||40;
   const w=parseInt(document.getElementById('marginWarnInput')?.value)||20;
   MARGIN_GOOD=g;MARGIN_WARN=w;
+  try{localStorage.setItem('bs_margin_good',g);localStorage.setItem('bs_margin_warn',w);}catch(e){}
+  // Cloud settings are Purchasing-write-only in production; this fails silently
+  // there and margins persist per-browser via localStorage above.
   RecipeStore.saveSettings({marginGood:g,marginWarn:w}).catch(e=>console.error('saveSettings',e));
   // Refresh report if visible
   if(activeNav==='reports'&&activeReportView==='margins')renderMarginReport();
@@ -1702,6 +1705,7 @@ async function boot(){
     TAGS=data.tags||[];
     recipes=data.recipes||[];
     MARGIN_GOOD=data.marginGood;MARGIN_WARN=data.marginWarn;
+    {const lg=parseInt(localStorage.getItem('bs_margin_good'),10),lw=parseInt(localStorage.getItem('bs_margin_warn'),10);if(!isNaN(lg))MARGIN_GOOD=lg;if(!isNaN(lw))MARGIN_WARN=lw;}
     PRICING_SYNC=data.pricingSync||null;
     nextId=Math.max(0,...recipes.map(r=>Number(r.id)||0))+1;
     migrateRecipeShape();

@@ -75,6 +75,9 @@
   db.enablePersistence({ synchronizeTabs: true }).catch(function () { /* multi-tab or unsupported — fine */ });
 
   var SETTINGS_DOC = 'recipeGuide';
+  // Tags live in their own collection (the production rules let managers write
+  // /tags but NOT /settings). One doc holds the whole list: tags/all { list:[] }.
+  var TAGS_DOC = 'all';
   var PRICE_LIST_KEYS = ['flowers', 'fillers', 'containers', 'accents', 'hardgoods', 'plants'];
 
   // Resolved after sign-in.
@@ -215,7 +218,12 @@
           // (sign out, or sign in as someone else) reloads to start clean.
           if (booted) { location.reload(); return; }
           if (!user) { loginScreen(); return; }
-          resolveRole(user).then(function (role) {
+          // Refresh the ID token first so any custom claims granted while the
+          // user was already signed in (active / recipeGuideRole — the
+          // production rules read these) take effect without a re-login.
+          user.getIdToken(true).catch(function () {}).then(function () {
+            return resolveRole(user);
+          }).then(function (role) {
             if (!role) { noAccessScreen(user.email); return; }
             ctx.user = user;
             ctx.role = role;
@@ -242,13 +250,17 @@
     loadAll: function (defaults) {
       return Promise.all([
         db.collection('recipes').get(),
-        db.collection('settings').doc(SETTINGS_DOC).get()
+        db.collection('settings').doc(SETTINGS_DOC).get(),
+        db.collection('tags').doc(TAGS_DOC).get()
       ]).then(function (res) {
         var recipesSnap = res[0];
         var settingsSnap = res[1];
+        var tagsSnap = res[2];
         var cloudEmpty = recipesSnap.empty && !settingsSnap.exists;
 
-        if (cloudEmpty) {
+        // Seed only on staging. Production starts clean: prices arrive via the
+        // one-way Sheet sync (service account) and the team builds recipes/tags.
+        if (cloudEmpty && IS_STAGING) {
           return seedCloud(defaults).then(function () { return RecipeStore.loadAll(defaults); });
         }
 
@@ -266,10 +278,19 @@
           if (!priceLists[k]) priceLists[k] = (defaults.priceLists && defaults.priceLists[k]) || [];
         });
 
+        // Tags now live in tags/all; fall back to the older settings.tags
+        // location (and then defaults) so existing data migrates smoothly.
+        var tags;
+        if (tagsSnap.exists && Array.isArray((tagsSnap.data() || {}).list)) {
+          tags = tagsSnap.data().list;
+        } else {
+          tags = s.tags || (defaults.tags || []);
+        }
+
         return {
           recipes: recipes,
           priceLists: priceLists,
-          tags: s.tags || (defaults.tags || []),
+          tags: tags,
           marginGood: typeof s.marginGood === 'number' ? s.marginGood : 40,
           marginWarn: typeof s.marginWarn === 'number' ? s.marginWarn : 20,
           pricingSync: s.pricingSync || null
@@ -293,8 +314,7 @@
     },
 
     saveTags: function (tags) {
-      return db.collection('settings').doc(SETTINGS_DOC)
-        .set({ tags: tags }, { merge: true });
+      return db.collection('tags').doc(TAGS_DOC).set({ list: tags }, { merge: true });
     },
 
     saveSettings: function (obj) {
@@ -353,6 +373,7 @@
       copy.id = r.id;
       batch.set(db.collection('recipes').doc(String(r.id)), copy);
     });
+    batch.set(db.collection('tags').doc(TAGS_DOC), { list: tags });
     batch.set(db.collection('settings').doc(SETTINGS_DOC), {
       priceLists: priceLists,
       tags: tags,

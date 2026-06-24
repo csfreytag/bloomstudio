@@ -21,7 +21,14 @@ To add something: tell Claude "add X to BUILD-LIST.md", then push.
 - **Price-change flag** — the sync diffs against current prices and records what changed; the app shows a "N prices changed in the last sync" banner.
 - **Market-price display** — seasonal items (no fixed price, e.g. Peony) show "market price" instead of $0.
 
+## ✅ Done (recipe builder categories)
+- Container / Hardgoods / Accent are now separate categories (sheet has separate CONTAINERS + HARDGOODS tabs; synced 1:1).
+- Recipe builder: **Hardgoods picker** (funeral base) + **Plants section** (plant gardens) added, wired into pricing/budget/recipe-view. Plant gardens are just recipes (use the Plants section + a "Garden" tag).
+- New recipes default to **None**; dropdowns and recipe lines show **retail** prices for containers/accents/hardgoods.
+
 ## 🔜 Next up
+- [ ] Minor: **Price breakdown** tab doesn't itemize hardgood/plant lines yet (the total includes them; lines just aren't listed). Low priority while cost = $0.
+- [ ] Minor: **Ordering export** totals flowers + fillers only — add plants for plant-garden ordering.
 - [x] Sheet finalized & format verified (71 flowers / 45 fillers / 111 containers / 128 plants); parser handles the header-less Plants tab. Synced to staging.
 - **Scheduled + manual price sync** — GitHub Action built (`.github/workflows/sync-pricing.yml`): daily cron + "Run workflow" button. **Activates at go-live** (GitHub only runs scheduled/dispatch workflows from the default branch `main`). Until then, run manually on a dev machine. Needs repo secret `RECIPE_SYNC_SA_KEY` (full claude-llm-access JSON).
 - [ ] **Manual sync button (optional, in-app)** — needs a Cloud Function (Blaze); the GitHub "run workflow" button covers manual once live.

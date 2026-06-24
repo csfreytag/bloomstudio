@@ -221,6 +221,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
      <span class="status-chip" onclick="toggleStatusFilter('draft')" id="sf-draft">Draft</span>
      <span class="status-chip" onclick="toggleStatusFilter('pending')" id="sf-pending">Pending</span>
      <span class="status-chip" onclick="toggleStatusFilter('discontinued')" id="sf-discontinued">Discontinued</span>
+     <span class="status-chip" onclick="toggleStatusFilter('archived')" id="sf-archived">Archived</span>
     </div>
     <div class="filter-panel" id="filterPanel">
      <div class="filter-label">Price range ($)</div>
@@ -300,7 +301,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
     <button class="tab" id="tab-costs" onclick="switchTab('costs')">Price breakdown</button>
    </div>
    <div class="action-btns" id="actionBtns" style="display:none;">
-    <button class="delete-btn" onclick="deleteRecipe()"><i class="ti ti-trash"></i> Delete</button>
+    <button class="delete-btn" onclick="deleteRecipe()"><i class="ti ti-archive"></i> Archive</button>
     <button class="save-btn" onclick="saveRecipe()"><i class="ti ti-check"></i> Save</button>
    </div>
    <div id="rolePreviewWrap" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text2);border-left:0.5px solid var(--border);padding-left:12px;margin-left:4px;">
@@ -394,6 +395,7 @@ function migrateRecipeShape(){
     if(r.webItem===undefined)r.webItem=false;
     if(!r.hardgood)r.hardgood='None';
     if(!r.plants)r.plants=[];
+    if(r.archived===undefined)r.archived=false;
   });
 }
 
@@ -408,7 +410,7 @@ function applyRole(role){
 
 function toggleStatusFilter(status){
   activeStatusFilter=status;
-  ['all','active','draft','pending','discontinued'].forEach(s=>{
+  ['all','active','draft','pending','discontinued','archived'].forEach(s=>{
     const el=document.getElementById('sf-'+s);
     if(el)el.classList.toggle('active',s===status);
   });
@@ -563,8 +565,10 @@ function filterRecipes(){
     const matchQ=!q||(r.name||'').toLowerCase().includes(q)||(r.sku||'').toLowerCase().includes(q)||flowerTxt.includes(q)||fillerTxt.includes(q);
     const matchP=fp>=mn&&fp<=mx;
     const matchT=activeTagFilters.length===0||activeTagFilters.every(t=>(r.tags||[]).includes(t));
+    const isArch=r.archived===true;
+    if(activeStatusFilter==='archived')return isArch&&matchQ&&matchP&&matchT;
     const matchS=activeStatusFilter==='all'||(r.status||'active')===activeStatusFilter;
-    return matchQ&&matchP&&matchT&&matchS;
+    return !isArch&&matchQ&&matchP&&matchT&&matchS;
   });
   el.innerHTML=filtered.map(r=>{
     const fp=finalPrice(r);const{margin}=calcCost(r);
@@ -583,14 +587,32 @@ function filterRecipes(){
 function selectRecipe(id){activeId=id;activeTab=currentRole==='designer'?'view':'recipe';setNav('recipes');filterRecipes();renderEditor();}
 function newRecipe(){
   const defaultStatus=currentRole==='designer'?'draft':'draft';
-  const r={id:nextId++,sku:'',name:'',status:defaultStatus,calcPrice:0,adjPrice:null,projection:null,container:'None',accent:'None',flowers:[{name:'None',qty:1}],fillers:[],laborPct:13,photo:null,tags:[],notes:'',sizeH:'',sizeW:'',sizeD:'',approvalNote:'',webItem:false,hardgood:'None',plants:[]};
+  const r={id:nextId++,sku:'',name:'',status:defaultStatus,calcPrice:0,adjPrice:null,projection:null,container:'None',accent:'None',flowers:[{name:'None',qty:1}],fillers:[],laborPct:13,photo:null,tags:[],notes:'',sizeH:'',sizeW:'',sizeD:'',approvalNote:'',webItem:false,hardgood:'None',plants:[],archived:false};
   recipes.push(r);activeId=r.id;activeTab='recipe';setNav('recipes');filterRecipes();renderEditor();
 }
 function deleteRecipe(){
-  if(!activeId||!confirm('Delete this recipe?'))return;
+  const r=recipes.find(x=>x.id===activeId);if(!r)return;
+  if(!confirm('Archive this recipe? It will be hidden from the list but you can restore it anytime from the Archived filter.'))return;
+  r.archived=true;
+  RecipeStore.saveRecipe(r).catch(e=>alert('Could not archive: '+(e.message||e)));
+  activeId=null;filterRecipes();resetMain();
+}
+function restoreRecipe(){
+  const r=recipes.find(x=>x.id===activeId);if(!r)return;
+  r.archived=false;
+  RecipeStore.saveRecipe(r).catch(e=>alert('Could not restore: '+(e.message||e)));
+  filterRecipes();renderEditor();
+}
+function deleteRecipePermanent(){
+  if(!activeId||!confirm('Permanently delete this recipe? This cannot be undone.'))return;
   const id=activeId;
-  recipes=recipes.filter(r=>r.id!==id);activeId=null;filterRecipes();resetMain();
+  recipes=recipes.filter(x=>x.id!==id);activeId=null;filterRecipes();resetMain();
   RecipeStore.deleteRecipe(id).catch(e=>alert('Could not delete from the cloud: '+(e.message||e)));
+}
+function archivedBanner(r){
+  if(!r.archived)return '';
+  const canPerm=(currentRole==='admin');
+  return `<div style="background:var(--amber-light);border:0.5px solid var(--amber);border-radius:var(--radius);padding:8px 12px;margin-bottom:12px;font-size:13px;color:var(--amber);display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span><i class="ti ti-archive"></i> <strong>Archived</strong> — hidden from the main list, but safe and recoverable.</span><button onclick="restoreRecipe()" style="background:var(--stem);color:white;border:none;padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;">Restore</button>${canPerm?`<button onclick="deleteRecipePermanent()" style="background:none;border:0.5px solid var(--red);color:var(--red);padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;">Delete permanently</button>`:''}</div>`;
 }
 function saveRecipe(){
   const r=recipes.find(x=>x.id===activeId);if(!r)return;
@@ -653,6 +675,7 @@ function renderRecipeTab(r){
   const adjNote=r.adjPrice&&r.adjPrice>0?`Adjusted from $${fmt(r.calcPrice)}`:'Using calculated price';
 
   document.getElementById('mainContent').innerHTML=`
+  ${archivedBanner(r)}
   ${driftBanner(r)}
   <div class="stat-row" style="position:sticky;top:0;z-index:20;background:var(--bg3);padding:8px 0;margin-bottom:6px;">
    <div class="stat-card"><div class="slabel">Running total</div><div class="sval" id="live_running" style="color:var(--blue)">$${fmt(suggestedRetail(r))}</div></div>

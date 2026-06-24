@@ -1,0 +1,51 @@
+name: Sync prices (Sheet → Firestore)
+
+# Pulls retail prices from the master Google Sheet into Firestore.
+# - Runs automatically every morning.
+# - Can be run on demand via the "Run workflow" button (Actions tab).
+#
+# Requires repo secret RECIPE_SYNC_SA_KEY = full contents of the
+# claude-llm-access service-account JSON key.
+#
+# NOTE: GitHub only runs scheduled / manual workflows from the DEFAULT branch
+# (main). This file activates once it's on main (i.e. at go-live). Until then,
+# syncs are run manually from a dev machine.
+
+on:
+  schedule:
+    - cron: '0 12 * * *'      # ~6–7am US Central, daily
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Target Firestore project'
+        required: true
+        default: 'freytags-recipes-staging'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm ci
+
+      - name: Write service-account key
+        working-directory: scripts
+        env:
+          SA_KEY: ${{ secrets.RECIPE_SYNC_SA_KEY }}
+        run: printf '%s' "$SA_KEY" > sa-key.json
+
+      - name: Run pricing sync
+        working-directory: scripts
+        run: node sync-pricing.js --write --project="${{ github.event.inputs.project || 'freytags-recipes-staging' }}" --keyfile=sa-key.json --yes
+
+      - name: Clean up key
+        if: always()
+        working-directory: scripts
+        run: rm -f sa-key.json

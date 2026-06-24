@@ -48,16 +48,17 @@ const DEFAULT_SHEET_ID = '1OEhdT3brIBNhE65GNtzzarQqPSMVN1HZVPjjjdHssYc'; // "PRI
 // empty). Tabs that don't exist are skipped silently, leaving that category as
 // the app's existing list.
 const SOURCES = [
-  { tab: 'FLOWERS',   blocks: [ { name: 0, price: 1, target: 'flowers' },    { name: 3, price: 4, target: 'flowers' } ] },
-  { tab: 'GREENS',    blocks: [ { name: 0, price: 1, target: 'fillers' },    { name: 3, price: 4, target: 'fillers' } ] },
-  { tab: 'HARDGOODS', blocks: [ { name: 0, price: 1, target: 'containers' }, { name: 3, price: 4, target: 'containers' } ] },
-  { tab: 'PLANTS',    headerRows: 0, blocks: [ { name: 0, price: 1, target: 'plants' },     { name: 3, price: 4, target: 'plants' } ] },
-  { tab: 'ACCENTS',   blocks: [ { name: 0, price: 1, target: 'accents' },    { name: 3, price: 4, target: 'accents' } ] }
+  { tab: 'FLOWERS',    blocks: [ { name: 0, price: 1, target: 'flowers' }, { name: 3, price: 4, target: 'flowers' } ] },
+  { tab: 'GREENS',     blocks: [ { name: 0, price: 1, target: 'fillers' }, { name: 3, price: 4, target: 'fillers' } ] },
+  { tab: 'CONTAINERS', blocks: [ { name: 0, price: 1, target: 'containers' } ] },
+  { tab: 'HARDGOODS',  blocks: [ { name: 0, price: 1, target: 'hardgoods' } ] },
+  { tab: 'PLANTS',     headerRows: 0, blocks: [ { name: 0, price: 1, target: 'plants' } ] },
+  { tab: 'ACCENTS',    blocks: [ { name: 0, price: 1, target: 'accents' } ] }
 ];
 
 // Categories the app keeps that the sheet never manages (left untouched on write).
-// 'hardgoods' = floral supplies; funeral pieces go to containers per the mapping.
-const UNMANAGED_KEYS = ['hardgoods'];
+// (Accents is pre-wired above but skipped until an ACCENTS tab exists.)
+const UNMANAGED_KEYS = [];
 
 const SETTINGS_DOC = 'recipeGuide';
 

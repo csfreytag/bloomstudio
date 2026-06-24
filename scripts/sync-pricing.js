@@ -51,7 +51,7 @@ const SOURCES = [
   { tab: 'FLOWERS',   blocks: [ { name: 0, price: 1, target: 'flowers' },    { name: 3, price: 4, target: 'flowers' } ] },
   { tab: 'GREENS',    blocks: [ { name: 0, price: 1, target: 'fillers' },    { name: 3, price: 4, target: 'fillers' } ] },
   { tab: 'HARDGOODS', blocks: [ { name: 0, price: 1, target: 'containers' }, { name: 3, price: 4, target: 'containers' } ] },
-  { tab: 'PLANTS',    blocks: [ { name: 0, price: 1, target: 'plants' },     { name: 3, price: 4, target: 'plants' } ] },
+  { tab: 'PLANTS',    headerRows: 0, blocks: [ { name: 0, price: 1, target: 'plants' },     { name: 3, price: 4, target: 'plants' } ] },
   { tab: 'ACCENTS',   blocks: [ { name: 0, price: 1, target: 'accents' },    { name: 3, price: 4, target: 'accents' } ] }
 ];
 
@@ -168,9 +168,10 @@ async function readSheet() {
       continue;
     }
     const header = rows[0] || [];
+    const headerRows = src.headerRows === undefined ? 1 : src.headerRows;
     for (const block of src.blocks) {
       const items = [];
-      for (let i = 1; i < rows.length; i++) {
+      for (let i = headerRows; i < rows.length; i++) {
         const r = rows[i] || [];
         const name = (r[block.name] || '').trim();
         if (!name) continue;                   // skip blank cells

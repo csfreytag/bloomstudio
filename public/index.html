@@ -682,7 +682,7 @@ function renderRecipeTab(r){
      <div style="margin-top:10px;">
       <div class="field" style="max-width:160px;"><label>Set price / build-to target ($)</label><input id="f_calcprice" type="number" value="${r.calcPrice||''}" min="0" step="0.01" oninput="refreshFinalPrice()"/></div>
      </div>
-     <div style="margin-top:10px;padding:8px 10px;background:var(--bg2);border-radius:var(--radius);font-size:13px;"><i class="ti ti-target" style="color:var(--green);"></i> <span id="buildToText"></span></div>
+     <div style="margin-top:10px;padding:8px 10px;background:var(--bg2);border-radius:var(--radius);font-size:13px;"><i class="ti ti-target" style="color:var(--green);"></i> <span id="buildToText">${buildToHtml(r)}</span></div>
     </div>
     <div class="section">
      <h3>Container</h3>
@@ -911,6 +911,16 @@ function refreshStatCards(){
   if(lc)lc.textContent='$'+fmt(total);
   if(lm){lm.textContent=margin.toFixed(1)+'%';lm.style.color=mColor(margin);}
   refreshBudget();
+}
+// Build-to-price text from saved recipe data (used for the initial render).
+function buildToHtml(r){
+  const target=finalPrice(r),laborPct=r.laborPct||0;
+  if(!target) return '<span style="color:var(--text3);font-style:italic;">Set a price above to track your ingredient budget as you build.</span>';
+  const ing=gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)
+    +(r.flowers||[]).reduce((s,f)=>s+f.qty*gpPrice(FLOWERS,f.name,4),0)
+    +(r.fillers||[]).reduce((s,f)=>s+f.qty*gpPrice(FILLERS,f.name,4),0);
+  const budget=target*(1-laborPct/100),remaining=budget-ing,over=remaining<0;
+  return `Toward <strong>$${fmt(target)}</strong> · ingredients <strong>$${fmt(ing)}</strong> of $${fmt(budget)} · <span style="color:${over?'var(--red)':'var(--stem)'};font-weight:600;">${over?'$'+fmt(-remaining)+' over':'$'+fmt(remaining)+' left'}</span> <span style="color:var(--text3);">(after ${laborPct}% labor)</span>`;
 }
 // Live "build to a price" tracker — ingredient retail used vs the target price.
 function refreshBudget(){

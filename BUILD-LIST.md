@@ -43,11 +43,18 @@ To add something: tell Claude "add X to BUILD-LIST.md", then push.
 - [ ] **Cost feed from Purchasing** — invoice history (highest vendor cost) populates ingredient cost, so margins become real (currently cost = $0, margins show ~100%).
 - [ ] Move pricing into the proper shared `products`/`pricing` collections (currently in `settings/recipeGuide`) once the Purchasing cost feed exists.
 
-## 🚀 Go-live (production — do deliberately, later)
-- [ ] Enable Google + Email/Password on the production project (`freytags-purchasing`).
-- [ ] Trust the **production** OAuth client in Google Workspace (like we did for staging) so regular users (not just admins) can sign in.
-- [ ] Deploy **merged** Firestore/Storage rules to production (merge with the Purchasing app's rules — shared project, don't clobber).
-- [ ] Merge `staging` → `main` (GitHub Action deploys hosting to freytags-recipes.web.app).
+## 🚀 Go-live — DONE 2026-06-24 (live at https://freytags-recipes.web.app)
+- [x] Google + Email/Password enabled on production (`freytags-purchasing`).
+- [x] Production OAuth client trusted in Google Workspace.
+- [x] App deployed to prod hosting (`firebase deploy --only hosting:freytags-recipes`).
+- [x] Prices synced to prod (`settings/recipeGuide`) via the analytics SA.
+- [x] Chad provisioned admin via `grant-recipe-access.js` (claims + users doc); recipe-write verified under prod rules; test recipe cleaned up.
+- [x] Merged `staging` → `main`; CI fixed to target the `freytags-recipes` site and to sync the **prod** project by default.
+- **Did NOT deploy rules to prod** — prod already has a shared Recipe+Purchasing ruleset using custom claims; the repo `firestore.rules` is the staging (users-doc) model. See memory `production-go-live`.
+
+## 🚀 Post-go-live
+- [ ] **Provision the rest of the team** — each signs in once at the live site, then `grant-recipe-access.js --email=… --role=… --project=freytags-purchasing --keyfile=C:\Keys\freytags-service-account.json`.
+- [ ] **Enable PITR + scheduled backups** on prod Firestore (Blaze) for recovery, on top of the in-app archive (soft-delete).
 
 ## ✍️ Chad's to-dos (outside the app)
 - [ ] Finish filling retail prices in the "PRICE SHEETS" Google Sheet (team).

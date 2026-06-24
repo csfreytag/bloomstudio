@@ -41,12 +41,12 @@
   // project's own web config (Firebase console -> Project settings -> Your
   // apps -> SDK setup). Until this is filled in, staging/localhost will warn.
   var STAGING_CONFIG = {
-    apiKey: 'STAGING_API_KEY',
+    apiKey: 'AIzaSyAXAh2UZXo-CVn5yvNsMqjagE90jnr1URE',
     authDomain: 'freytags-recipes-staging.firebaseapp.com',
     projectId: 'freytags-recipes-staging',
     storageBucket: 'freytags-recipes-staging.firebasestorage.app',
-    messagingSenderId: 'STAGING_SENDER_ID',
-    appId: 'STAGING_APP_ID'
+    messagingSenderId: '191400526806',
+    appId: '1:191400526806:web:0dda9774e712873e871a77'
   };
 
   function pickConfig() {

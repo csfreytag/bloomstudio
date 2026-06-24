@@ -325,6 +325,31 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 function defR(l){return l.map(x=>({n:x.n,p:x.p,r:x.r!==undefined?x.r:null}));}
 function getMult(t){return(t==='flowers'||t==='fillers')?4:3.5;}
 function gpCost(list,name){const f=list.find(x=>x.n.trim()===name.trim());return f?f.p:0;}
+function gpPrice(list,name,mult){const f=list.find(x=>x.n.trim()===name.trim());if(!f)return 0;return(f.r!==null&&f.r!==undefined&&f.r>0)?f.r:(f.p||0)*(mult||1);}
+// What this recipe would retail at against CURRENT ingredient prices (retail + labor).
+function suggestedRetail(r){
+  const ing=gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)
+    +(r.flowers||[]).reduce((s,f)=>s+f.qty*gpPrice(FLOWERS,f.name,4),0)
+    +(r.fillers||[]).reduce((s,f)=>s+f.qty*gpPrice(FILLERS,f.name,4),0);
+  const pct=r.laborPct||0;
+  return pct<100?ing/(1-pct/100):ing;
+}
+// Drift between a recipe's fixed selling price and current ingredient-based price.
+function driftInfo(r){
+  const fixed=finalPrice(r),sugg=suggestedRetail(r);
+  const diff=sugg-fixed,pct=fixed>0?diff/fixed*100:0;
+  return {fixed,sugg,diff,pct,changed:Math.abs(diff)>=0.01,big:Math.abs(pct)>=10};
+}
+function driftBanner(r){
+  if(!r.webItem)return '';
+  const d=driftInfo(r);
+  if(!d.changed)return `<div style="background:var(--stem-light);border:0.5px solid var(--stem);border-radius:var(--radius);padding:8px 12px;margin-bottom:12px;font-size:13px;color:var(--stem);"><i class="ti ti-world"></i> <strong>Web item — fixed price.</strong> Locked at $${fmt(d.fixed)}; current ingredient prices still match.</div>`;
+  const col=d.big?'var(--red)':'var(--amber)',bg=d.big?'var(--red-light)':'var(--amber-light)';
+  return `<div style="background:${bg};border:0.5px solid ${col};border-radius:var(--radius);padding:8px 12px;margin-bottom:12px;font-size:13px;color:${col};">`
+    +`<i class="ti ti-world"></i> <strong>Web item — fixed price.</strong> Locked at $${fmt(d.fixed)} · current ingredients suggest ~$${fmt(d.sugg)} (${d.diff>0?'+':''}${d.pct.toFixed(0)}%).`
+    +(d.big?` <strong>Off by 10%+ — worth re-pricing.</strong>`:` Prices have shifted since you set this.`)
+    +`</div>`;
+}
 function getList(t){return t==='flowers'?FLOWERS:t==='fillers'?FILLERS:t==='containers'?CONTAINERS:t==='hardgoods'?HARDGOODS:t==='plants'?PLANTS:ACCENTS;}
 function fmt(n){return parseFloat(n).toFixed(2);}
 
@@ -361,6 +386,7 @@ function migrateRecipeShape(){
   recipes.forEach(r=>{
     if(!r.status)r.status='active';
     if(!r.approvalNote)r.approvalNote='';
+    if(r.webItem===undefined)r.webItem=false;
   });
 }
 
@@ -536,8 +562,9 @@ function filterRecipes(){
     const fp=finalPrice(r);const{margin}=calcCost(r);
     const tagHtml=(r.tags||[]).map(t=>`<span class="tag-chip">${t}</span>`).join('');
     const st=r.status||'active';
+    const dWeb=r.webItem?driftInfo(r):null;
     return`<div class="recipe-item${r.id===activeId?' active':''}" onclick="selectRecipe(${r.id})">
-      <div class="sku">${r.sku||'—'} ${statusBadge(st)}</div>
+      <div class="sku">${r.sku||'—'} ${statusBadge(st)}${r.webItem?`<span class="status-badge" style="background:${dWeb.big?'var(--red-light)':dWeb.changed?'var(--amber-light)':'var(--blue-light)'};color:${dWeb.big?'var(--red)':dWeb.changed?'var(--amber)':'var(--blue)'};">Web${dWeb.changed?' ⚠':''}</span>`:''}</div>
       <div class="rname">${r.name||'Untitled'}</div>
       <div class="rprice">$${fmt(fp)} <span class="margin-pill ${mc(margin)}">${margin.toFixed(0)}%</span></div>
       ${tagHtml?`<div class="rtags">${tagHtml}</div>`:''}
@@ -548,7 +575,7 @@ function filterRecipes(){
 function selectRecipe(id){activeId=id;activeTab=currentRole==='designer'?'view':'recipe';setNav('recipes');filterRecipes();renderEditor();}
 function newRecipe(){
   const defaultStatus=currentRole==='designer'?'draft':'draft';
-  const r={id:nextId++,sku:'',name:'',status:defaultStatus,calcPrice:0,adjPrice:null,projection:null,container:'None',accent:'None',flowers:[{name:'None',qty:1}],fillers:[],laborPct:13,photo:null,tags:[],notes:'',sizeH:'',sizeW:'',sizeD:'',approvalNote:''};
+  const r={id:nextId++,sku:'',name:'',status:defaultStatus,calcPrice:0,adjPrice:null,projection:null,container:'None',accent:'None',flowers:[{name:'None',qty:1}],fillers:[],laborPct:13,photo:null,tags:[],notes:'',sizeH:'',sizeW:'',sizeD:'',approvalNote:'',webItem:false};
   recipes.push(r);activeId=r.id;activeTab='recipe';setNav('recipes');filterRecipes();renderEditor();
 }
 function deleteRecipe(){
@@ -572,6 +599,7 @@ function saveRecipe(){
   r.notes=document.getElementById('f_notes').value;
   r.status=document.getElementById('f_status')?.value||r.status||'draft';
   r.approvalNote=document.getElementById('f_approvalNote')?.value||'';
+  r.webItem=document.getElementById('f_webitem')?.checked||false;
   r.sizeH=document.getElementById('f_sizeh').value;
   r.sizeW=document.getElementById('f_sizew').value;
   r.sizeD=document.getElementById('f_sized').value;
@@ -612,6 +640,7 @@ function renderRecipeTab(r){
   const adjNote=r.adjPrice&&r.adjPrice>0?`Adjusted from $${fmt(r.calcPrice)}`:'Using calculated price';
 
   document.getElementById('mainContent').innerHTML=`
+  ${driftBanner(r)}
   <div class="stat-row">
    <div class="stat-card"><div class="slabel">Final retail</div><div class="sval" id="live_retail" style="color:var(--green-dark)">$${fmt(fp)}</div></div>
    <div class="stat-card"><div class="slabel">Total cost</div><div class="sval" id="live_cost">$${fmt(c.total)}</div></div>
@@ -714,6 +743,10 @@ function renderRecipeTab(r){
        <label>Note to reviewer <span style="font-style:italic;color:var(--text3)">(optional)</span></label>
        <input id="f_approvalNote" type="text" value="${r.approvalNote||''}" placeholder="Any notes for the approver…"/>
       </div>
+     </div>
+     <div style="margin-top:10px;display:flex;align-items:flex-start;gap:8px;">
+      <input type="checkbox" id="f_webitem" ${r.webItem?'checked':''} style="margin-top:3px;"/>
+      <label for="f_webitem" style="font-size:13px;cursor:pointer;color:var(--text2);"><strong>Web item — fixed price.</strong> Hold this selling price even when ingredient prices change; we'll flag drift at the top of this recipe. (Applies on Save.)</label>
      </div>
      ${currentRole==='manager'||currentRole==='admin'?`
      <div style="display:flex;gap:8px;margin-top:8px;">
@@ -1261,7 +1294,7 @@ function renderCalculator(){
     <input type="number" id="calcTarget" min="0" step="0.01" placeholder="e.g. 85.00" oninput="updateCalc()" style="width:100%;margin-top:4px;font-size:16px;"/>
    </div>
    <div class="price-box final" id="calcResultBox">
-    <div class="pb-label" id="calcResultLabel">Total cost</div>
+    <div class="pb-label" id="calcResultLabel">Arrangement price</div>
     <div id="calcResult" style="font-size:36px;font-weight:600;color:var(--green-dark);margin-top:4px;">$0.00</div>
     <div class="pb-note" id="calcResultNote">Add ingredients below</div>
    </div>
@@ -1278,7 +1311,7 @@ function renderCalculator(){
     <div class="section">
      <h3>Flowers</h3>
      <table class="ing-table">
-      <thead><tr><th style="width:55%">Flower</th><th>Stems</th><th>Cost</th><th></th></tr></thead>
+      <thead><tr><th style="width:55%">Flower</th><th>Stems</th><th>Price</th><th></th></tr></thead>
       <tbody id="calcFlowerRows">
        <tr class="calc-flower-row"><td><select class="f-sel" onchange="updateCalc()">${mkOpts(FLOWERS,'None')}</select></td><td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateCalc()"/></td><td class="f-cost" style="color:var(--text2)">$0.00</td><td><button class="del-btn" onclick="removeCalcRow(this,'calcFlowerRows');updateCalc()"><i class="ti ti-x"></i></button></td></tr>
       </tbody>
@@ -1288,7 +1321,7 @@ function renderCalculator(){
     <div class="section">
      <h3>Greenery &amp; filler</h3>
      <table class="ing-table">
-      <thead><tr><th style="width:55%">Filler</th><th>Qty</th><th>Cost</th><th></th></tr></thead>
+      <thead><tr><th style="width:55%">Filler</th><th>Qty</th><th>Price</th><th></th></tr></thead>
       <tbody id="calcFillerRows"></tbody>
      </table>
      <button class="add-row-btn" onclick="addCalcRow('calcFillerRows','filler')"><i class="ti ti-plus"></i> Add filler</button>
@@ -1296,7 +1329,7 @@ function renderCalculator(){
     <div class="section">
      <h3>Plants</h3>
      <table class="ing-table">
-      <thead><tr><th style="width:55%">Plant</th><th>Qty</th><th>Cost</th><th></th></tr></thead>
+      <thead><tr><th style="width:55%">Plant</th><th>Qty</th><th>Price</th><th></th></tr></thead>
       <tbody id="calcPlantRows"></tbody>
      </table>
      <button class="add-row-btn" onclick="addCalcRow('calcPlantRows','plant')"><i class="ti ti-plus"></i> Add plant</button>
@@ -1314,14 +1347,14 @@ function renderCalculator(){
    </div>
    <div>
     <div class="section">
-     <h3>Cost summary</h3>
+     <h3>Price summary</h3>
      <div style="font-size:13px;">
       <div class="cb-row"><span>Container</span><span id="cs_container">$0.00</span></div>
       <div class="cb-row"><span>Flowers</span><span id="cs_flowers">$0.00</span></div>
       <div class="cb-row"><span>Greenery &amp; filler</span><span id="cs_fillers">$0.00</span></div>
       <div class="cb-row"><span>Plants</span><span id="cs_plants">$0.00</span></div>
       <div class="cb-row"><span>Labor</span><span id="cs_labor">$0.00</span></div>
-      <div class="cb-row total"><span>Total cost</span><span id="cs_total">$0.00</span></div>
+      <div class="cb-row total"><span>Total price</span><span id="cs_total">$0.00</span></div>
      </div>
     </div>
     <div class="section" id="calcBudgetBox" style="display:none;">
@@ -1361,30 +1394,29 @@ function removeCalcRow(btn,tbodyId){btn.closest('tr').remove();}
 
 function updateCalc(){
   if(!document.getElementById('calc_container'))return;
-  const vp=gpCost(CONTAINERS,document.getElementById('calc_container').value);
-  const ap=gpCost(ACCENTS,document.getElementById('calc_accent').value);
+  const vp=gpPrice(CONTAINERS,document.getElementById('calc_container').value,3.5);
+  const ap=gpPrice(ACCENTS,document.getElementById('calc_accent').value,3.5);
   let fc=0;
   document.querySelectorAll('#calcFlowerRows tr').forEach(row=>{
     const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
-    const c=q*gpCost(FLOWERS,n||'None');fc+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
+    const c=q*gpPrice(FLOWERS,n||'None',4);fc+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
   });
   let fil=0;
   document.querySelectorAll('#calcFillerRows tr').forEach(row=>{
     const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
-    const c=q*gpCost(FILLERS,n||'None');fil+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
+    const c=q*gpPrice(FILLERS,n||'None',4);fil+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
   });
   let pl=0;
   document.querySelectorAll('#calcPlantRows tr').forEach(row=>{
     const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
-    const c=q*gpCost(PLANTS,n||'None');pl+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
+    const c=q*gpPrice(PLANTS,n||'None',3.5);pl+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
   });
   const laborPct=parseFloat(document.getElementById('calc_labor')?.value)||0;
   const stemTotal=vp+ap+fc+fil+pl;
   const target=parseFloat(document.getElementById('calcTarget')?.value)||0;
-  const laborBase=calcMode==='down'&&target>0?target:stemTotal/(1-laborPct/100)||stemTotal;
-  const labor=(calcMode==='down'&&target>0?target:laborBase)*laborPct/100;
-  const total=stemTotal+labor;
-  const suggestedRetail=total/(1-(laborPct/100)||1)*1;
+  let labor,total;
+  if(calcMode==='down'&&target>0){labor=target*laborPct/100;total=stemTotal+labor;}
+  else{total=laborPct<100?stemTotal/(1-laborPct/100):stemTotal;labor=total-stemTotal;}
 
   if(document.getElementById('cs_container'))document.getElementById('cs_container').textContent='$'+fmt(vp+ap);
   if(document.getElementById('cs_flowers'))document.getElementById('cs_flowers').textContent='$'+fmt(fc);
@@ -1395,10 +1427,10 @@ function updateCalc(){
   if(document.getElementById('calc_labor_dollar'))document.getElementById('calc_labor_dollar').textContent='= $'+fmt(labor);
 
   if(calcMode==='up'){
-    const retail=total>0?total*(100/(100-laborPct)):0;
     if(document.getElementById('calcResult'))document.getElementById('calcResult').textContent='$'+fmt(total);
-    if(document.getElementById('calcResultLabel'))document.getElementById('calcResultLabel').textContent='Total cost';
-    if(document.getElementById('calcResultNote'))document.getElementById('calcResultNote').textContent=total>0?`Suggested retail: ~$${fmt(retail)}`:'Add ingredients below';
+    if(document.getElementById('calcResultLabel'))document.getElementById('calcResultLabel').textContent='Arrangement price';
+    if(document.getElementById('calcResultNote'))document.getElementById('calcResultNote').textContent=stemTotal>0?`Ingredients $${fmt(stemTotal)} + ${laborPct}% labor`:'Add ingredients below';
+    const el=document.getElementById('calcResult');if(el)el.style.color='var(--green-dark)';
   } else {
     if(target>0){
       const maxIngredients=target*(1-laborPct/100);

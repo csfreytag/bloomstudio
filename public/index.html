@@ -654,11 +654,11 @@ function renderRecipeTab(r){
 
   document.getElementById('mainContent').innerHTML=`
   ${driftBanner(r)}
-  <div class="stat-row">
+  <div class="stat-row" style="position:sticky;top:0;z-index:20;background:var(--bg3);padding:8px 0;margin-bottom:6px;">
+   <div class="stat-card"><div class="slabel">Running total</div><div class="sval" id="live_running" style="color:var(--blue)">$${fmt(suggestedRetail(r))}</div></div>
    <div class="stat-card"><div class="slabel">Final retail</div><div class="sval" id="live_retail" style="color:var(--green-dark)">$${fmt(fp)}</div></div>
    <div class="stat-card"><div class="slabel">Total cost</div><div class="sval" id="live_cost">$${fmt(c.total)}</div></div>
    <div class="stat-card"><div class="slabel">Gross margin</div><div class="sval" id="live_margin" style="color:${mColor(c.margin)}">${c.margin.toFixed(1)}%</div></div>
-   <div class="stat-card"><div class="slabel">Projection</div><div class="sval">${r.projection||'—'}</div></div>
   </div>
   <div class="two-col">
    <div>
@@ -949,26 +949,29 @@ function refreshStatCards(){
 // Build-to-price text from saved recipe data (used for the initial render).
 function buildToHtml(r){
   const target=finalPrice(r),laborPct=r.laborPct||0;
-  if(!target) return '<span style="color:var(--text3);font-style:italic;">Set a price above to track your ingredient budget as you build.</span>';
   const ing=gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)+gpPrice(HARDGOODS,r.hardgood||'None',3.5)
     +(r.flowers||[]).reduce((s,f)=>s+f.qty*gpPrice(FLOWERS,f.name,4),0)
     +(r.fillers||[]).reduce((s,f)=>s+f.qty*gpPrice(FILLERS,f.name,4),0)
     +(r.plants||[]).reduce((s,f)=>s+f.qty*gpPrice(PLANTS,f.name,3.5),0);
+  const running=laborPct<100?ing/(1-laborPct/100):ing;
+  if(!target) return `Counting up · ingredients <strong>$${fmt(ing)}</strong> · ~<strong>$${fmt(running)}</strong> with ${laborPct}% labor. Set a price above to count down to a target.`;
   const budget=target*(1-laborPct/100),remaining=budget-ing,over=remaining<0;
   return `Toward <strong>$${fmt(target)}</strong> · ingredients <strong>$${fmt(ing)}</strong> of $${fmt(budget)} · <span style="color:${over?'var(--red)':'var(--stem)'};font-weight:600;">${over?'$'+fmt(-remaining)+' over':'$'+fmt(remaining)+' left'}</span> <span style="color:var(--text3);">(after ${laborPct}% labor)</span>`;
 }
 // Live "build to a price" tracker — ingredient retail used vs the target price.
 function refreshBudget(){
-  const el=document.getElementById('buildToText'); if(!el) return;
   const calc=parseFloat(document.getElementById('f_calcprice')?.value)||0;
   const adj=parseFloat(document.getElementById('f_adjprice')?.value)||0;
   const target=adj>0?adj:calc;
   const laborPct=parseFloat(document.getElementById('f_laborpct')?.value)||0;
-  if(!target){el.innerHTML='<span style="color:var(--text3);font-style:italic;">Set a price above to track your ingredient budget as you build.</span>';return;}
   let ing=gpPrice(CONTAINERS,document.getElementById('f_container')?.value||'None',3.5)+gpPrice(ACCENTS,document.getElementById('f_accent')?.value||'None',3.5)+gpPrice(HARDGOODS,document.getElementById('f_hardgood')?.value||'None',3.5);
   document.querySelectorAll('#flowerRows tr').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FLOWERS,n||'None',4);});
   document.querySelectorAll('#fillerRows tr').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FILLERS,n||'None',4);});
   document.querySelectorAll('#plantRows tr').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(PLANTS,n||'None',3.5);});
+  const running=laborPct<100?ing/(1-laborPct/100):ing;
+  const lrun=document.getElementById('live_running'); if(lrun)lrun.textContent='$'+fmt(running);
+  const el=document.getElementById('buildToText'); if(!el) return;
+  if(!target){el.innerHTML=`Counting up · ingredients <strong>$${fmt(ing)}</strong> · ~<strong>$${fmt(running)}</strong> with ${laborPct}% labor. Set a price above to count down to a target.`;return;}
   const budget=target*(1-laborPct/100),remaining=budget-ing,over=remaining<0;
   el.innerHTML=`Toward <strong>$${fmt(target)}</strong> · ingredients <strong>$${fmt(ing)}</strong> of $${fmt(budget)} · <span style="color:${over?'var(--red)':'var(--stem)'};font-weight:600;">${over?'$'+fmt(-remaining)+' over':'$'+fmt(remaining)+' left'}</span> <span style="color:var(--text3);">(after ${laborPct}% labor)</span>`;
 }

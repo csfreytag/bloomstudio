@@ -22,9 +22,9 @@ To add something: tell Claude "add X to BUILD-LIST.md", then push.
 - **Market-price display** — seasonal items (no fixed price, e.g. Peony) show "market price" instead of $0.
 
 ## 🔜 Next up
-- [ ] **When the team finishes the price sheet:** re-run `sync-pricing.js --describe` to confirm the final layout, verify the parser maps every tab/block, dry-run to eyeball the parsed prices, fix any drift (esp. HARDGOODS header leak) — THEN decide on the scheduled sync below. (Sheet stays retail-only; cost comes from Purchasing later.)
-- [ ] **Scheduled price sync** — GitHub Action runs the sync automatically (needs the service-account key added as a repo secret). Manual `workflow_dispatch` trigger too.
-- [ ] **Manual sync button (optional, in-app)** — needs a Cloud Function (Blaze); for now the GitHub "run workflow" button covers manual.
+- [x] Sheet finalized & format verified (71 flowers / 45 fillers / 111 containers / 128 plants); parser handles the header-less Plants tab. Synced to staging.
+- **Scheduled + manual price sync** — GitHub Action built (`.github/workflows/sync-pricing.yml`): daily cron + "Run workflow" button. **Activates at go-live** (GitHub only runs scheduled/dispatch workflows from the default branch `main`). Until then, run manually on a dev machine. Needs repo secret `RECIPE_SYNC_SA_KEY` (full claude-llm-access JSON).
+- [ ] **Manual sync button (optional, in-app)** — needs a Cloud Function (Blaze); the GitHub "run workflow" button covers manual once live.
 - [ ] Polish: brief login-screen flash on page load for already-signed-in users.
 - [ ] Look at the sheet's **HARDGOODS** tab — the last sync flagged a "Funeral" row with no price + renamed containers, which looks like a row got shifted so the column header leaked in as an item.
 

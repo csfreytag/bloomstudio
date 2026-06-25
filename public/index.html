@@ -189,6 +189,37 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── Phone / tablet (stacked, page scrolls instead of the desktop panes) ── */
+@media (max-width: 900px) {
+  body { height: auto; overflow-y: auto; -webkit-text-size-adjust: 100%; }
+  .app { flex-direction: column; height: auto; }
+
+  /* Sidebar becomes a full-width stacked section */
+  .sidebar { width: 100%; min-width: 0; border-right: none; border-bottom: 0.5px solid var(--border); }
+  /* Inner nav panels use inline flex:1;overflow:hidden for the desktop
+     fixed-height layout — relax that so they size to content on mobile. */
+  .sidebar [id^="sidebar-"] { overflow: visible !important; flex: none !important; }
+  .recipe-list { flex: none; max-height: 45vh; }   /* keep the list from pushing content far down */
+  .nav-tabs { flex-wrap: wrap; }
+
+  /* Main + content take natural height; the page itself scrolls */
+  .main { overflow: visible; min-height: 0; }
+  .content { overflow: visible; padding: 12px; }
+
+  /* Top bar wraps so nothing is clipped */
+  .top-bar { flex-wrap: wrap; padding: 8px 12px; gap: 8px; }
+  .top-bar h2 { flex: 1 1 100%; white-space: normal; }
+  #rolePreviewWrap, #userBox { border-left: none; padding-left: 0; margin-left: 0; }
+
+  /* Collapse the multi-column grids */
+  .two-col { grid-template-columns: 1fr; }
+  .field-row, .field-row-3, .pricing-grid { grid-template-columns: 1fr; }
+  .stat-row { grid-template-columns: 1fr 1fr; }
+
+  /* 16px inputs stop iOS from auto-zooming on focus */
+  input, select, textarea { font-size: 16px; }
+}
 </style>
 </head>
 <body>

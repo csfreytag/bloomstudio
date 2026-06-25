@@ -407,6 +407,7 @@ function applyRole(role){
   document.getElementById('nt-prices').style.display=isDesigner?'none':'';
   document.getElementById('nt-order').style.display=isDesigner?'none':'';
   document.getElementById('nt-reports').style.display=isDesigner?'none':'';
+  document.getElementById('nt-tags').style.display=isDesigner?'none':'';
   document.getElementById('nt-users').style.display=(role==='admin')?'':'none';
   if(activeId)renderEditor();
 }
@@ -440,13 +441,15 @@ function renderEditor(){
   document.getElementById('tabBar').style.display='flex';
   const isDesigner=currentRole==='designer';
   const isAdminOrManager=(currentRole==='admin'||currentRole==='manager');
-  // Show/hide tabs based on role
-  document.getElementById('tab-recipe').style.display=isDesigner?'none':'';
+  // Designers may build/edit recipes that aren't approved yet; an approved
+  // (active) recipe is view-only for them — only managers/admins edit those.
+  const canEdit=isAdminOrManager||(isDesigner&&r.status!=='active');
+  document.getElementById('tab-recipe').style.display=canEdit?'':'none';
   document.getElementById('tab-costs').style.display=isAdminOrManager?'':'none';
-  // Designers default to view tab, others default to recipe edit
-  if(isDesigner&&activeTab==='recipe'){activeTab='view';}
-  if(!isDesigner&&activeTab==='view'&&currentRole!=='designer'){/* keep */}
-  document.getElementById('actionBtns').style.display=isDesigner?'none':'flex';
+  // If you can't edit this recipe, fall back to the read-only view.
+  if(!canEdit&&activeTab==='recipe')activeTab='view';
+  if(isDesigner&&activeTab==='costs')activeTab='view';
+  document.getElementById('actionBtns').style.display=canEdit?'flex':'none';
   // Update active tab highlight
   ['recipe','view','costs'].forEach(t=>{
     const el=document.getElementById('tab-'+t);
@@ -718,13 +721,19 @@ function saveRecipe(){
   r.hardgood=document.getElementById('f_hardgood')?.value||'None';
   r.laborPct=parseFloat(document.getElementById('f_laborpct').value)||0;
   r.notes=document.getElementById('f_notes').value;
-  r.status=document.getElementById('f_status')?.value||r.status||'draft';
-  r.approvalNote=document.getElementById('f_approvalNote')?.value||'';
-  r.webItem=document.getElementById('f_webitem')?.checked||false;
+  if(currentRole==='designer'){
+    // Designers can't set status or publish — their work is held for review.
+    r.status='pending';
+  }else{
+    r.status=document.getElementById('f_status')?.value||r.status||'draft';
+    r.approvalNote=document.getElementById('f_approvalNote')?.value||'';
+    r.webItem=document.getElementById('f_webitem')?.checked||false;
+  }
   r.sizeH=document.getElementById('f_sizeh').value;
   r.sizeW=document.getElementById('f_sizew').value;
   r.sizeD=document.getElementById('f_sized').value;
-  r.tags=[];document.querySelectorAll('.recipe-tag-chip.selected').forEach(el=>r.tags.push(el.dataset.tag));
+  // Designers don't manage tags (the section is hidden) — keep existing tags.
+  if(currentRole!=='designer'){r.tags=[];document.querySelectorAll('.recipe-tag-chip.selected').forEach(el=>r.tags.push(el.dataset.tag));}
   r.flowers=[];document.querySelectorAll('.flower-row').forEach(row=>{
     const sel=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
     if(sel!=='None'&&qty>0)r.flowers.push({name:sel,qty});
@@ -754,6 +763,7 @@ function mkOpts(list,sel){return list.map(f=>{const pr=(f.r!=null&&f.r>0)?f.r:(f
 
 function renderRecipeTab(r){
   const c=calcCost(r),fp=finalPrice(r);
+  const isDesigner=currentRole==='designer';
   const flowers=r.flowers.length?r.flowers:[{name:'None',qty:1}];
   const photoHtml=r.photo
     ?`<div class="photo-area"><img src="${r.photo}" alt="Arrangement photo" onclick="openLightbox('${r.photo.replace(/'/g,"\\'")}')"/><input type="file" accept="image/*" onchange="handlePhoto(event)" title="Change"/></div><button class="photo-remove" onclick="removePhoto()"><i class="ti ti-x"></i> Remove</button>`
@@ -770,8 +780,8 @@ function renderRecipeTab(r){
   <div class="stat-row" style="position:sticky;top:0;z-index:20;background:var(--bg3);padding:8px 0;margin-bottom:6px;">
    <div class="stat-card"><div class="slabel">Running total</div><div class="sval" id="live_running" style="color:var(--blue)">$${fmt(suggestedRetail(r))}</div></div>
    <div class="stat-card"><div class="slabel">Final retail</div><div class="sval" id="live_retail" style="color:var(--green-dark)">$${fmt(fp)}</div></div>
-   <div class="stat-card"><div class="slabel">Total cost</div><div class="sval" id="live_cost">$${fmt(c.total)}</div></div>
-   <div class="stat-card"><div class="slabel">Gross margin</div><div class="sval" id="live_margin" style="color:${mColor(c.margin)}">${c.margin.toFixed(1)}%</div></div>
+   ${!isDesigner?`<div class="stat-card"><div class="slabel">Total cost</div><div class="sval" id="live_cost">$${fmt(c.total)}</div></div>
+   <div class="stat-card"><div class="slabel">Gross margin</div><div class="sval" id="live_margin" style="color:${mColor(c.margin)}">${c.margin.toFixed(1)}%</div></div>`:''}
   </div>
   <div class="two-col">
    <div>
@@ -855,15 +865,19 @@ function renderRecipeTab(r){
      </div>
      <div class="size-display" id="size_display">${sz||'No size entered'}</div>
     </div>
-    <div class="section">
+    ${!isDesigner?`<div class="section">
      <h3>Tags</h3>
      <div class="tags-select">${tagsHtml}</div>
-    </div>
+    </div>`:''}
     <div class="section">
      <h3>Notes</h3>
+     ${isDesigner?`<p style="font-size:12px;color:var(--text2);margin-bottom:6px;font-style:italic;">Suggest tags or anything the reviewer should know here — a manager adds tags on approval.</p>`:''}
      <textarea id="f_notes" placeholder="Sourcing tips, design intent, substitution ideas, customer feedback…">${r.notes||''}</textarea>
     </div>
-    <div class="section">
+    ${isDesigner?`<div class="section">
+     <h3>Status</h3>
+     <div style="padding:8px 12px;background:var(--blue-light,#eef4fb);border:0.5px solid var(--blue,#3b6ea5);border-radius:var(--radius);font-size:13px;color:var(--blue,#3b6ea5);"><i class="ti ti-clock"></i> When you save, this is held as <strong>Pending review</strong> for a manager or admin to approve. You can keep editing it until it's approved.</div>
+    </div>`:`<div class="section">
      <h3>Status</h3>
      <div class="field-row">
       <div class="field">
@@ -890,7 +904,7 @@ function renderRecipeTab(r){
       <button onclick="sendBackRecipe()" style="background:none;border:0.5px solid var(--border2);padding:6px 14px;border-radius:var(--radius);font-size:12px;cursor:pointer;color:var(--amber);">Send back → Draft</button>
       <button onclick="discontinueRecipe()" style="background:none;border:0.5px solid var(--border2);padding:6px 14px;border-radius:var(--radius);font-size:12px;cursor:pointer;color:var(--text3);">Discontinue</button>
      </div>`:''}
-    </div>
+    </div>`}
    </div>
    <div>
     <div class="photo-box"><h3>Photo</h3>${photoHtml}</div>

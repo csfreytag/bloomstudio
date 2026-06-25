@@ -48,10 +48,17 @@ service cloud.firestore {
     }
 
     // ---- recipes -------------------------------------------------
-    // All Recipe Guide users can read; only staff can write.
+    // All Recipe Guide users can read. Staff (manager/admin) have full write.
+    // Designers may create/edit recipes that are NOT active — they build the
+    // arrangement, it's held for review, and they can keep editing until it's
+    // approved. They can never publish (set active) or edit an approved recipe.
     match /recipes/{recipeId} {
-      allow read:  if isRecipeUser();
-      allow write: if isStaff();
+      allow read:   if isRecipeUser();
+      allow write:  if isStaff();
+      allow create: if isRecipeUser() && request.resource.data.status != 'active';
+      allow update: if isRecipeUser()
+                    && resource.data.status != 'active'
+                    && request.resource.data.status != 'active';
     }
 
     // ---- tags ----------------------------------------------------

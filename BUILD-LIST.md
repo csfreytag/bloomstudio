@@ -58,8 +58,11 @@ To add something: tell Claude "add X to BUILD-LIST.md", then push.
 - [x] Prod `recipes` rule updated **surgically** (designers create/update only while status != active) via the firebaserules REST API; 8/8 rule tests passed; all Purchasing rules byte-identical.
 - [x] CI `firebase-hosting-merge.yml` switched to **manual (workflow_dispatch)** — old auto-deploy was failing on GitHub's Node 24 runner. Deploy prod hosting manually with the explicit target.
 
+## ✅ Invites — DONE 2026-06-25
+- [x] Admins pre-authorize a Google user by email+role (even before first sign-in); they're auto-granted the first time they sign in. Functions: inviteRecipeUser / claimRecipeInvite / listRecipeInvites / revokeRecipeInvite (recipe-guide codebase). Users tab shows Pending invites. End-to-end verified on prod.
+
 ## 🚀 Post-go-live / before broad team rollout
-- [ ] **Add the team** in the in-app **Users** tab (designers, managers, admins). Primary remaining step.
+- [ ] **Add the team** in the in-app **Users** tab — for Google users either grant on first sign-in OR pre-authorize via "Add a Google user"; for non-Workspace folks use "Create an email/password account".
 - [ ] **Optional final smoke test**: create a test designer, sign in as them, build a recipe → confirm it lands in Approvals (Pending) → approve → Active.
 - [ ] **Enable PITR + scheduled backups** on prod Firestore (Blaze) for recovery, on top of the in-app archive (soft-delete).
 - Minor (non-blocking): price-breakdown itemization for hardgood/plant lines; plants in ordering export; Node 22 bump for functions before 2026-10-30.

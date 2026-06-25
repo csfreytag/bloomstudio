@@ -222,15 +222,23 @@
           // Refresh the ID token first so any custom claims granted while the
           // user was already signed in (active / recipeGuideRole — the
           // production rules read these) take effect without a re-login.
+          function finishBoot(u, role) {
+            ctx.user = u; ctx.role = role; booted = true; hideOverlay(); resolve(ctx);
+          }
           user.getIdToken(true).catch(function () {}).then(function () {
             return resolveRole(user);
           }).then(function (role) {
-            if (!role) { noAccessScreen(user.email); return; }
-            ctx.user = user;
-            ctx.role = role;
-            booted = true;
-            hideOverlay();
-            resolve(ctx);
+            if (role) { finishBoot(user, role); return; }
+            // No role yet — apply a pending invite if an admin pre-authorized
+            // this email, then refresh the token to pick up the new claim.
+            return RecipeStore.claimInvite().then(function (res) {
+              if (res && res.role) {
+                return user.getIdToken(true).catch(function () {}).then(function () {
+                  finishBoot(user, res.role);
+                });
+              }
+              noAccessScreen(user.email);
+            });
           }).catch(function (e) {
             setMsg('Could not load your profile: ' + (e.message || e));
           });
@@ -371,6 +379,33 @@
     // Revoke ONLY the recipe role (leaves the account + any Purchasing access).
     removeRecipeRole: function (email) {
       return functions.httpsCallable('removeRecipeRole')({ email: email })
+        .then(function (r) { return r.data; });
+    },
+
+    // Pre-authorize: grant now if the account exists, else store a pending
+    // invite applied on first sign-in. Returns {mode:'granted'|'invited',...}.
+    inviteRecipeUser: function (email, role) {
+      return functions.httpsCallable('inviteRecipeUser')({ email: email, role: role })
+        .then(function (r) { return r.data; });
+    },
+
+    // Called at sign-in for a user with no role yet. Applies a matching invite
+    // if one exists. Best-effort: resolves {role:null} on any error (e.g. on
+    // staging, where these functions aren't deployed).
+    claimInvite: function () {
+      return functions.httpsCallable('claimRecipeInvite')({})
+        .then(function (r) { return r.data || { role: null }; })
+        .catch(function () { return { role: null }; });
+    },
+
+    listInvites: function () {
+      return functions.httpsCallable('listRecipeInvites')({})
+        .then(function (r) { return (r.data && r.data.invites) || []; })
+        .catch(function () { return []; });
+    },
+
+    revokeInvite: function (email) {
+      return functions.httpsCallable('revokeRecipeInvite')({ email: email })
         .then(function (r) { return r.data; });
     },
 

@@ -533,13 +533,14 @@ function saveTags(){RecipeStore.saveTags(TAGS).catch(e=>alert('Could not save ta
 
 // ── Admin: User management ────────────────────────────────────
 let USERS=[];
+let INVITES=[];
 function escU(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function showUsers(){
   document.getElementById('topTitle').textContent='Users';
   document.getElementById('tabBar').style.display='none';
   document.getElementById('actionBtns').style.display='none';
   document.getElementById('mainContent').innerHTML='<div class="section"><p style="font-size:13px;color:var(--text2);">Loading users…</p></div>';
-  RecipeStore.listUsers().then(list=>{USERS=list;renderUsers();}).catch(e=>{
+  Promise.all([RecipeStore.listUsers(),RecipeStore.listInvites()]).then(res=>{USERS=res[0];INVITES=res[1]||[];renderUsers();}).catch(e=>{
     document.getElementById('mainContent').innerHTML='<div class="section"><p style="color:var(--red);font-size:13px;">Could not load users: '+escU(e.message||e)+'</p></div>';
   });
 }
@@ -569,9 +570,14 @@ function renderUsers(){
     <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Roles here are independent of the Purchasing app — changing or removing Recipe access never affects anyone's Purchasing access.</p>
     <div class="pl-wrap"><table class="pl-table"><thead><tr><th>Name</th><th>Email</th><th>Recipe role</th><th></th><th style="text-align:right;">Access</th></tr></thead><tbody>${rows}</tbody></table></div>
   </div>
+  ${INVITES.length?`<div class="section">
+    <h3>Pending invites</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Pre-authorized — access is granted automatically the first time they sign in.</p>
+    <div class="pl-wrap"><table class="pl-table"><thead><tr><th>Email</th><th>Role</th><th style="text-align:right;">Action</th></tr></thead><tbody>${INVITES.map(iv=>`<tr><td>${escU(iv.email)}</td><td>${escU(iv.role)}</td><td style="text-align:right;"><button onclick="usrRevokeInvite('${escU(iv.email)}')" style="background:none;border:0.5px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">Revoke</button></td></tr>`).join('')}</tbody></table></div>
+  </div>`:''}
   <div class="section">
-    <h3>Grant access to a Google user</h3>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">For @freytags.com staff. They sign in once first, then enter their email here.</p>
+    <h3>Add a Google user</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">For @freytags.com staff. Enter their email and role — if they've already signed in they get access now; if not, they're pre-authorized and get in automatically the first time they sign in.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <input type="email" id="grantEmail" placeholder="name@freytags.com" style="flex:1;min-width:200px;padding:8px 10px;border:0.5px solid rgba(0,0,0,0.18);border-radius:8px;font-size:13px;"/>
       <select id="grantRole" style="padding:8px 10px;border:0.5px solid rgba(0,0,0,0.18);border-radius:8px;font-size:13px;"><option value="designer">Designer</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
@@ -597,8 +603,17 @@ function usrGrant(){
   const email=(document.getElementById('grantEmail').value||'').trim();
   const role=document.getElementById('grantRole').value;
   if(!email){usrMsg('grantMsg','Enter an email.',false);return;}
-  usrMsg('grantMsg','Granting…',true);
-  RecipeStore.setRecipeRole(email,role).then(()=>{usrMsg('grantMsg','Granted '+role+' to '+email+'.',true);showUsers();}).catch(e=>usrMsg('grantMsg',(e.message||String(e)),false));
+  usrMsg('grantMsg','Working…',true);
+  RecipeStore.inviteRecipeUser(email,role).then(res=>{
+    const msg=(res&&res.mode==='invited')
+      ?('Invited '+email+' as '+role+' — access is granted automatically the first time they sign in.')
+      :('Granted '+role+' to '+email+'.');
+    usrMsg('grantMsg',msg,true);showUsers();
+  }).catch(e=>usrMsg('grantMsg',(e.message||String(e)),false));
+}
+function usrRevokeInvite(email){
+  if(!confirm('Revoke the pending invite for '+email+'?'))return;
+  RecipeStore.revokeInvite(email).then(()=>showUsers()).catch(e=>alert('Could not revoke: '+(e.message||e)));
 }
 function usrCreate(){
   const name=(document.getElementById('newName').value||'').trim();

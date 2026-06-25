@@ -125,3 +125,66 @@ exports.removeRecipeRole = onCall(async (req) => {
   }, { merge: true });
   return { ok: true, uid: user.uid, email };
 });
+
+// ── Invites: pre-authorize a Google user before they've ever signed in ──────
+// Pending invites live in recipeInvites/{email}; access is via these functions
+// only (Admin SDK), so no extra Firestore rule is needed.
+
+// Admin: grant now if the account already exists, otherwise store a pending
+// invite that's applied automatically on the person's first sign-in.
+exports.inviteRecipeUser = onCall(async (req) => {
+  await assertRecipeAdmin(req);
+  const email = cleanEmail(req.data.email);
+  const role = req.data.role;
+  if (!email) throw new HttpsError('invalid-argument', 'An email is required.');
+  if (!VALID_ROLES.includes(role)) throw new HttpsError('invalid-argument', 'Role must be admin, manager, or designer.');
+
+  let user = null;
+  try { user = await admin.auth().getUserByEmail(email); } catch (e) { /* not signed in yet */ }
+  if (user) {
+    await applyRecipeRole(user, role);
+    return { ok: true, mode: 'granted', email, role };
+  }
+  await db.collection('recipeInvites').doc(email).set({
+    email,
+    role,
+    invitedBy: (req.auth.token && req.auth.token.email) || req.auth.uid,
+    invitedAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+  return { ok: true, mode: 'invited', email, role };
+});
+
+// Any signed-in user: if a pending invite matches their (verified) email,
+// apply the role and consume the invite. Safe — the role comes only from an
+// admin-created invite for that exact email.
+exports.claimRecipeInvite = onCall(async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'You must be signed in.');
+  const email = cleanEmail(req.auth.token && req.auth.token.email);
+  if (!email) return { role: null };
+  const ref = db.collection('recipeInvites').doc(email);
+  const snap = await ref.get();
+  if (!snap.exists) return { role: null };
+  const role = (snap.data() || {}).role;
+  if (!VALID_ROLES.includes(role)) { await ref.delete(); return { role: null }; }
+  const user = await admin.auth().getUser(req.auth.uid);
+  await applyRecipeRole(user, role);
+  await ref.delete();
+  return { role };
+});
+
+// Admin: list / revoke pending invites.
+exports.listRecipeInvites = onCall(async (req) => {
+  await assertRecipeAdmin(req);
+  const snap = await db.collection('recipeInvites').get();
+  const invites = [];
+  snap.forEach(d => { const x = d.data() || {}; invites.push({ email: x.email || d.id, role: x.role }); });
+  return { invites };
+});
+
+exports.revokeRecipeInvite = onCall(async (req) => {
+  await assertRecipeAdmin(req);
+  const email = cleanEmail(req.data.email);
+  if (!email) throw new HttpsError('invalid-argument', 'An email is required.');
+  await db.collection('recipeInvites').doc(email).delete();
+  return { ok: true, email };
+});

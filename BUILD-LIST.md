@@ -36,7 +36,8 @@ To add something: tell Claude "add X to BUILD-LIST.md", then push.
 - [ ] Look at the sheet's **HARDGOODS** tab — the last sync flagged a "Funeral" row with no price + renamed containers, which looks like a row got shifted so the column header leaked in as an item.
 
 ## 📋 Backlog
-- [ ] **In-app user management** screen (admins invite + assign roles). Today it's console/script (`scripts/set-user-role.js`).
+- [x] **In-app user management** — admin-only **Users** tab: list users, grant access to a Google user, create email/password accounts, change/remove role. Backed by `functions/` (codebase `recipe-guide`): `setRecipeRole`, `createRecipeUser`, `removeRecipeRole` (admin-gated, claims merged, Recipe role independent of Purchasing). Deployed to prod & verified 2026-06-25. The `grant-recipe-access.js` script remains as a fallback.
+- [ ] Bump the `recipe-guide` functions to **Node 22** before Node 20 is decommissioned (2026-10-30); also `firebase-functions@latest`.
 - [ ] **PDF export** — recipe sheets: multi-recipe-per-page and single-recipe-per-page, with a cover page for a tag collection.
 - [ ] **Mobile-friendly layout** for designers at the workbench.
 - [ ] **Recipe history / versioning** — see/compare past versions.

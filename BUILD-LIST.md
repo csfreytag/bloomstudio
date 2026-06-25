@@ -53,9 +53,16 @@ To add something: tell Claude "add X to BUILD-LIST.md", then push.
 - [x] Merged `staging` → `main`; CI fixed to target the `freytags-recipes` site and to sync the **prod** project by default.
 - **Did NOT deploy rules to prod** — prod already has a shared Recipe+Purchasing ruleset using custom claims; the repo `firestore.rules` is the staging (users-doc) model. See memory `production-go-live`.
 
-## 🚀 Post-go-live
-- [ ] **Provision the rest of the team** — each signs in once at the live site, then `grant-recipe-access.js --email=… --role=… --project=freytags-purchasing --keyfile=C:\Keys\freytags-service-account.json`.
+## ✅ Designer role + workflow — DONE 2026-06-25
+- [x] Designers can build/edit recipes (website "building items"); saves auto-held as **Pending review**; no publish/status/web-item/tags/cost-margin; retail prices + photo + calculator kept; approved recipes view-only for designers.
+- [x] Prod `recipes` rule updated **surgically** (designers create/update only while status != active) via the firebaserules REST API; 8/8 rule tests passed; all Purchasing rules byte-identical.
+- [x] CI `firebase-hosting-merge.yml` switched to **manual (workflow_dispatch)** — old auto-deploy was failing on GitHub's Node 24 runner. Deploy prod hosting manually with the explicit target.
+
+## 🚀 Post-go-live / before broad team rollout
+- [ ] **Add the team** in the in-app **Users** tab (designers, managers, admins). Primary remaining step.
+- [ ] **Optional final smoke test**: create a test designer, sign in as them, build a recipe → confirm it lands in Approvals (Pending) → approve → Active.
 - [ ] **Enable PITR + scheduled backups** on prod Firestore (Blaze) for recovery, on top of the in-app archive (soft-delete).
+- Minor (non-blocking): price-breakdown itemization for hardgood/plant lines; plants in ordering export; Node 22 bump for functions before 2026-10-30.
 
 ## ✍️ Chad's to-dos (outside the app)
 - [ ] Finish filling retail prices in the "PRICE SHEETS" Google Sheet (team).

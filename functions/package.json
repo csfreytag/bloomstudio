@@ -2,7 +2,7 @@
   "name": "recipe-guide-functions",
   "description": "Recipe Guide Cloud Functions (user/role management). Isolated codebase 'recipe-guide' on the shared freytags-purchasing project.",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "index.js",
   "private": true,

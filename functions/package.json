@@ -1,0 +1,13 @@
+{
+  "name": "recipe-guide-functions",
+  "description": "Recipe Guide Cloud Functions (user/role management). Isolated codebase 'recipe-guide' on the shared freytags-purchasing project.",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.1.0"
+  }
+}

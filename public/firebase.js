@@ -70,6 +70,7 @@
   var auth = firebase.auth();
   var db = firebase.firestore();
   var storage = firebase.storage();
+  var functions = firebase.functions();
 
   // Offline cache — lets the app keep working on a flaky workbench connection.
   db.enablePersistence({ synchronizeTabs: true }).catch(function () { /* multi-tab or unsupported — fine */ });
@@ -329,6 +330,48 @@
       return ref.putString(dataUrl, 'data_url').then(function (snap) {
         return snap.ref.getDownloadURL();
       });
+    },
+
+    // ── User management (admin only; enforced by Cloud Functions) ──────────
+    // Lists all user records (rules let a recipe admin read the users
+    // collection). The UI filters to Recipe Guide users.
+    listUsers: function () {
+      return db.collection('users').get().then(function (snap) {
+        var out = [];
+        snap.forEach(function (d) {
+          var x = d.data() || {};
+          out.push({
+            uid: d.id,
+            email: x.email || '',
+            displayName: x.displayName || '',
+            recipeGuideRole: x.recipeGuideRole || null,
+            purchasingRole: x.purchasingRole || null,
+            active: x.active !== false
+          });
+        });
+        return out;
+      });
+    },
+
+    // Grant/change a recipe role for an existing account (Google user who has
+    // signed in once). Returns the function result.
+    setRecipeRole: function (email, role) {
+      return functions.httpsCallable('setRecipeRole')({ email: email, role: role })
+        .then(function (r) { return r.data; });
+    },
+
+    // Create an Email/Password account and grant a recipe role (for people
+    // without an @freytags.com login).
+    createRecipeUser: function (email, password, displayName, role) {
+      return functions.httpsCallable('createRecipeUser')(
+        { email: email, password: password, displayName: displayName, role: role }
+      ).then(function (r) { return r.data; });
+    },
+
+    // Revoke ONLY the recipe role (leaves the account + any Purchasing access).
+    removeRecipeRole: function (email) {
+      return functions.httpsCallable('removeRecipeRole')({ email: email })
+        .then(function (r) { return r.data; });
     },
 
     /** Append a change-log entry (best effort — never blocks the UI). */

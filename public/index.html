@@ -9,6 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
 <script src="firebase.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -208,6 +209,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
    <button class="nav-tab" id="nt-order" onclick="setNav('order')">Order</button>
    <button class="nav-tab" id="nt-reports" onclick="setNav('reports')">Reports</button>
    <button class="nav-tab" id="nt-tags" onclick="setNav('tags')">Tags</button>
+   <button class="nav-tab" id="nt-users" onclick="setNav('users')" style="display:none;">Users</button>
   </div>
   <div id="sidebar-recipes" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
    <div class="search-filter">
@@ -405,6 +407,7 @@ function applyRole(role){
   document.getElementById('nt-prices').style.display=isDesigner?'none':'';
   document.getElementById('nt-order').style.display=isDesigner?'none':'';
   document.getElementById('nt-reports').style.display=isDesigner?'none':'';
+  document.getElementById('nt-users').style.display=(role==='admin')?'':'none';
   if(activeId)renderEditor();
 }
 
@@ -478,13 +481,14 @@ function sizeStr(r){const p=[];if(r.sizeH)p.push(r.sizeH+' in. tall');if(r.sizeW
 
 function setNav(nav){
   activeNav=nav;
-  ['recipes','prices','calc','order','reports','tags'].forEach(n=>{
+  ['recipes','prices','calc','order','reports','tags','users'].forEach(n=>{
     const btn=document.getElementById('nt-'+n);
     if(btn)btn.classList.toggle('active',n===nav);
     const p=document.getElementById('sidebar-'+n);
     if(p)p.style.display=n===nav?'flex':'none';
   });
-  if(nav==='prices')showPL(activePL);
+  if(nav==='users')showUsers();
+  else if(nav==='prices')showPL(activePL);
   else if(nav==='tags'){renderSidebarTags();renderTagsMain();}
   else if(nav==='calc')renderCalculator();
   else if(nav==='order')renderOrdering();
@@ -523,6 +527,92 @@ function addTagMain(){
 }
 function deleteTag(i){TAGS.splice(i,1);saveTags();renderSidebarTags();renderTagFilterChips();}
 function saveTags(){RecipeStore.saveTags(TAGS).catch(e=>alert('Could not save tags: '+(e.message||e)));}
+
+// ── Admin: User management ────────────────────────────────────
+let USERS=[];
+function escU(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function showUsers(){
+  document.getElementById('topTitle').textContent='Users';
+  document.getElementById('tabBar').style.display='none';
+  document.getElementById('actionBtns').style.display='none';
+  document.getElementById('mainContent').innerHTML='<div class="section"><p style="font-size:13px;color:var(--text2);">Loading users…</p></div>';
+  RecipeStore.listUsers().then(list=>{USERS=list;renderUsers();}).catch(e=>{
+    document.getElementById('mainContent').innerHTML='<div class="section"><p style="color:var(--red);font-size:13px;">Could not load users: '+escU(e.message||e)+'</p></div>';
+  });
+}
+function roleSelect(email,current){
+  const roles=['admin','manager','designer'];
+  return `<select onchange="usrChangeRole('${escU(email)}',this.value)" style="padding:4px 8px;border:0.5px solid rgba(0,0,0,0.18);border-radius:6px;font-size:13px;">`+
+    roles.map(r=>`<option value="${r}"${r===current?' selected':''}>${r.charAt(0).toUpperCase()+r.slice(1)}</option>`).join('')+`</select>`;
+}
+function renderUsers(){
+  const me=((RecipeStore.context().user||{}).email||'').toLowerCase();
+  const recipeUsers=USERS.filter(u=>u.recipeGuideRole);
+  const rows=recipeUsers.map(u=>{
+    const isMe=(u.email||'').toLowerCase()===me;
+    const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+    const purch=u.purchasingRole?`<span style="font-size:11px;color:var(--text3);">Purchasing: ${escU(u.purchasingRole)}</span>`:'';
+    return `<tr>
+      <td>${escU(u.displayName||'—')}${isMe?' <span style="font-size:11px;color:var(--text3);">(you)</span>':''}</td>
+      <td>${escU(u.email)}</td>
+      <td>${isMe?cap(u.recipeGuideRole):roleSelect(u.email,u.recipeGuideRole)}</td>
+      <td>${purch}</td>
+      <td style="text-align:right;">${isMe?'':`<button onclick="usrRemove('${escU(u.email)}')" style="background:none;border:0.5px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">Remove</button>`}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="5" style="color:var(--text3);font-style:italic;padding:10px;">No Recipe Guide users yet.</td></tr>';
+  document.getElementById('mainContent').innerHTML=`
+  <div class="section">
+    <h3>Recipe Guide users</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Roles here are independent of the Purchasing app — changing or removing Recipe access never affects anyone's Purchasing access.</p>
+    <div class="pl-wrap"><table class="pl-table"><thead><tr><th>Name</th><th>Email</th><th>Recipe role</th><th></th><th style="text-align:right;">Access</th></tr></thead><tbody>${rows}</tbody></table></div>
+  </div>
+  <div class="section">
+    <h3>Grant access to a Google user</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">For @freytags.com staff. They sign in once first, then enter their email here.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <input type="email" id="grantEmail" placeholder="name@freytags.com" style="flex:1;min-width:200px;padding:8px 10px;border:0.5px solid rgba(0,0,0,0.18);border-radius:8px;font-size:13px;"/>
+      <select id="grantRole" style="padding:8px 10px;border:0.5px solid rgba(0,0,0,0.18);border-radius:8px;font-size:13px;"><option value="designer">Designer</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
+      <button class="add-tag-btn" onclick="usrGrant()"><i class="ti ti-user-plus"></i> Grant access</button>
+    </div>
+    <div id="grantMsg" style="font-size:12px;margin-top:8px;min-height:14px;"></div>
+  </div>
+  <div class="section">
+    <h3>Create an email / password account</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">For designers without an @freytags.com login. They sign in with this email and password.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <input type="text" id="newName" placeholder="Full name" style="min-width:140px;padding:8px 10px;border:0.5px solid rgba(0,0,0,0.18);border-radius:8px;font-size:13px;"/>
+      <input type="email" id="newEmail" placeholder="Email" style="flex:1;min-width:180px;padding:8px 10px;border:0.5px solid rgba(0,0,0,0.18);border-radius:8px;font-size:13px;"/>
+      <input type="text" id="newPass" placeholder="Temp password (6+ chars)" style="min-width:160px;padding:8px 10px;border:0.5px solid rgba(0,0,0,0.18);border-radius:8px;font-size:13px;"/>
+      <select id="newRole" style="padding:8px 10px;border:0.5px solid rgba(0,0,0,0.18);border-radius:8px;font-size:13px;"><option value="designer">Designer</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
+      <button class="add-tag-btn" onclick="usrCreate()"><i class="ti ti-user-plus"></i> Create</button>
+    </div>
+    <div id="createMsg" style="font-size:12px;margin-top:8px;min-height:14px;"></div>
+  </div>`;
+}
+function usrMsg(id,text,ok){const el=document.getElementById(id);if(el){el.textContent=text||'';el.style.color=ok?'#1a5c2e':'var(--red)';}}
+function usrGrant(){
+  const email=(document.getElementById('grantEmail').value||'').trim();
+  const role=document.getElementById('grantRole').value;
+  if(!email){usrMsg('grantMsg','Enter an email.',false);return;}
+  usrMsg('grantMsg','Granting…',true);
+  RecipeStore.setRecipeRole(email,role).then(()=>{usrMsg('grantMsg','Granted '+role+' to '+email+'.',true);showUsers();}).catch(e=>usrMsg('grantMsg',(e.message||String(e)),false));
+}
+function usrCreate(){
+  const name=(document.getElementById('newName').value||'').trim();
+  const email=(document.getElementById('newEmail').value||'').trim();
+  const pass=document.getElementById('newPass').value||'';
+  const role=document.getElementById('newRole').value;
+  if(!email||pass.length<6){usrMsg('createMsg','Email and a 6+ character password are required.',false);return;}
+  usrMsg('createMsg','Creating…',true);
+  RecipeStore.createRecipeUser(email,pass,name,role).then(()=>{usrMsg('createMsg','Created '+email+' ('+role+').',true);showUsers();}).catch(e=>usrMsg('createMsg',(e.message||String(e)),false));
+}
+function usrChangeRole(email,role){
+  RecipeStore.setRecipeRole(email,role).then(()=>showUsers()).catch(e=>{alert('Could not change role: '+(e.message||e));showUsers();});
+}
+function usrRemove(email){
+  if(!confirm('Remove '+email+"'s Recipe Guide access? Their account and any Purchasing access stay intact."))return;
+  RecipeStore.removeRecipeRole(email).then(()=>showUsers()).catch(e=>alert('Could not remove access: '+(e.message||e)));
+}
 
 // Filters
 function toggleFilters(){

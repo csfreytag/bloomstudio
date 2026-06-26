@@ -69,8 +69,13 @@
   firebase.initializeApp(CONFIG);
   var auth = firebase.auth();
   var db = firebase.firestore();
-  var storage = firebase.storage();
-  var functions = firebase.functions();
+  // Lazy-init Storage too (only photo upload uses it) so its SDK can't gate boot.
+  var _storage = null;
+  function stg() { if (!_storage) _storage = firebase.storage(); return _storage; }
+  // Lazy-init Functions so a slow or blocked Functions SDK can never break
+  // app startup — only the admin user-management actions ever call it.
+  var _functions = null;
+  function fns() { if (!_functions) _functions = firebase.functions(); return _functions; }
 
   // Offline cache — lets the app keep working on a flaky workbench connection.
   db.enablePersistence({ synchronizeTabs: true }).catch(function () { /* multi-tab or unsupported — fine */ });
@@ -334,7 +339,7 @@
      * Uploads a data-URL photo to Storage and returns its download URL.
      */
     uploadPhoto: function (recipeId, dataUrl) {
-      var ref = storage.ref('recipes/' + recipeId + '/' + Date.now() + '.jpg');
+      var ref = stg().ref('recipes/' + recipeId + '/' + Date.now() + '.jpg');
       return ref.putString(dataUrl, 'data_url').then(function (snap) {
         return snap.ref.getDownloadURL();
       });
@@ -364,28 +369,28 @@
     // Grant/change a recipe role for an existing account (Google user who has
     // signed in once). Returns the function result.
     setRecipeRole: function (email, role) {
-      return functions.httpsCallable('setRecipeRole')({ email: email, role: role })
+      return fns().httpsCallable('setRecipeRole')({ email: email, role: role })
         .then(function (r) { return r.data; });
     },
 
     // Create an Email/Password account and grant a recipe role (for people
     // without an @freytags.com login).
     createRecipeUser: function (email, password, displayName, role) {
-      return functions.httpsCallable('createRecipeUser')(
+      return fns().httpsCallable('createRecipeUser')(
         { email: email, password: password, displayName: displayName, role: role }
       ).then(function (r) { return r.data; });
     },
 
     // Revoke ONLY the recipe role (leaves the account + any Purchasing access).
     removeRecipeRole: function (email) {
-      return functions.httpsCallable('removeRecipeRole')({ email: email })
+      return fns().httpsCallable('removeRecipeRole')({ email: email })
         .then(function (r) { return r.data; });
     },
 
     // Pre-authorize: grant now if the account exists, else store a pending
     // invite applied on first sign-in. Returns {mode:'granted'|'invited',...}.
     inviteRecipeUser: function (email, role) {
-      return functions.httpsCallable('inviteRecipeUser')({ email: email, role: role })
+      return fns().httpsCallable('inviteRecipeUser')({ email: email, role: role })
         .then(function (r) { return r.data; });
     },
 
@@ -393,19 +398,19 @@
     // if one exists. Best-effort: resolves {role:null} on any error (e.g. on
     // staging, where these functions aren't deployed).
     claimInvite: function () {
-      return functions.httpsCallable('claimRecipeInvite')({})
+      return fns().httpsCallable('claimRecipeInvite')({})
         .then(function (r) { return r.data || { role: null }; })
         .catch(function () { return { role: null }; });
     },
 
     listInvites: function () {
-      return functions.httpsCallable('listRecipeInvites')({})
+      return fns().httpsCallable('listRecipeInvites')({})
         .then(function (r) { return (r.data && r.data.invites) || []; })
         .catch(function () { return []; });
     },
 
     revokeInvite: function (email) {
-      return functions.httpsCallable('revokeRecipeInvite')({ email: email })
+      return fns().httpsCallable('revokeRecipeInvite')({ email: email })
         .then(function (r) { return r.data; });
     },
 

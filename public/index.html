@@ -356,7 +356,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
  </div>
 </div>
 <script>
-function defR(l){return l.map(x=>({n:x.n,p:x.p,r:x.r!==undefined?x.r:null}));}
+function defR(l){return l.map(x=>({n:x.n,p:x.p,r:x.r!==undefined?x.r:null,colors:x.colors}));}
 // Synced sheet lists have no "None" entry — prepend one so recipes can select
 // "no flower / no container" and default to it (instead of the first real item).
 function ensureNone(list){if(!list.some(x=>x.n&&x.n.trim()==='None'))list.unshift({n:'None',p:0,r:0});return list;}

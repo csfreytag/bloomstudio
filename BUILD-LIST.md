@@ -53,6 +53,9 @@ To add something: tell Claude "add X to BUILD-LIST.md", then push.
 - [x] Merged `staging` → `main`; CI fixed to target the `freytags-recipes` site and to sync the **prod** project by default.
 - **Did NOT deploy rules to prod** — prod already has a shared Recipe+Purchasing ruleset using custom claims; the repo `firestore.rules` is the staging (users-doc) model. See memory `production-go-live`.
 
+## ✅ Flower colors — DONE 2026-06-27
+- [x] Optional per-flower (and filler) Color dropdown in the recipe builder, populated from a comma-separated **Colors** column in the FLOWERS sheet (synced → colors[] on each item). Stored per ingredient {name,color,qty}; shown in recipe view + price breakdown. Parent-priced (color doesn't change cost). Live on prod + staging. NOTE: sheet has a "Yelloe" typo on Alstroemeria — fix in sheet, daily cron re-syncs.
+
 ## ✅ Designer role + workflow — DONE 2026-06-25
 - [x] Designers can build/edit recipes (website "building items"); saves auto-held as **Pending review**; no publish/status/web-item/tags/cost-margin; retail prices + photo + calculator kept; approved recipes view-only for designers.
 - [x] Prod `recipes` rule updated **surgically** (designers create/update only while status != active) via the firebaserules REST API; 8/8 rule tests passed; all Purchasing rules byte-identical.

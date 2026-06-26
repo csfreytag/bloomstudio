@@ -1880,8 +1880,11 @@ async function boot(){
     applyAuthRole(c);
     filterRecipes();
   }catch(e){
-    alert('Could not start the app: '+(e.message||e));
-    console.error(e);
+    console.error('Startup failed:',e);
+    // Gentle inline message instead of a modal alert (also avoids a popup in
+    // file previews that have no backend). Real users just reload.
+    var m=document.getElementById('mainContent');
+    if(m)m.innerHTML='<div class="empty-state"><i class="ti ti-cloud-off"></i><h3>Couldn’t connect</h3><p>Check your internet connection and reload the page.</p></div>';
   }
 }
 boot();

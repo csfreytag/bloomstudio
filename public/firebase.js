@@ -63,7 +63,8 @@
 
   // ── Initialise Firebase ───────────────────────────────────────────────────
   if (typeof firebase === 'undefined') {
-    alert('Firebase SDK failed to load. Check your network connection.');
+    // No modal alert — boot() shows a gentle inline message once the DOM is up.
+    console.error('Firebase SDK failed to load. Check your network connection.');
     return;
   }
   firebase.initializeApp(CONFIG);

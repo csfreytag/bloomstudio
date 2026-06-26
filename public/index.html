@@ -1074,7 +1074,7 @@ function refreshSize(){
 // Color picker cell for a flower/filler row. Optional: shows the selected
 // item's colors plus an "any" default; a muted dash when none are listed.
 function ingColorCell(item,color){
-  const colors=(item&&item.colors)||[];
+  const colors=((item&&item.colors)||[]).slice().sort((a,b)=>String(a).toLowerCase().localeCompare(String(b).toLowerCase()));
   if(!colors.length)return '<span style="color:var(--text3);font-size:12px;">—</span>';
   const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const sel=color||'';

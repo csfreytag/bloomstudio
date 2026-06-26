@@ -176,7 +176,15 @@ async function readSheet() {
         const r = rows[i] || [];
         const name = (r[block.name] || '').trim();
         if (!name) continue;                   // skip blank cells
-        items.push({ n: name, p: 0, r: parseMoney(r[block.price]) });
+        const item = { n: name, p: 0, r: parseMoney(r[block.price]) };
+        // Optional per-flower color options (comma-separated cell). Only when
+        // a colors column is configured for this block (set after the sheet's
+        // Colors column is added). Empty → no colors (picker stays optional).
+        if (block.colors != null) {
+          const colors = String(r[block.colors] || '').split(',').map(s => s.trim()).filter(Boolean);
+          if (colors.length) item.colors = colors;
+        }
+        items.push(item);
       }
       if (!priceLists[block.target]) priceLists[block.target] = [];
       priceLists[block.target].push(...items);

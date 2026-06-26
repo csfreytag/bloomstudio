@@ -782,11 +782,13 @@ function saveRecipe(){
   if(currentRole!=='designer'){r.tags=[];document.querySelectorAll('.recipe-tag-chip.selected').forEach(el=>r.tags.push(el.dataset.tag));}
   r.flowers=[];document.querySelectorAll('.flower-row').forEach(row=>{
     const sel=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
-    if(sel!=='None'&&qty>0)r.flowers.push({name:sel,qty});
+    const cs=row.querySelector('.f-color-sel'),color=cs?cs.value:'';
+    if(sel!=='None'&&qty>0){const o={name:sel,qty};if(color)o.color=color;r.flowers.push(o);}
   });
   r.fillers=[];document.querySelectorAll('.filler-row').forEach(row=>{
     const sel=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
-    if(sel!=='None'&&qty>0)r.fillers.push({name:sel,qty});
+    const cs=row.querySelector('.f-color-sel'),color=cs?cs.value:'';
+    if(sel!=='None'&&qty>0){const o={name:sel,qty};if(color)o.color=color;r.fillers.push(o);}
   });
   r.plants=[];document.querySelectorAll('.plant-row').forEach(row=>{
     const sel=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
@@ -877,13 +879,13 @@ function renderRecipeTab(r){
     </div>
     <div class="section">
      <h3>Flowers</h3>
-     <table class="ing-table"><thead><tr><th style="width:45%">Flower</th><th>Stems</th><th>Each</th><th>Total</th><th></th></tr></thead>
+     <table class="ing-table"><thead><tr><th style="width:34%">Flower</th><th>Color</th><th>Stems</th><th>Each</th><th>Total</th><th></th></tr></thead>
      <tbody id="flowerRows">${flowers.map(f=>ingRow(f,'flower')).join('')}</tbody></table>
      <button class="add-row-btn" onclick="addRow('flower')"><i class="ti ti-plus"></i> Add flower</button>
     </div>
     <div class="section">
      <h3>Greenery &amp; filler</h3>
-     <table class="ing-table"><thead><tr><th style="width:45%">Filler</th><th>Qty</th><th>Each</th><th>Total</th><th></th></tr></thead>
+     <table class="ing-table"><thead><tr><th style="width:34%">Filler</th><th>Color</th><th>Qty</th><th>Each</th><th>Total</th><th></th></tr></thead>
      <tbody id="fillerRows">${r.fillers.map(f=>ingRow(f,'filler')).join('')}</tbody></table>
      <button class="add-row-btn" onclick="addRow('filler')"><i class="ti ti-plus"></i> Add filler</button>
     </div>
@@ -980,7 +982,7 @@ function renderRecipeView(r){
         const item=list.find(x=>x.n.trim()===f.name.trim());
         const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*mult).toFixed(2));
         return`<tr>
-          <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);">${f.name}</td>
+          <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);">${f.name}${f.color?` <span style="color:var(--text2);font-style:italic;">— ${f.color}</span>`:''}</td>
           <td style="padding:5px 8px;border-bottom:0.5px solid var(--border);text-align:center;color:var(--text2);">${f.qty}</td>
           <td style="padding:5px 8px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--text2);">$${fmt(each)}</td>
           <td style="padding:5px 0;border-bottom:0.5px solid var(--border);text-align:right;font-weight:500;">$${fmt(f.qty*each)}</td>
@@ -1069,14 +1071,26 @@ function refreshSize(){
   const p=[];if(h)p.push(h+' in. tall');if(w)p.push(w+' in. wide');if(d)p.push(d+' in. depth');
   const el=document.getElementById('size_display');if(el)el.textContent=p.join(' × ')||'No size entered';
 }
+// Color picker cell for a flower/filler row. Optional: shows the selected
+// item's colors plus an "any" default; a muted dash when none are listed.
+function ingColorCell(item,color){
+  const colors=(item&&item.colors)||[];
+  if(!colors.length)return '<span style="color:var(--text3);font-size:12px;">—</span>';
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const sel=color||'';
+  return `<select class="f-color-sel" style="font-size:12px;padding:3px 6px;max-width:140px;"><option value="">— any</option>`+
+    colors.map(c=>`<option value="${esc(c)}"${c===sel?' selected':''}>${esc(c)}</option>`).join('')+`</select>`;
+}
 function ingRow(f,type){
   const list=type==='flower'?FLOWERS:type==='plant'?PLANTS:FILLERS;
   const mult=type==='plant'?3.5:4;
   const item=list.find(x=>x.n.trim()===f.name.trim());
   const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*mult).toFixed(2));
   const total=f.qty*each;
+  const colorTd=type==='plant'?'':`<td class="f-color">${ingColorCell(item,f.color)}</td>`;
   return`<tr class="${type}-row">
     <td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,f.name)}</select></td>
+    ${colorTd}
     <td><input class="f-qty" type="number" value="${f.qty}" min="0" step="1" oninput="updateRowCost(this)" style="width:60px;"/></td>
     <td class="f-each" style="color:var(--text2);font-size:13px;white-space:nowrap;">$${fmt(each)}</td>
     <td class="f-cost" style="font-size:13px;font-weight:500;white-space:nowrap;">$${fmt(total)}</td>
@@ -1158,12 +1172,16 @@ function updateRowCost(el){
   const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*(type==='plant'?3.5:4)).toFixed(2));
   if(row.querySelector('.f-each'))row.querySelector('.f-each').textContent='$'+fmt(each);
   if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(qty*each);
+  // When the flower/filler itself changes, repopulate its color options.
+  const colorCell=row.querySelector('.f-color');
+  if(colorCell&&el.classList.contains('f-sel'))colorCell.innerHTML=ingColorCell(item,'');
   refreshStatCards();
 }
 function addRow(type){
   const tbody=document.getElementById(type==='flower'?'flowerRows':type==='plant'?'plantRows':'fillerRows'),tr=document.createElement('tr');
   tr.className=type+'-row';const list=type==='flower'?FLOWERS:type==='plant'?PLANTS:FILLERS;
-  tr.innerHTML=`<td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,'None')}</select></td><td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateRowCost(this)" style="width:60px;"/></td><td class="f-each" style="color:var(--text2);font-size:13px;">$0.00</td><td class="f-cost" style="font-size:13px;font-weight:500;">$0.00</td><td><button class="del-btn" onclick="this.closest('tr').remove();refreshStatCards()"><i class="ti ti-x"></i></button></td>`;
+  const colorTd=type==='plant'?'':`<td class="f-color">${ingColorCell(null,'')}</td>`;
+  tr.innerHTML=`<td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,'None')}</select></td>${colorTd}<td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateRowCost(this)" style="width:60px;"/></td><td class="f-each" style="color:var(--text2);font-size:13px;">$0.00</td><td class="f-cost" style="font-size:13px;font-weight:500;">$0.00</td><td><button class="del-btn" onclick="this.closest('tr').remove();refreshStatCards()"><i class="ti ti-x"></i></button></td>`;
   tbody.appendChild(tr);
   refreshStatCards();
 }
@@ -1190,7 +1208,7 @@ function renderCostsTab(r){
       <tbody>${items.map(f=>{
         const p=gpCost(list,f.name);
         return`<tr>
-          <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);">${f.name}</td>
+          <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);">${f.name}${f.color?` <span style="color:var(--text2);font-style:italic;">— ${f.color}</span>`:''}</td>
           <td style="padding:5px 8px;border-bottom:0.5px solid var(--border);text-align:center;color:var(--text2);">${f.qty}</td>
           <td style="padding:5px 8px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--text2);">$${fmt(p)}</td>
           <td style="padding:5px 0;border-bottom:0.5px solid var(--border);text-align:right;font-weight:500;">$${fmt(f.qty*p)}</td>

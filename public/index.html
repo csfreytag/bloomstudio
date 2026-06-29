@@ -962,6 +962,7 @@ function renderRecipeTab(r){
 }
 
 function renderRecipeView(r){
+  const c=calcCost(r),fp=finalPrice(r);
   const sz=sizeStr(r);
   const tagHtml=(r.tags||[]).map(t=>`<span style="font-size:11px;padding:3px 10px;background:var(--bg2);color:var(--text2);border:0.5px solid var(--border);border-radius:20px;">${t}</span>`).join('');
   const photoSafe=r.photo?r.photo.replace(/'/g,"\\'"):'';
@@ -969,22 +970,29 @@ function renderRecipeView(r){
     ?`<img src="${r.photo}" alt="${r.name||'Arrangement'}" onclick="openLightbox('${photoSafe}')" style="width:100%;max-height:400px;object-fit:cover;border-radius:var(--radius);cursor:zoom-in;display:block;"/>`
     :`<div style="width:100%;height:220px;background:var(--bg2);border-radius:var(--radius);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;color:var(--text3);font-style:italic;font-size:13px;">No photo uploaded</div>`;
 
-  // Clean ingredient list — qty × name (— color), no prices. Designer-facing.
-  function ingSection(title,items){
+  // Ingredient list with per-line retail price (sell price, not cost).
+  function ingSection(title,items,list,mult){
     items=(items||[]).filter(f=>f.name&&f.name!=='None');
     if(!items.length)return'';
-    const rows=items.map(f=>`<li style="display:flex;gap:10px;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:14px;line-height:1.4;"><span style="min-width:40px;font-weight:600;color:var(--green-dark);">${f.qty}×</span><span>${f.name}${f.color?` <span style="color:var(--text2);">— ${f.color}</span>`:''}</span></li>`).join('');
+    const rows=items.map(f=>{
+      const each=gpPrice(list,f.name,mult);
+      return `<li style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:14px;line-height:1.4;"><span style="min-width:40px;font-weight:600;color:var(--green-dark);">${f.qty}×</span><span style="flex:1;">${f.name}${f.color?` <span style="color:var(--text2);">— ${f.color}</span>`:''}</span><span style="color:var(--text2);white-space:nowrap;">$${fmt(f.qty*each)}</span></li>`;
+    }).join('');
     return `<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">${title}</h3><ul style="list-style:none;margin:0;padding:0;">${rows}</ul></div>`;
   }
 
   const extras=[];
-  if(r.container&&r.container!=='None')extras.push(['Container',r.container]);
-  if(r.accent&&r.accent!=='None')extras.push(['Accent',r.accent]);
-  if(r.hardgood&&r.hardgood!=='None')extras.push(['Hardgood',r.hardgood]);
-  const extrasHtml=extras.length?`<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Vessel &amp; extras</h3><ul style="list-style:none;margin:0;padding:0;">${extras.map(e=>`<li style="display:flex;gap:10px;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:14px;"><span style="min-width:84px;color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:0.04em;padding-top:2px;">${e[0]}</span><span>${e[1]}</span></li>`).join('')}</ul></div>`:'';
+  if(r.container&&r.container!=='None')extras.push(['Container',r.container,gpPrice(CONTAINERS,r.container,3.5)]);
+  if(r.accent&&r.accent!=='None')extras.push(['Accent',r.accent,gpPrice(ACCENTS,r.accent,3.5)]);
+  if(r.hardgood&&r.hardgood!=='None')extras.push(['Hardgood',r.hardgood,gpPrice(HARDGOODS,r.hardgood,3.5)]);
+  const extrasHtml=extras.length?`<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Vessel &amp; extras</h3><ul style="list-style:none;margin:0;padding:0;">${extras.map(e=>`<li style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:14px;"><span style="min-width:84px;color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:0.04em;padding-top:2px;">${e[0]}</span><span style="flex:1;">${e[1]}</span><span style="color:var(--text2);white-space:nowrap;">$${fmt(e[2])}</span></li>`).join('')}</ul></div>`:'';
 
   const totalStems=(r.flowers||[]).filter(f=>f.name!=='None').reduce((s,f)=>s+f.qty,0);
   const hasAny=totalStems>0||(r.fillers||[]).some(f=>f.name!=='None')||(r.plants||[]).some(f=>f.name!=='None')||extras.length>0;
+  const totalsHtml=`<div style="margin-top:4px;padding-top:12px;border-top:0.5px solid var(--border);display:flex;flex-direction:column;gap:6px;">
+     <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);"><span>Labor (${c.pct}% of retail)</span><span>$${fmt(c.labor)}</span></div>
+     <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;padding-top:6px;border-top:0.5px solid var(--border);"><span>Total price</span><span style="color:var(--green-dark);">$${fmt(fp)}</span></div>
+    </div>`;
 
   document.getElementById('mainContent').innerHTML=`
   <div style="max-width:720px;margin:0 auto;">
@@ -1002,12 +1010,12 @@ function renderRecipeView(r){
     ${tagHtml?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;">${tagHtml}</div>`:''}
    </div>
    <div class="section">
-    ${ingSection('Flowers',r.flowers)}
-    ${ingSection('Greenery &amp; filler',r.fillers)}
-    ${ingSection('Plants',r.plants)}
+    ${ingSection('Flowers',r.flowers,FLOWERS,4)}
+    ${ingSection('Greenery &amp; filler',r.fillers,FILLERS,4)}
+    ${ingSection('Plants',r.plants,PLANTS,3.5)}
     ${extrasHtml}
-    ${!hasAny?'<div style="font-size:13px;color:var(--text3);font-style:italic;">No ingredients added yet.</div>':''}
-    ${r.notes?`<div style="margin-top:4px;padding-top:14px;border-top:0.5px solid var(--border);"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:5px;">Notes</div><div style="font-size:14px;color:var(--text);line-height:1.6;white-space:pre-wrap;">${r.notes}</div></div>`:''}
+    ${!hasAny?'<div style="font-size:13px;color:var(--text3);font-style:italic;">No ingredients added yet.</div>':totalsHtml}
+    ${r.notes?`<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border);"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:5px;">Notes</div><div style="font-size:14px;color:var(--text);line-height:1.6;white-space:pre-wrap;">${r.notes}</div></div>`:''}
    </div>
   </div>`;
 }

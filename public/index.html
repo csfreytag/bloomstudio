@@ -962,90 +962,55 @@ function renderRecipeTab(r){
 }
 
 function renderRecipeView(r){
-  const c=calcCost(r),fp=finalPrice(r);
   const sz=sizeStr(r);
-  const tagHtml=(r.tags||[]).map(t=>`<span class="tag-chip" style="font-size:12px;padding:3px 9px;">${t}</span>`).join('');
+  const tagHtml=(r.tags||[]).map(t=>`<span style="font-size:11px;padding:3px 10px;background:var(--bg2);color:var(--text2);border:0.5px solid var(--border);border-radius:20px;">${t}</span>`).join('');
+  const photoSafe=r.photo?r.photo.replace(/'/g,"\\'"):'';
   const photoHtml=r.photo
-    ?`<img src="${r.photo}" alt="${r.name}" onclick="openLightbox('${r.photo.replace(/'/g,"\\'")}')}" style="width:100%;border-radius:var(--radius);object-fit:cover;cursor:zoom-in;max-height:280px;" />`
-    :`<div style="width:100%;height:180px;background:var(--bg2);border-radius:var(--radius);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;color:var(--text3);font-style:italic;font-size:13px;">No photo uploaded</div>`;
+    ?`<img src="${r.photo}" alt="${r.name||'Arrangement'}" onclick="openLightbox('${photoSafe}')" style="width:100%;max-height:400px;object-fit:cover;border-radius:var(--radius);cursor:zoom-in;display:block;"/>`
+    :`<div style="width:100%;height:220px;background:var(--bg2);border-radius:var(--radius);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;color:var(--text3);font-style:italic;font-size:13px;">No photo uploaded</div>`;
 
-  function ingViewTable(list,items,mult){
-    if(!items||!items.length)return'';
-    return`<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px;">
-      <thead><tr>
-        <th style="text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:0 8px 6px 0;border-bottom:0.5px solid var(--border);">Name</th>
-        <th style="text-align:center;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:0 8px 6px;border-bottom:0.5px solid var(--border);">Qty</th>
-        <th style="text-align:right;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:0 8px 6px;border-bottom:0.5px solid var(--border);">Each</th>
-        <th style="text-align:right;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:0 0 6px;border-bottom:0.5px solid var(--border);">Total</th>
-      </tr></thead>
-      <tbody>${items.map(f=>{
-        const item=list.find(x=>x.n.trim()===f.name.trim());
-        const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*mult).toFixed(2));
-        return`<tr>
-          <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);">${f.name}${f.color?` <span style="color:var(--text2);font-style:italic;">— ${f.color}</span>`:''}</td>
-          <td style="padding:5px 8px;border-bottom:0.5px solid var(--border);text-align:center;color:var(--text2);">${f.qty}</td>
-          <td style="padding:5px 8px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--text2);">$${fmt(each)}</td>
-          <td style="padding:5px 0;border-bottom:0.5px solid var(--border);text-align:right;font-weight:500;">$${fmt(f.qty*each)}</td>
-        </tr>`;}).join('')}
-      </tbody>
-    </table>`;
+  // Clean ingredient list — qty × name (— color), no prices. Designer-facing.
+  function ingSection(title,items){
+    items=(items||[]).filter(f=>f.name&&f.name!=='None');
+    if(!items.length)return'';
+    const rows=items.map(f=>`<li style="display:flex;gap:10px;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:14px;line-height:1.4;"><span style="min-width:40px;font-weight:600;color:var(--green-dark);">${f.qty}×</span><span>${f.name}${f.color?` <span style="color:var(--text2);">— ${f.color}</span>`:''}</span></li>`).join('');
+    return `<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">${title}</h3><ul style="list-style:none;margin:0;padding:0;">${rows}</ul></div>`;
   }
 
-  const flowerTableHtml=ingViewTable(FLOWERS,(r.flowers||[]).filter(f=>f.name!=='None'),4);
-  const fillerTableHtml=ingViewTable(FILLERS,(r.fillers||[]).filter(f=>f.name!=='None'),4);
-  const plantTableHtml=ingViewTable(PLANTS,(r.plants||[]).filter(f=>f.name!=='None'),3.5);
+  const extras=[];
+  if(r.container&&r.container!=='None')extras.push(['Container',r.container]);
+  if(r.accent&&r.accent!=='None')extras.push(['Accent',r.accent]);
+  if(r.hardgood&&r.hardgood!=='None')extras.push(['Hardgood',r.hardgood]);
+  const extrasHtml=extras.length?`<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Vessel &amp; extras</h3><ul style="list-style:none;margin:0;padding:0;">${extras.map(e=>`<li style="display:flex;gap:10px;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:14px;"><span style="min-width:84px;color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:0.04em;padding-top:2px;">${e[0]}</span><span>${e[1]}</span></li>`).join('')}</ul></div>`:'';
+
+  const totalStems=(r.flowers||[]).filter(f=>f.name!=='None').reduce((s,f)=>s+f.qty,0);
+  const hasAny=totalStems>0||(r.fillers||[]).some(f=>f.name!=='None')||(r.plants||[]).some(f=>f.name!=='None')||extras.length>0;
 
   document.getElementById('mainContent').innerHTML=`
-  <div style="display:grid;grid-template-columns:1fr 260px;gap:16px;align-items:start;">
-   <div>
-    <div class="section">
-     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;">
-      <div>
-       <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;font-family:monospace;">${r.sku||'—'}</div>
-       <div style="font-size:18px;color:var(--text);margin-top:2px;">${r.name||'Untitled'}</div>
-       ${sz?`<div style="font-size:12px;color:var(--text2);margin-top:4px;font-style:italic;">${sz}</div>`:''}
-      </div>
-      ${tagHtml?`<div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;max-width:200px;">${tagHtml}</div>`:''}
-     </div>
-
-     ${flowerTableHtml?`
-     <h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Flowers</h3>
-     ${flowerTableHtml}`:''}
-
-     ${fillerTableHtml?`
-     <h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Greenery &amp; filler</h3>
-     ${fillerTableHtml}`:''}
-
-     ${plantTableHtml?`
-     <h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Plants</h3>
-     ${plantTableHtml}`:''}
-
-     <div style="border-top:0.5px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:5px;">
-      ${r.container&&r.container!=='None'?`<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text2);">Container — ${r.container}</span><span>$${fmt(gpPrice(CONTAINERS,r.container,3.5))}</span></div>`:''}
-      ${r.accent&&r.accent!=='None'?`<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text2);">Accent — ${r.accent}</span><span>$${fmt(gpPrice(ACCENTS,r.accent,3.5))}</span></div>`:''}
-      ${r.hardgood&&r.hardgood!=='None'?`<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text2);">Hardgood — ${r.hardgood}</span><span>$${fmt(gpPrice(HARDGOODS,r.hardgood,3.5))}</span></div>`:''}
-      <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text2);">Labor (${c.pct}% of $${fmt(fp)} retail)</span><span>$${fmt(c.labor)}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;padding-top:6px;border-top:0.5px solid var(--border);margin-top:4px;"><span>Total retail price</span><span style="color:var(--green-dark);">$${fmt(fp)}</span></div>
-     </div>
-
-     ${r.notes?`<div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border);"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:4px;">Notes</div><div style="font-size:13px;color:var(--text2);line-height:1.6;">${r.notes}</div></div>`:''}
-    </div>
+  <div style="max-width:720px;margin:0 auto;">
+   <div style="margin-bottom:6px;">${photoHtml}
+    ${r.photo?`<div style="font-size:11px;color:var(--text3);font-style:italic;text-align:center;margin-top:4px;">Tap the photo to enlarge</div>`:''}
    </div>
-   <div>
-    <div class="photo-box">
-     <h3>Photo <span style="font-size:10px;font-weight:normal;font-style:italic;">(click to enlarge)</span></h3>
-     ${photoHtml}
+   <div class="section">
+    <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;font-family:monospace;">${r.sku||'—'}</div>
+    <div style="font-size:22px;color:var(--text);margin-top:2px;">${r.name||'Untitled'}</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;color:var(--text2);font-size:13px;">
+     ${sz?`<span style="font-style:italic;">${sz}</span>`:''}
+     ${(sz&&totalStems)?'<span style="color:var(--text3);">·</span>':''}
+     ${totalStems?`<span>${totalStems} stem${totalStems!==1?'s':''}</span>`:''}
     </div>
-    <div class="section">
-     <h3>Summary</h3>
-     <div style="font-size:13px;">
-      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Retail price</span><span style="font-weight:500;color:var(--green-dark);">$${fmt(fp)}</span></div>
-      ${sz?`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">Size</span><span style="font-size:12px;">${sz}</span></div>`:''}
-      <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="color:var(--text2);">Total stems</span><span>${(r.flowers||[]).filter(f=>f.name!=='None').reduce((s,f)=>s+f.qty,0)}</span></div>
-     </div>
-    </div>
+    ${tagHtml?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;">${tagHtml}</div>`:''}
    </div>
-  </div>`;refreshBudget();}
+   <div class="section">
+    ${ingSection('Flowers',r.flowers)}
+    ${ingSection('Greenery &amp; filler',r.fillers)}
+    ${ingSection('Plants',r.plants)}
+    ${extrasHtml}
+    ${!hasAny?'<div style="font-size:13px;color:var(--text3);font-style:italic;">No ingredients added yet.</div>':''}
+    ${r.notes?`<div style="margin-top:4px;padding-top:14px;border-top:0.5px solid var(--border);"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:5px;">Notes</div><div style="font-size:14px;color:var(--text);line-height:1.6;white-space:pre-wrap;">${r.notes}</div></div>`:''}
+   </div>
+  </div>`;
+}
 
 
 function refreshFinalPrice(){
@@ -1330,7 +1295,13 @@ function updateMarginTargets(){
 // ── Approval workflow ─────────────────────────────────────────
 function approveRecipe(){
   const r=recipes.find(x=>x.id===activeId);if(!r)return;
-  r.status='active';r.approvalNote='';
+  const nameField=document.getElementById('f_name');
+  const name=(nameField?nameField.value:(r.name||'')).trim();
+  if(!name){alert('Give the recipe a name before approving it.');if(nameField)nameField.focus();return;}
+  // Commit the current form first (so the name and any edits persist), then publish.
+  if(nameField)saveRecipe();
+  const rr=recipes.find(x=>x.id===activeId)||r;
+  rr.status='active';rr.approvalNote='';
   saveAll();filterRecipes();renderEditor();
 }
 function sendBackRecipe(){

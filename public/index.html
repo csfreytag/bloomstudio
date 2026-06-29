@@ -360,7 +360,7 @@ function defR(l){return l.map(x=>({n:x.n,p:x.p,r:x.r!==undefined?x.r:null,colors
 // Synced sheet lists have no "None" entry — prepend one so recipes can select
 // "no flower / no container" and default to it (instead of the first real item).
 function ensureNone(list){if(!list.some(x=>x.n&&x.n.trim()==='None'))list.unshift({n:'None',p:0,r:0});return list;}
-function sortByName(l){return l.slice().sort((a,b)=>String(a.n).toLowerCase().localeCompare(String(b.n).toLowerCase()));}
+function sortByName(l){const k=s=>String(s).toLowerCase().replace(/\s+/g,' ').trim();return l.slice().sort((a,b)=>k(a.n).localeCompare(k(b.n)));}
 function getMult(t){return(t==='flowers'||t==='fillers')?4:3.5;}
 function gpCost(list,name){const f=list.find(x=>x.n.trim()===name.trim());return f?f.p:0;}
 function gpPrice(list,name,mult){const f=list.find(x=>x.n.trim()===name.trim());if(!f)return 0;return(f.r!==null&&f.r!==undefined&&f.r>0)?f.r:(f.p||0)*(mult||1);}

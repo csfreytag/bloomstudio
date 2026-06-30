@@ -365,14 +365,18 @@ function getMult(t){return(t==='flowers'||t==='fillers')?4:3.5;}
 function gpCost(list,name){const f=list.find(x=>x.n.trim()===name.trim());return f?f.p:0;}
 function gpPrice(list,name,mult){const f=list.find(x=>x.n.trim()===name.trim());if(!f)return 0;return(f.r!==null&&f.r!==undefined&&f.r>0)?f.r:(f.p||0)*(mult||1);}
 // What this recipe would retail at against CURRENT ingredient prices (retail + labor).
-function suggestedRetail(r){
-  const ing=gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)+gpPrice(HARDGOODS,r.hardgood||'None',3.5)
+// Sum of every ingredient's retail price (flowers/fillers/plants + container/
+// accent/hardgood). This is what the line items add up to.
+function componentsRetail(r){
+  return gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)+gpPrice(HARDGOODS,r.hardgood||'None',3.5)
     +(r.flowers||[]).reduce((s,f)=>s+f.qty*gpPrice(FLOWERS,f.name,4),0)
     +(r.fillers||[]).reduce((s,f)=>s+f.qty*gpPrice(FILLERS,f.name,4),0)
     +(r.plants||[]).reduce((s,f)=>s+f.qty*gpPrice(PLANTS,f.name,3.5),0);
-  const pct=r.laborPct||0;
-  return pct<100?ing/(1-pct/100):ing;
 }
+// Auto retail = components + labor, where labor is laborPct% ON TOP of the
+// components (so $100 of components at 13% = $113).
+function autoRetail(r){return componentsRetail(r)*(1+(r.laborPct||0)/100);}
+function suggestedRetail(r){return autoRetail(r);}
 // Drift between a recipe's fixed selling price and current ingredient-based price.
 function driftInfo(r){
   const fixed=finalPrice(r),sugg=suggestedRetail(r);
@@ -497,14 +501,14 @@ function renderContent(){
   else renderCostsTab(r);
 }
 
-function finalPrice(r){return(r.adjPrice&&r.adjPrice>0)?r.adjPrice:r.calcPrice;}
+function finalPrice(r){return(r.adjPrice&&r.adjPrice>0)?r.adjPrice:autoRetail(r);}
 function calcCost(r){
   const fp=finalPrice(r);
   const vp=gpCost(CONTAINERS,r.container||'None'),ap=gpCost(ACCENTS,r.accent||'None'),hp=gpCost(HARDGOODS,r.hardgood||'None');
   const fc=(r.flowers||[]).reduce((s,f)=>s+f.qty*gpCost(FLOWERS,f.name),0);
   const fil=(r.fillers||[]).reduce((s,f)=>s+f.qty*gpCost(FILLERS,f.name),0);
   const pc=(r.plants||[]).reduce((s,f)=>s+f.qty*gpCost(PLANTS,f.name),0);
-  const labor=fp*(r.laborPct||0)/100;
+  const labor=componentsRetail(r)*(r.laborPct||0)/100;
   const total=vp+ap+hp+fc+fil+pc+labor;
   const margin=fp>0?(fp-total)/fp*100:0;
   return{vp,ap,hp,fc,fil,pc,labor,total,margin,pct:r.laborPct||0,fp};
@@ -758,7 +762,6 @@ function saveRecipe(){
   const r=recipes.find(x=>x.id===activeId);if(!r)return;
   r.sku=document.getElementById('f_sku').value;
   r.name=document.getElementById('f_name').value;
-  r.calcPrice=parseFloat(document.getElementById('f_calcprice').value)||0;
   const adj=document.getElementById('f_adjprice').value;
   r.adjPrice=(adj&&parseFloat(adj)>0)?parseFloat(adj):null;
   const proj=document.getElementById('f_proj').value;
@@ -821,13 +824,13 @@ function renderRecipeTab(r){
     ?TAGS.map(t=>`<span class="recipe-tag-chip${(r.tags||[]).includes(t)?' selected':''}" data-tag="${t.replace(/"/g,'&quot;')}" onclick="this.classList.toggle('selected')">${t}</span>`).join('')
     :'<span class="no-tags-msg">No tags yet — add some in the Tags tab.</span>';
   const sz=sizeStr(r);
-  const adjNote=r.adjPrice&&r.adjPrice>0?`Adjusted from $${fmt(r.calcPrice)}`:'Using calculated price';
+  const adjNote=r.adjPrice&&r.adjPrice>0?`Adjusted from $${fmt(autoRetail(r))}`:'Ingredients + labor';
 
   document.getElementById('mainContent').innerHTML=`
   ${archivedBanner(r)}
   ${driftBanner(r)}
   <div class="stat-row" style="position:sticky;top:0;z-index:20;background:var(--bg3);padding:8px 0;margin-bottom:6px;">
-   <div class="stat-card"><div class="slabel">Running total</div><div class="sval" id="live_running" style="color:var(--blue)">$${fmt(suggestedRetail(r))}</div></div>
+   <div class="stat-card"><div class="slabel">Ingredients</div><div class="sval" id="live_running" style="color:var(--blue)">$${fmt(componentsRetail(r))}</div></div>
    <div class="stat-card"><div class="slabel">Final retail</div><div class="sval" id="live_retail" style="color:var(--green-dark)">$${fmt(fp)}</div></div>
    ${!isDesigner?`<div class="stat-card"><div class="slabel">Total cost</div><div class="sval" id="live_cost">$${fmt(c.total)}</div></div>
    <div class="stat-card"><div class="slabel">Gross margin</div><div class="sval" id="live_margin" style="color:${mColor(c.margin)}">${c.margin.toFixed(1)}%</div></div>`:''}
@@ -849,13 +852,13 @@ function renderRecipeTab(r){
      <div class="pricing-grid">
       <div class="price-box">
        <div class="pb-label">Calculated retail</div>
-       <div class="pb-val">$${fmt(r.calcPrice)}</div>
-       <div class="pb-note">From costs &amp; labor</div>
+       <div class="pb-val" id="calc_retail_display">$${fmt(autoRetail(r))}</div>
+       <div class="pb-note">Ingredients + labor</div>
       </div>
       <div class="price-box">
        <div class="pb-label">Adjusted retail <span style="font-style:italic;">(optional)</span></div>
-       <input id="f_adjprice" type="number" value="${r.adjPrice||''}" min="0" step="0.01" placeholder="e.g. 125.00" style="width:100%;margin-top:4px;" oninput="refreshFinalPrice()"/>
-       <div class="pb-note">Override to round</div>
+       <input id="f_adjprice" type="number" value="${r.adjPrice||''}" min="0" step="0.01" placeholder="round / fix" style="width:100%;margin-top:4px;" oninput="refreshFinalPrice()"/>
+       <div class="pb-note">Override to round or fix a price</div>
       </div>
       <div class="price-box final">
        <div class="pb-label">Final retail</div>
@@ -863,10 +866,7 @@ function renderRecipeTab(r){
        <div class="pb-note" id="final_price_note">${adjNote}</div>
       </div>
      </div>
-     <div style="margin-top:10px;">
-      <div class="field" style="max-width:160px;"><label>Set price / build-to target ($)</label><input id="f_calcprice" type="number" value="${r.calcPrice||''}" min="0" step="0.01" oninput="refreshFinalPrice()"/></div>
-     </div>
-     <div style="margin-top:10px;padding:8px 10px;background:var(--bg2);border-radius:var(--radius);font-size:13px;"><i class="ti ti-target" style="color:var(--green);"></i> <span id="buildToText">${buildToHtml(r)}</span></div>
+     <div style="margin-top:10px;padding:8px 10px;background:var(--bg2);border-radius:var(--radius);font-size:13px;"><i class="ti ti-calculator" style="color:var(--green);"></i> <span id="buildToText">${buildToHtml(r)}</span></div>
     </div>
     <div class="section">
      <h3>Container, accent &amp; hardgoods</h3>
@@ -898,11 +898,11 @@ function renderRecipeTab(r){
     </div>
     <div class="section">
      <h3>Labor</h3>
-     <p style="font-size:12px;color:var(--text2);margin-bottom:8px;font-style:italic;">% of final retail price ($${fmt(fp)})</p>
+     <p style="font-size:12px;color:var(--text2);margin-bottom:8px;font-style:italic;">Added on top of the ingredient total (ingredients $${fmt(componentsRetail(r))})</p>
      <div class="labor-row" style="display:flex;align-items:center;gap:8px;">
       <input type="number" id="f_laborpct" min="0" max="100" step="1" value="${r.laborPct||0}" oninput="refreshLaborDollar()" style="width:80px;"/>
-      <span style="font-size:13px;color:var(--text2);">% of final retail</span>
-      <span class="labor-dollar" id="labor_dollar">= $${fmt(c.labor)}</span>
+      <span style="font-size:13px;color:var(--text2);">% labor</span>
+      <span class="labor-dollar" id="labor_dollar">= $${fmt(componentsRetail(r)*(r.laborPct||0)/100)}</span>
      </div>
     </div>
     <div class="section">
@@ -990,9 +990,12 @@ function renderRecipeView(r){
 
   const totalStems=(r.flowers||[]).filter(f=>f.name!=='None').reduce((s,f)=>s+f.qty,0);
   const hasAny=totalStems>0||(r.fillers||[]).some(f=>f.name!=='None')||(r.plants||[]).some(f=>f.name!=='None')||extras.length>0;
+  const compR=componentsRetail(r),laborAmt=compR*(r.laborPct||0)/100;
   const totalsHtml=`<div style="margin-top:4px;padding-top:12px;border-top:0.5px solid var(--border);display:flex;flex-direction:column;gap:6px;">
-     <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);"><span>Labor (${c.pct}% of retail)</span><span>$${fmt(c.labor)}</span></div>
+     <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);"><span>Ingredients</span><span>$${fmt(compR)}</span></div>
+     <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);"><span>Labor (${r.laborPct||0}%)</span><span>$${fmt(laborAmt)}</span></div>
      <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;padding-top:6px;border-top:0.5px solid var(--border);"><span>Total price</span><span style="color:var(--green-dark);">$${fmt(fp)}</span></div>
+     ${(r.adjPrice&&r.adjPrice>0)?`<div style="font-size:11px;color:var(--text3);font-style:italic;text-align:right;">Adjusted from $${fmt(autoRetail(r))}</div>`:''}
     </div>`;
 
   document.getElementById('mainContent').innerHTML=`
@@ -1022,22 +1025,21 @@ function renderRecipeView(r){
 }
 
 
-function refreshFinalPrice(){
-  const calc=parseFloat(document.getElementById('f_calcprice')?.value)||0;
-  const adj=parseFloat(document.getElementById('f_adjprice')?.value)||0;
-  const fp=adj>0?adj:calc;
-  const el=document.getElementById('final_price_display');const en=document.getElementById('final_price_note');
-  if(el)el.textContent='$'+fmt(fp);
-  if(en)en.textContent=adj>0?`Adjusted from $${fmt(calc)}`:'Using calculated price';
-  refreshStatCards();
+// Sum the retail of every ingredient currently in the editor form.
+function liveComponents(){
+  let ing=gpPrice(CONTAINERS,document.getElementById('f_container')?.value||'None',3.5)
+    +gpPrice(ACCENTS,document.getElementById('f_accent')?.value||'None',3.5)
+    +gpPrice(HARDGOODS,document.getElementById('f_hardgood')?.value||'None',3.5);
+  document.querySelectorAll('.flower-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FLOWERS,n||'None',4);});
+  document.querySelectorAll('.filler-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FILLERS,n||'None',4);});
+  document.querySelectorAll('.plant-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(PLANTS,n||'None',3.5);});
+  return ing;
 }
+function refreshFinalPrice(){refreshStatCards();}
 function refreshLaborDollar(){
   const pct=parseFloat(document.getElementById('f_laborpct')?.value)||0;
-  const calc=parseFloat(document.getElementById('f_calcprice')?.value)||0;
-  const adj=parseFloat(document.getElementById('f_adjprice')?.value)||0;
-  const fp=adj>0?adj:calc;
-  const lb=document.getElementById('labor_pct_label');const ld=document.getElementById('labor_dollar');
-  if(lb)lb.textContent=pct+'%';if(ld)ld.textContent='= $'+fmt(fp*pct/100);
+  const ld=document.getElementById('labor_dollar');
+  if(ld)ld.textContent='= $'+fmt(liveComponents()*pct/100);
   refreshStatCards();
 }
 function refreshSize(){
@@ -1073,68 +1075,44 @@ function ingRow(f,type){
 }
 function refreshStatCards(){
   const r=recipes.find(x=>x.id===activeId);if(!r)return;
-  // Read live values from the form
-  const calc=parseFloat(document.getElementById('f_calcprice')?.value)||0;
   const adj=parseFloat(document.getElementById('f_adjprice')?.value)||0;
-  const fp=adj>0?adj:calc;
   const laborPct=parseFloat(document.getElementById('f_laborpct')?.value)||0;
-  const vp=gpCost(CONTAINERS,document.getElementById('f_container')?.value||'None');
-  const ap=gpCost(ACCENTS,document.getElementById('f_accent')?.value||'None');
-  const hp=gpCost(HARDGOODS,document.getElementById('f_hardgood')?.value||'None');
-  let fc=0;
-  document.querySelectorAll('.flower-row').forEach(row=>{
-    const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
-    fc+=q*gpCost(FLOWERS,n||'None');
-  });
-  let fil=0;
-  document.querySelectorAll('.filler-row').forEach(row=>{
-    const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
-    fil+=q*gpCost(FILLERS,n||'None');
-  });
-  let pc=0;
-  document.querySelectorAll('.plant-row').forEach(row=>{
-    const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
-    pc+=q*gpCost(PLANTS,n||'None');
-  });
-  const labor=fp*laborPct/100;
-  const total=vp+ap+hp+fc+fil+pc+labor;
+  const ing=liveComponents();
+  const auto=ing*(1+laborPct/100);
+  const fp=adj>0?adj:auto;
+  // Cost side (vendor costs are $0 until the Purchasing feed exists).
+  let costSum=gpCost(CONTAINERS,document.getElementById('f_container')?.value||'None')+gpCost(ACCENTS,document.getElementById('f_accent')?.value||'None')+gpCost(HARDGOODS,document.getElementById('f_hardgood')?.value||'None');
+  document.querySelectorAll('.flower-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;costSum+=q*gpCost(FLOWERS,n||'None');});
+  document.querySelectorAll('.filler-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;costSum+=q*gpCost(FILLERS,n||'None');});
+  document.querySelectorAll('.plant-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;costSum+=q*gpCost(PLANTS,n||'None');});
+  const total=costSum+ing*laborPct/100;
   const margin=fp>0?(fp-total)/fp*100:0;
-  const lr=document.getElementById('live_retail');
-  const lc=document.getElementById('live_cost');
-  const lm=document.getElementById('live_margin');
-  if(lr)lr.textContent='$'+fmt(fp);
-  if(lc)lc.textContent='$'+fmt(total);
-  if(lm){lm.textContent=margin.toFixed(1)+'%';lm.style.color=mColor(margin);}
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('live_retail','$'+fmt(fp));
+  set('calc_retail_display','$'+fmt(auto));
+  set('final_price_display','$'+fmt(fp));
+  const fn=document.getElementById('final_price_note');if(fn)fn.textContent=adj>0?('Adjusted from $'+fmt(auto)):'Ingredients + labor';
+  const lc=document.getElementById('live_cost');if(lc)lc.textContent='$'+fmt(total);
+  const lm=document.getElementById('live_margin');if(lm){lm.textContent=margin.toFixed(1)+'%';lm.style.color=mColor(margin);}
   refreshBudget();
 }
-// Build-to-price text from saved recipe data (used for the initial render).
+// Pricing breakdown text (initial render of #buildToText).
 function buildToHtml(r){
-  const target=finalPrice(r),laborPct=r.laborPct||0;
-  const ing=gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)+gpPrice(HARDGOODS,r.hardgood||'None',3.5)
-    +(r.flowers||[]).reduce((s,f)=>s+f.qty*gpPrice(FLOWERS,f.name,4),0)
-    +(r.fillers||[]).reduce((s,f)=>s+f.qty*gpPrice(FILLERS,f.name,4),0)
-    +(r.plants||[]).reduce((s,f)=>s+f.qty*gpPrice(PLANTS,f.name,3.5),0);
-  const running=laborPct<100?ing/(1-laborPct/100):ing;
-  if(!target) return `Counting up · ingredients <strong>$${fmt(ing)}</strong> · ~<strong>$${fmt(running)}</strong> with ${laborPct}% labor. Set a price above to count down to a target.`;
-  const budget=target*(1-laborPct/100),remaining=budget-ing,over=remaining<0;
-  return `Toward <strong>$${fmt(target)}</strong> · ingredients <strong>$${fmt(ing)}</strong> of $${fmt(budget)} · <span style="color:${over?'var(--red)':'var(--stem)'};font-weight:600;">${over?'$'+fmt(-remaining)+' over':'$'+fmt(remaining)+' left'}</span> <span style="color:var(--text3);">(after ${laborPct}% labor)</span>`;
+  const ing=componentsRetail(r),pct=r.laborPct||0,labor=ing*pct/100,auto=ing*(1+pct/100);
+  let txt=`Ingredients <strong>$${fmt(ing)}</strong> + ${pct}% labor <strong>$${fmt(labor)}</strong> = <strong>$${fmt(auto)}</strong>`;
+  if(r.adjPrice&&r.adjPrice>0)txt+=` · adjusted to <strong style="color:var(--green-dark);">$${fmt(r.adjPrice)}</strong>`;
+  return txt;
 }
-// Live "build to a price" tracker — ingredient retail used vs the target price.
+// Live pricing breakdown: ingredients + labor% = auto retail (and any override).
 function refreshBudget(){
-  const calc=parseFloat(document.getElementById('f_calcprice')?.value)||0;
-  const adj=parseFloat(document.getElementById('f_adjprice')?.value)||0;
-  const target=adj>0?adj:calc;
   const laborPct=parseFloat(document.getElementById('f_laborpct')?.value)||0;
-  let ing=gpPrice(CONTAINERS,document.getElementById('f_container')?.value||'None',3.5)+gpPrice(ACCENTS,document.getElementById('f_accent')?.value||'None',3.5)+gpPrice(HARDGOODS,document.getElementById('f_hardgood')?.value||'None',3.5);
-  document.querySelectorAll('#flowerRows tr').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FLOWERS,n||'None',4);});
-  document.querySelectorAll('#fillerRows tr').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FILLERS,n||'None',4);});
-  document.querySelectorAll('#plantRows tr').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(PLANTS,n||'None',3.5);});
-  const running=laborPct<100?ing/(1-laborPct/100):ing;
-  const lrun=document.getElementById('live_running'); if(lrun)lrun.textContent='$'+fmt(running);
+  const ing=liveComponents(),labor=ing*laborPct/100,auto=ing*(1+laborPct/100);
+  const adj=parseFloat(document.getElementById('f_adjprice')?.value)||0;
+  const lrun=document.getElementById('live_running'); if(lrun)lrun.textContent='$'+fmt(ing);
   const el=document.getElementById('buildToText'); if(!el) return;
-  if(!target){el.innerHTML=`Counting up · ingredients <strong>$${fmt(ing)}</strong> · ~<strong>$${fmt(running)}</strong> with ${laborPct}% labor. Set a price above to count down to a target.`;return;}
-  const budget=target*(1-laborPct/100),remaining=budget-ing,over=remaining<0;
-  el.innerHTML=`Toward <strong>$${fmt(target)}</strong> · ingredients <strong>$${fmt(ing)}</strong> of $${fmt(budget)} · <span style="color:${over?'var(--red)':'var(--stem)'};font-weight:600;">${over?'$'+fmt(-remaining)+' over':'$'+fmt(remaining)+' left'}</span> <span style="color:var(--text3);">(after ${laborPct}% labor)</span>`;
+  let txt=`Ingredients <strong>$${fmt(ing)}</strong> + ${laborPct}% labor <strong>$${fmt(labor)}</strong> = <strong>$${fmt(auto)}</strong>`;
+  if(adj>0)txt+=` · adjusted to <strong style="color:var(--green-dark);">$${fmt(adj)}</strong>`;
+  el.innerHTML=txt;
 }
 
 function updateRowCost(el){
@@ -1203,7 +1181,7 @@ function renderCostsTab(r){
    <div>
     <div class="section">
      <h3>Retail pricing</h3>
-     <div class="cb-row"><span>Calculated retail</span><span>$${fmt(r.calcPrice)}</span></div>
+     <div class="cb-row"><span>Calculated retail</span><span>$${fmt(autoRetail(r))}</span></div>
      ${r.adjPrice?`<div class="cb-row"><span>Adjusted retail <span style="font-size:11px;color:var(--text3);">(override)</span></span><span>$${fmt(r.adjPrice)}</span></div>`:''}
      <div class="cb-row" style="font-weight:600;"><span>Final retail</span><span style="color:var(--green-dark)">$${fmt(fp)}</span></div>
     </div>
@@ -1216,7 +1194,7 @@ function renderCostsTab(r){
      ${ingTable(FLOWERS,(r.flowers||[]).filter(f=>f.name!=='None'))}
      ${(r.fillers||[]).filter(f=>f.name!=='None').length?`<div class="cb-cat">Greenery &amp; filler</div>${ingTable(FILLERS,(r.fillers||[]).filter(f=>f.name!=='None'))}`:''}
      <div class="cb-cat">Labor</div>
-     <div class="cb-row"><span>Labor (${c.pct}% of $${fmt(fp)} final retail)</span><span>$${fmt(c.labor)}</span></div>
+     <div class="cb-row"><span>Labor (${c.pct}% of $${fmt(componentsRetail(r))} ingredients)</span><span>$${fmt(c.labor)}</span></div>
      <div class="cb-row total"><span>Total cost</span><span>$${fmt(c.total)}</span></div>
     </div>
     ${r.projection?`<div class="section"><h3>Projection analysis</h3>

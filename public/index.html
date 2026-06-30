@@ -501,7 +501,8 @@ function renderContent(){
   else renderCostsTab(r);
 }
 
-function finalPrice(r){return(r.adjPrice&&r.adjPrice>0)?r.adjPrice:autoRetail(r);}
+// Adjusted override → build-to target (calcPrice) → else auto from ingredients.
+function finalPrice(r){return(r.adjPrice&&r.adjPrice>0)?r.adjPrice:((r.calcPrice&&r.calcPrice>0)?r.calcPrice:autoRetail(r));}
 function calcCost(r){
   const fp=finalPrice(r);
   const vp=gpCost(CONTAINERS,r.container||'None'),ap=gpCost(ACCENTS,r.accent||'None'),hp=gpCost(HARDGOODS,r.hardgood||'None');
@@ -762,6 +763,7 @@ function saveRecipe(){
   const r=recipes.find(x=>x.id===activeId);if(!r)return;
   r.sku=document.getElementById('f_sku').value;
   r.name=document.getElementById('f_name').value;
+  r.calcPrice=parseFloat(document.getElementById('f_calcprice')?.value)||0;
   const adj=document.getElementById('f_adjprice').value;
   r.adjPrice=(adj&&parseFloat(adj)>0)?parseFloat(adj):null;
   const proj=document.getElementById('f_proj').value;
@@ -824,7 +826,7 @@ function renderRecipeTab(r){
     ?TAGS.map(t=>`<span class="recipe-tag-chip${(r.tags||[]).includes(t)?' selected':''}" data-tag="${t.replace(/"/g,'&quot;')}" onclick="this.classList.toggle('selected')">${t}</span>`).join('')
     :'<span class="no-tags-msg">No tags yet — add some in the Tags tab.</span>';
   const sz=sizeStr(r);
-  const adjNote=r.adjPrice&&r.adjPrice>0?`Adjusted from $${fmt(autoRetail(r))}`:'Ingredients + labor';
+  const adjNote=r.adjPrice&&r.adjPrice>0?`Adjusted from $${fmt(autoRetail(r))}`:((r.calcPrice&&r.calcPrice>0)?'Build-to target':'Ingredients + labor');
 
   document.getElementById('mainContent').innerHTML=`
   ${archivedBanner(r)}
@@ -865,6 +867,9 @@ function renderRecipeTab(r){
        <div class="pb-val" id="final_price_display">$${fmt(fp)}</div>
        <div class="pb-note" id="final_price_note">${adjNote}</div>
       </div>
+     </div>
+     <div style="margin-top:10px;">
+      <div class="field" style="max-width:220px;"><label>Build-to target ($) <span style="font-style:italic;color:var(--text3);">optional — blank = auto</span></label><input id="f_calcprice" type="number" value="${r.calcPrice||''}" min="0" step="0.01" placeholder="e.g. 125.00" oninput="refreshStatCards()"/></div>
      </div>
      <div style="margin-top:10px;padding:8px 10px;background:var(--bg2);border-radius:var(--radius);font-size:13px;"><i class="ti ti-calculator" style="color:var(--green);"></i> <span id="buildToText">${buildToHtml(r)}</span></div>
     </div>
@@ -1076,10 +1081,11 @@ function ingRow(f,type){
 function refreshStatCards(){
   const r=recipes.find(x=>x.id===activeId);if(!r)return;
   const adj=parseFloat(document.getElementById('f_adjprice')?.value)||0;
+  const target=parseFloat(document.getElementById('f_calcprice')?.value)||0;
   const laborPct=parseFloat(document.getElementById('f_laborpct')?.value)||0;
   const ing=liveComponents();
   const auto=ing*(1+laborPct/100);
-  const fp=adj>0?adj:auto;
+  const fp=adj>0?adj:(target>0?target:auto);
   // Cost side (vendor costs are $0 until the Purchasing feed exists).
   let costSum=gpCost(CONTAINERS,document.getElementById('f_container')?.value||'None')+gpCost(ACCENTS,document.getElementById('f_accent')?.value||'None')+gpCost(HARDGOODS,document.getElementById('f_hardgood')?.value||'None');
   document.querySelectorAll('.flower-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;costSum+=q*gpCost(FLOWERS,n||'None');});
@@ -1091,28 +1097,32 @@ function refreshStatCards(){
   set('live_retail','$'+fmt(fp));
   set('calc_retail_display','$'+fmt(auto));
   set('final_price_display','$'+fmt(fp));
-  const fn=document.getElementById('final_price_note');if(fn)fn.textContent=adj>0?('Adjusted from $'+fmt(auto)):'Ingredients + labor';
+  const fn=document.getElementById('final_price_note');if(fn)fn.textContent=adj>0?('Adjusted from $'+fmt(auto)):(target>0?'Build-to target':'Ingredients + labor');
   const lc=document.getElementById('live_cost');if(lc)lc.textContent='$'+fmt(total);
   const lm=document.getElementById('live_margin');if(lm){lm.textContent=margin.toFixed(1)+'%';lm.style.color=mColor(margin);}
   refreshBudget();
 }
-// Pricing breakdown text (initial render of #buildToText).
-function buildToHtml(r){
-  const ing=componentsRetail(r),pct=r.laborPct||0,labor=ing*pct/100,auto=ing*(1+pct/100);
-  let txt=`Ingredients <strong>$${fmt(ing)}</strong> + ${pct}% labor <strong>$${fmt(labor)}</strong> = <strong>$${fmt(auto)}</strong>`;
-  if(r.adjPrice&&r.adjPrice>0)txt+=` · adjusted to <strong style="color:var(--green-dark);">$${fmt(r.adjPrice)}</strong>`;
+// Shared breakdown text for both modes: count up (no target) or count down
+// toward a build-to target. budget = target / (1 + labor%) is the max you can
+// spend on ingredients so that ingredients + labor lands on the target.
+function buildToText(ing,pct,target,adj){
+  const labor=ing*pct/100,auto=ing*(1+pct/100);
+  if(target>0){
+    const budget=target/(1+pct/100),remaining=budget-ing,over=remaining<0;
+    return `Toward <strong>$${fmt(target)}</strong> · ingredients <strong>$${fmt(ing)}</strong> of <strong>$${fmt(budget)}</strong> · <span style="color:${over?'var(--red)':'var(--stem)'};font-weight:600;">${over?'$'+fmt(-remaining)+' over':'$'+fmt(remaining)+' left'}</span> <span style="color:var(--text3);">(after ${pct}% labor)</span>`;
+  }
+  let txt=`Counting up · ingredients <strong>$${fmt(ing)}</strong> + ${pct}% labor <strong>$${fmt(labor)}</strong> = <strong>$${fmt(auto)}</strong>`;
+  if(adj>0)txt+=` · adjusted to <strong style="color:var(--green-dark);">$${fmt(adj)}</strong>`;
   return txt;
 }
-// Live pricing breakdown: ingredients + labor% = auto retail (and any override).
+function buildToHtml(r){return buildToText(componentsRetail(r),r.laborPct||0,(r.calcPrice&&r.calcPrice>0)?r.calcPrice:0,(r.adjPrice&&r.adjPrice>0)?r.adjPrice:0);}
 function refreshBudget(){
-  const laborPct=parseFloat(document.getElementById('f_laborpct')?.value)||0;
-  const ing=liveComponents(),labor=ing*laborPct/100,auto=ing*(1+laborPct/100);
+  const pct=parseFloat(document.getElementById('f_laborpct')?.value)||0;
+  const ing=liveComponents();
+  const target=parseFloat(document.getElementById('f_calcprice')?.value)||0;
   const adj=parseFloat(document.getElementById('f_adjprice')?.value)||0;
   const lrun=document.getElementById('live_running'); if(lrun)lrun.textContent='$'+fmt(ing);
-  const el=document.getElementById('buildToText'); if(!el) return;
-  let txt=`Ingredients <strong>$${fmt(ing)}</strong> + ${laborPct}% labor <strong>$${fmt(labor)}</strong> = <strong>$${fmt(auto)}</strong>`;
-  if(adj>0)txt+=` · adjusted to <strong style="color:var(--green-dark);">$${fmt(adj)}</strong>`;
-  el.innerHTML=txt;
+  const el=document.getElementById('buildToText'); if(el)el.innerHTML=buildToText(ing,pct,target,adj);
 }
 
 function updateRowCost(el){

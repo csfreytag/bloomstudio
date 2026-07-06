@@ -759,8 +759,11 @@ function archivedBanner(r){
   const canPerm=(currentRole==='admin');
   return `<div style="background:var(--amber-light);border:0.5px solid var(--amber);border-radius:var(--radius);padding:8px 12px;margin-bottom:12px;font-size:13px;color:var(--amber);display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span><i class="ti ti-archive"></i> <strong>Archived</strong> — hidden from the main list, but safe and recoverable.</span><button onclick="restoreRecipe()" style="background:var(--stem);color:white;border:none;padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;">Restore</button>${canPerm?`<button onclick="deleteRecipePermanent()" style="background:none;border:0.5px solid var(--red);color:var(--red);padding:5px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;">Delete permanently</button>`:''}</div>`;
 }
-function saveRecipe(){
-  const r=recipes.find(x=>x.id===activeId);if(!r)return;
+// Read every field on the recipe-edit form into the recipe object. Used by
+// Save AND by anything that re-renders the editor (e.g. adding a photo) so
+// unsaved entries are never lost.
+function captureForm(r){
+  if(!r||!document.getElementById('f_name'))return;
   r.sku=document.getElementById('f_sku').value;
   r.name=document.getElementById('f_name').value;
   r.calcPrice=parseFloat(document.getElementById('f_calcprice')?.value)||0;
@@ -800,6 +803,10 @@ function saveRecipe(){
     const sel=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
     if(sel!=='None'&&qty>0)r.plants.push({name:sel,qty});
   });
+}
+function saveRecipe(){
+  const r=recipes.find(x=>x.id===activeId);if(!r)return;
+  captureForm(r);
   saveAll();filterRecipes();renderEditor();
 }
 async function saveAll(){
@@ -1150,10 +1157,10 @@ function addRow(type){
 function handlePhoto(e){
   const file=e.target.files[0];if(!file)return;
   const reader=new FileReader();
-  reader.onload=ev=>{const r=recipes.find(x=>x.id===activeId);if(!r)return;r.photo=ev.target.result;saveAll();renderContent();};
+  reader.onload=ev=>{const r=recipes.find(x=>x.id===activeId);if(!r)return;captureForm(r);r.photo=ev.target.result;saveAll();renderContent();};
   reader.readAsDataURL(file);
 }
-function removePhoto(){const r=recipes.find(x=>x.id===activeId);if(!r)return;r.photo=null;saveAll();renderContent();}
+function removePhoto(){const r=recipes.find(x=>x.id===activeId);if(!r)return;captureForm(r);r.photo=null;saveAll();renderContent();}
 
 function renderCostsTab(r){
   const c=calcCost(r),fp=finalPrice(r);

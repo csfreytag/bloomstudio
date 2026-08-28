@@ -96,7 +96,7 @@
     var s = document.createElement('style');
     s.id = 'fbAuthStyles';
     s.textContent = [
-      '#fbAuthOverlay{position:fixed;inset:0;z-index:9999;background:var(--bg3,#f7eef1);display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;}',
+      '#fbAuthOverlay{position:fixed;inset:0;z-index:9999;background:var(--bg3,#f7eef1);display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif;}',
       '#fbAuthCard{background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:12px;padding:30px 28px;width:340px;max-width:90vw;box-shadow:0 10px 40px rgba(0,0,0,0.08);text-align:center;}',
       '#fbAuthCard h2{font-size:18px;color:#8f0d2b;margin-bottom:4px;}',
       '#fbAuthCard p.sub{font-size:12px;color:#9b9b96;font-style:italic;margin-bottom:18px;}',
@@ -107,7 +107,7 @@
       '.fbDivider{display:flex;align-items:center;gap:8px;color:#9b9b96;font-size:11px;margin:14px 0;}',
       '.fbDivider::before,.fbDivider::after{content:"";flex:1;height:1px;background:rgba(0,0,0,0.1);}',
       '#fbAuthMsg{font-size:12px;color:#A32D2D;min-height:16px;margin-top:10px;}',
-      '#fbEnvBadge{position:fixed;bottom:10px;right:12px;z-index:9998;background:#854F0B;color:#fff;font-size:10px;font-family:Georgia,serif;padding:3px 9px;border-radius:10px;letter-spacing:0.04em;opacity:0.9;}'
+      '#fbEnvBadge{position:fixed;bottom:10px;right:12px;z-index:9998;background:#854F0B;color:#fff;font-size:10px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif;padding:3px 9px;border-radius:10px;letter-spacing:0.04em;opacity:0.9;}'
     ].join('\n');
     document.head.appendChild(s);
   }
@@ -412,6 +412,44 @@
 
     revokeInvite: function (email) {
       return fns().httpsCallable('revokeRecipeInvite')({ email: email })
+        .then(function (r) { return r.data; });
+    },
+
+    // ── Usage records (the real-fill log) ──────────────────────────────────
+    // One doc per logged arrangement: what a designer actually used, tied to an
+    // order number so it can later join to Orda. Auto-id docs; createdAt +
+    // author stamped server-side.
+    saveUsage: function (record) {
+      var clean = JSON.parse(JSON.stringify(record)); // drop undefined / functions
+      clean.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      clean.userId = ctx.user ? ctx.user.uid : '';
+      clean.userEmail = ctx.user ? ctx.user.email : '';
+      if (clean.id) {
+        var id = String(clean.id); delete clean.id;
+        return db.collection('usageRecords').doc(id).set(clean, { merge: true });
+      }
+      return db.collection('usageRecords').add(clean);
+    },
+
+    // Most-recent usage logs (default 30), newest first.
+    loadUsage: function (max) {
+      return db.collection('usageRecords')
+        .orderBy('createdAt', 'desc').limit(max || 30).get()
+        .then(function (snap) {
+          var out = [];
+          snap.forEach(function (d) { var x = d.data() || {}; x.id = d.id; out.push(x); });
+          return out;
+        });
+    },
+
+    deleteUsage: function (id) {
+      return db.collection('usageRecords').doc(String(id)).delete();
+    },
+
+    // Look up an order's line items from Orda (BigQuery) via the Cloud Function.
+    // Production only (functions don't run on the staging Spark tier).
+    lookupOrder: function (orderNumber) {
+      return fns().httpsCallable('lookupOrder')({ orderNumber: orderNumber })
         .then(function (r) { return r.data; });
     },
 

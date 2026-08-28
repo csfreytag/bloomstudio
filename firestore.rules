@@ -93,6 +93,18 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
+    // ---- usage records (what designers actually put in arrangements) ----
+    // The real-fill log: any Recipe Guide user (Designers included) may create
+    // and read. A user may edit/delete their OWN entries (quick corrections);
+    // staff may manage all. This is the raw feed that later joins to Orda order
+    // data (by orderNumber) to drive true consumption + purchasing.
+    match /usageRecords/{id} {
+      allow read:   if isRecipeUser();
+      allow create: if isRecipeUser();
+      allow update, delete: if isStaff()
+                    || (isRecipeUser() && resource.data.userId == request.auth.uid);
+    }
+
     // ---- change logs (append-only activity feed) -----------------
     // Any signed-in app user may append; only staff may read back.
     // No updates or deletes from the client.

@@ -27,6 +27,7 @@
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
+const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 
 admin.initializeApp();
@@ -34,6 +35,11 @@ const db = admin.firestore();
 
 // Match the project's existing functions region.
 setGlobalOptions({ region: 'us-central1' });
+
+// Service-account key (JSON) with read access to the Orda BigQuery datasets in
+// freytags-florist-analytics. Stored in Secret Manager; set with:
+//   firebase functions:secrets:set ORDA_SA_KEY
+const ORDA_SA_KEY = defineSecret('ORDA_SA_KEY');
 
 const VALID_ROLES = ['admin', 'manager', 'designer'];
 
@@ -45,6 +51,16 @@ async function assertRecipeAdmin(req) {
   const snap = await db.collection('users').doc(auth.uid).get();
   if (snap.exists && (snap.data() || {}).recipeGuideRole === 'admin') return;
   throw new HttpsError('permission-denied', 'Recipe Guide admins only.');
+}
+
+// Any Recipe Guide user (Designers included) — for read-only order lookups.
+async function assertRecipeUser(req) {
+  const auth = req.auth;
+  if (!auth) throw new HttpsError('unauthenticated', 'You must be signed in.');
+  if (auth.token && VALID_ROLES.includes(auth.token.recipeGuideRole)) return;
+  const snap = await db.collection('users').doc(auth.uid).get();
+  if (snap.exists && VALID_ROLES.includes((snap.data() || {}).recipeGuideRole)) return;
+  throw new HttpsError('permission-denied', 'Recipe Guide access required.');
 }
 
 function cleanEmail(e) { return String(e || '').trim().toLowerCase(); }
@@ -187,4 +203,75 @@ exports.revokeRecipeInvite = onCall(async (req) => {
   if (!email) throw new HttpsError('invalid-argument', 'An email is required.');
   await db.collection('recipeInvites').doc(email).delete();
   return { ok: true, email };
+});
+
+// ── Orda order lookup (BigQuery, near-real-time raw layer) ──────────────────
+// Given an order number, return its line items so a designer can log usage
+// against the actual order. Read-only; any Recipe Guide user may call it.
+// Queries orda_raw.dbo_ORDERS_PRODUCTS in freytags-florist-analytics using the
+// analytics service-account key (ORDA_SA_KEY secret).
+exports.lookupOrder = onCall({ secrets: [ORDA_SA_KEY] }, async (req) => {
+  await assertRecipeUser(req);
+  const orderNumber = String((req.data && req.data.orderNumber) || '').trim();
+  if (!orderNumber) throw new HttpsError('invalid-argument', 'An order number is required.');
+
+  let creds;
+  try { creds = JSON.parse(ORDA_SA_KEY.value()); }
+  catch (e) { throw new HttpsError('failed-precondition', 'Orda credentials are not configured.'); }
+
+  const { BigQuery } = require('@google-cloud/bigquery');
+  // Drive scope is needed because the funeral-account list is a Google
+  // Sheet-backed external table (v_funeral_accounts).
+  const bq = new BigQuery({
+    projectId: creds.project_id,
+    credentials: creds,
+    scopes: ['https://www.googleapis.com/auth/bigquery', 'https://www.googleapis.com/auth/drive.readonly']
+  });
+
+  const params = { ord: orderNumber, ordPad: orderNumber.padStart(8, '0') };
+  // Match the exact number, or a zero-padded/'0'-prefixed variant, so a barcode
+  // that drops or adds leading zeros still resolves.
+  const query = `
+    SELECT TRIM(product_code) AS productCode,
+           product_description AS description,
+           units, unit_price AS unitPrice
+    FROM \`freytags-florist-analytics.orda_raw.dbo_ORDERS_PRODUCTS\`
+    WHERE order_number = @ord
+       OR order_number = @ordPad
+       OR SAFE_CAST(order_number AS INT64) = SAFE_CAST(@ord AS INT64)
+    ORDER BY product_number`;
+  // Run the line-items query and the header/funeral query CONCURRENTLY so the
+  // lookup is fast. The header query is best-effort (never fails the lookup).
+  const linesQ = bq.query({ query, params, location: 'us-central1' });
+  const hdrQ = bq.query({
+    query: `
+      SELECT ANY_VALUE(o.sold_name) AS soldName,
+             LOGICAL_OR(LPAD(TRIM(o.sold_account), 8, '0') IN (
+               SELECT sold_account FROM \`freytags-florist-analytics.orda_analytics.v_funeral_accounts\`
+             )) AS isFuneral
+      FROM \`freytags-florist-analytics.orda_raw.dbo_ORDERS\` o
+      WHERE o.order_number = @ord
+         OR o.order_number = @ordPad
+         OR SAFE_CAST(o.order_number AS INT64) = SAFE_CAST(@ord AS INT64)`,
+    params, location: 'us-central1'
+  }).catch(() => [[]]); // swallow — funeral flag is optional
+
+  let rows;
+  try {
+    [rows] = await linesQ;
+  } catch (e) {
+    throw new HttpsError('internal', 'Order lookup failed: ' + (e.message || e));
+  }
+  const lines = (rows || []).map(r => ({
+    productCode: r.productCode || '',
+    description: r.description || '',
+    units: Number(r.units) || 0,
+    unitPrice: r.unitPrice != null ? Number(r.unitPrice) : null
+  }));
+
+  let isFuneral = false, soldName = null;
+  const [hdr] = await hdrQ;
+  if (hdr && hdr[0]) { soldName = hdr[0].soldName || null; isFuneral = !!hdr[0].isFuneral; }
+
+  return { ok: true, orderNumber, lines, soldName, isFuneral };
 });

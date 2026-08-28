@@ -56,6 +56,24 @@ const SOURCES = [
   { tab: 'ACCENTS',    blocks: [ { name: 0, price: 1, target: 'accents' } ] }
 ];
 
+// ── Alternate layout: the PRODUCT SPREADSHEET (recipes + prices in one file) ──
+// Same workbook the recipes live in, so ingredient names line up automatically.
+// Structural differences vs PRICE SHEETS:
+//   · CUT FLOWERS lists one row PER COLOR ("Alstroemeria - White"); splitColor
+//     re-aggregates to parent + colors[] so the app's color dropdown still works.
+//   · SYMPATHY FORMS/HARDGOODS is shifted one column right (name in B, price in C).
+//   · col B is the final retail price in every tab; cost columns are ignored.
+// Select with --layout=product (defaults the sheet id to PRODUCT_SHEET_ID).
+const PRODUCT_SHEET_ID = '1bhPOKRkqVmAtyIxim61Y9LBX4udiDr2z4bnc0Su2PZY';
+const PRODUCT_SOURCES = [
+  { tab: 'CUT FLOWERS',              headerRows: 1, blocks: [ { name: 0, price: 1, target: 'flowers', splitColor: true } ] },
+  { tab: 'CONTAINERS/VASES',         headerRows: 1, blocks: [ { name: 0, price: 1, target: 'containers' } ] },
+  { tab: 'GREENERY',                 headerRows: 1, blocks: [ { name: 0, price: 1, target: 'fillers' } ] },
+  { tab: 'ACCENTS',                  headerRows: 1, blocks: [ { name: 0, price: 1, target: 'accents' } ] },
+  { tab: 'PLANTS',                   headerRows: 1, blocks: [ { name: 0, price: 1, target: 'plants' } ] },
+  { tab: 'SYMPATHY FORMS/HARDGOODS', headerRows: 2, blocks: [ { name: 1, price: 2, target: 'hardgoods' } ] }
+];
+
 // Categories the app keeps that the sheet never manages (left untouched on write).
 // (Accents is pre-wired above but skipped until an ACCENTS tab exists.)
 const UNMANAGED_KEYS = [];
@@ -73,7 +91,9 @@ const DO_WRITE = flag('write');
 const DO_DESCRIBE = flag('describe');
 const DO_LIST = flag('list');
 const CONFIRMED = flag('yes');
-const SHEET_ID = opt('sheet', DEFAULT_SHEET_ID);
+const LAYOUT = opt('layout', 'priceSheets');
+const ACTIVE_SOURCES = LAYOUT === 'product' ? PRODUCT_SOURCES : SOURCES;
+const SHEET_ID = opt('sheet', LAYOUT === 'product' ? PRODUCT_SHEET_ID : DEFAULT_SHEET_ID);
 const TARGET_PROJECT = opt('project', null);
 // Optional explicit service-account key file. If omitted, uses Application
 // Default Credentials (GOOGLE_APPLICATION_CREDENTIALS).
@@ -95,6 +115,24 @@ function parseMoney(raw) {
 }
 
 // (block parsing is handled inline in readSheet)
+
+// Re-aggregate a flat "Parent - Color" flower list into parent + colors[].
+// Splits on the LAST " - " (so "Rose - Spray - White" → parent "Rose - Spray",
+// color "White"), matching how the recipe importer splits names. Price is the
+// parent price (first non-null seen; colors of one flower share a price).
+function aggregateColors(items) {
+  const parents = new Map();
+  for (const it of items) {
+    const idx = it.n.lastIndexOf(' - ');
+    const parent = idx > 0 ? it.n.slice(0, idx).trim() : it.n.trim();
+    const color = idx > 0 ? it.n.slice(idx + 3).trim() : '';
+    if (!parents.has(parent)) parents.set(parent, { n: parent, p: 0, r: it.r, colors: [] });
+    const p = parents.get(parent);
+    if (p.r == null && it.r != null) p.r = it.r;
+    if (color && !p.colors.includes(color)) p.colors.push(color);
+  }
+  return [...parents.values()].map(p => { if (!p.colors.length) delete p.colors; return p; });
+}
 
 // ── List spreadsheets the service account can access (writes nothing) ──────--
 async function listSpreadsheets() {
@@ -154,7 +192,7 @@ async function readSheet() {
 
   const priceLists = {};
   const summary = [];
-  for (const src of SOURCES) {
+  for (const src of ACTIVE_SOURCES) {
     if (!existing.has(src.tab)) { summary.push({ tab: src.tab, skipped: true }); continue; }
     let rows = [];
     try {
@@ -176,6 +214,7 @@ async function readSheet() {
         const r = rows[i] || [];
         const name = (r[block.name] || '').trim();
         if (!name) continue;                   // skip blank cells
+        if (name.toLowerCase() === 'none') continue; // sheet's own None row (app adds its own)
         const item = { n: name, p: 0, r: parseMoney(r[block.price]) };
         // Optional per-flower color options (comma-separated cell). Only when
         // a colors column is configured for this block (set after the sheet's
@@ -186,15 +225,16 @@ async function readSheet() {
         }
         items.push(item);
       }
+      const finalItems = block.splitColor ? aggregateColors(items) : items;
       if (!priceLists[block.target]) priceLists[block.target] = [];
-      priceLists[block.target].push(...items);
+      priceLists[block.target].push(...finalItems);
       summary.push({
         tab: src.tab,
         blockName: (header[block.name] || '').trim() || '(block)',
         target: block.target,
-        count: items.length,
-        marketCount: items.filter(i => i.r == null).length,
-        sample: items.slice(0, 3)
+        count: finalItems.length,
+        marketCount: finalItems.filter(i => i.r == null).length,
+        sample: finalItems.slice(0, 3)
       });
     }
   }

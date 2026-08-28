@@ -10,12 +10,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
-<script src="firebase.js?v=2"></script>
+<script src="firebase.js?v=5"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #ffffff; --bg2: #fdf5f7; --bg3: #f7eef1;
-  --text: #1a1a18; --text2: #6b6b67; --text3: #9b9b96;
+  --bg: #ffffff; --bg2: #f5f6f8; --bg3: #eef0f3;
+  --text: #121212; --text2: #45453f; --text3: #6d6d67;
   --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
   --green: #C4133C; --green-dark: #8f0d2b; --green-light: #fde8ee;
   --stem: #1a5c2e; --stem-light: #e8f4ec;
@@ -24,7 +24,7 @@
   --blue: #185FA5; --blue-light: #E6F1FB;
   --radius: 8px; --radius-lg: 12px;
 }
-body { font-family: 'Georgia', serif; background: var(--bg3); color: var(--text); font-size: 14px; line-height: 1.5; height: 100vh; overflow: hidden; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: var(--bg3); color: var(--text); font-size: 14px; line-height: 1.5; height: 100vh; overflow: hidden; }
 input, select, button, textarea { font-family: inherit; font-size: 13px; }
 input[type=text], input[type=number], textarea { background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 5px 8px; color: var(--text); outline: none; transition: border-color 0.15s; }
 input[type=text]:focus, input[type=number]:focus, textarea:focus { border-color: var(--green); }
@@ -36,8 +36,8 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .sidebar-header { padding: 12px 14px 10px; border-bottom: 0.5px solid var(--border); background: var(--bg); }
 .sidebar-header img.logo { width: 100%; max-width: 210px; display: block; margin: 0 auto 4px; }
 .sidebar-header p { font-size: 11px; color: var(--text3); text-align: center; font-style: italic; letter-spacing: 0.04em; }
-.nav-tabs { display: flex; border-bottom: 0.5px solid var(--border); }
-.nav-tab { flex: 1; padding: 9px 2px; font-size: 10px; text-align: center; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; transition: all 0.15s; }
+.nav-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); border-bottom: 0.5px solid var(--border); }
+.nav-tab { padding: 11px 6px; font-size: 16px; text-align: center; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; transition: all 0.15s; }
 .nav-tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 500; }
 .nav-tab:hover:not(.active) { background: var(--bg2); }
 .search-filter { border-bottom: 0.5px solid var(--border); }
@@ -61,9 +61,9 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .recipe-item { padding: 9px 14px; cursor: pointer; border-left: 3px solid transparent; }
 .recipe-item:hover { background: var(--bg2); }
 .recipe-item.active { background: var(--bg2); border-left-color: var(--green); }
-.recipe-item .sku { font-size: 10px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; font-family: monospace; }
-.recipe-item .rname { font-size: 13px; color: var(--text); margin-top: 1px; }
-.recipe-item .rprice { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.recipe-item .sku { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; font-family: monospace; }
+.recipe-item .rname { font-size: 15.5px; color: var(--text); margin-top: 2px; }
+.recipe-item .rprice { font-size: 13px; color: var(--text2); margin-top: 1px; }
 .recipe-item .rtags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
 .tag-chip { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--stem-light); color: var(--stem); }
 .margin-pill { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 10px; margin-left: 3px; }
@@ -137,6 +137,17 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .del-btn:hover { color: var(--red); }
 .add-row-btn { margin-top: 8px; font-size: 12px; color: var(--stem); background: none; border: none; cursor: pointer; padding: 3px 0; display: flex; align-items: center; gap: 4px; }
 .add-row-btn:hover { text-decoration: underline; }
+/* Log tab reads bigger than the editor/calc — bump table, controls, buttons. */
+.usage-log .ing-table { font-size: 15.5px; }
+.usage-log .ing-table td { vertical-align: top; }
+.usage-log .ing-table th { font-size: 11.5px; }
+.usage-log .uf-orig { text-decoration: line-through; color: var(--text3); font-size: 12px; margin-top: 4px; }
+.usage-log .ing-table select, .usage-log .ing-table input[type=number] { font-size: 15px; }
+.usage-log .ing-table .del-btn { font-size: 20px; padding: 4px 8px; }
+.usage-log .ing-table .sub-btn { font-size: 20px; }
+.usage-log .field label { font-size: 13.5px; }
+.usage-log .field select, .usage-log .field input { font-size: 15px; }
+.usage-log .add-row-btn { font-size: 14px; }
 .tags-select { display: flex; flex-wrap: wrap; gap: 5px; }
 .recipe-tag-chip { font-size: 12px; padding: 3px 10px; border-radius: 12px; border: 0.5px solid var(--border2); cursor: pointer; background: var(--bg2); color: var(--text2); user-select: none; }
 .recipe-tag-chip.selected { background: var(--stem); border-color: var(--stem); color: white; }
@@ -235,6 +246,8 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
   </div>
   <div class="nav-tabs">
    <button class="nav-tab active" id="nt-recipes" onclick="setNav('recipes')">Recipes</button>
+   <button class="nav-tab" id="nt-usage" onclick="setNav('usage')">Log</button>
+   <button class="nav-tab" id="nt-production" onclick="setNav('production')">Production</button>
    <button class="nav-tab" id="nt-prices" onclick="setNav('prices')">Prices</button>
    <button class="nav-tab" id="nt-calc" onclick="setNav('calc')">Calc</button>
    <button class="nav-tab" id="nt-order" onclick="setNav('order')">Order</button>
@@ -270,6 +283,16 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
    </div>
    <div class="recipe-list" id="recipeList"></div>
    <button class="new-btn" onclick="newRecipe()"><i class="ti ti-plus"></i> New recipe</button>
+  </div>
+  <div id="sidebar-usage" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+   <div class="pl-nav">
+    <p>Log what you actually put in an arrangement — scan or enter the order, then confirm the recipe or enter a custom build.</p>
+   </div>
+  </div>
+  <div id="sidebar-production" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+   <div class="pl-nav">
+    <p>Log pre-made / batch items as you make them — quantity + recipe (or a custom build to a price). Records what you used, including any substitutions, so it travels with the item.</p>
+   </div>
   </div>
   <div id="sidebar-prices" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
    <div class="pl-nav">
@@ -401,6 +424,7 @@ let FILLERS=[];const DEFAULT_FILLERS=defR([{n:"None",p:0},{n:"Babys Breath Stem"
 let CONTAINERS=[];const DEFAULT_CONTAINERS=defR([{n:"None",p:0},{n:"EOS COLLECTION",p:27},{n:"Two dozen vase",p:30},{n:"007 Vase",p:7},{n:"4x4 Cylinder",p:7},{n:"Riviera Vase",p:38},{n:"5x10",p:18},{n:"5x5 Cylinder",p:8},{n:"WD White ceramic 12x6x4",p:30},{n:"White Ginny Pot",p:30},{n:"6x6 Clear Cube",p:17},{n:"6x6 CYLINDER",p:12},{n:"G3 3055CLR Flare Vase",p:19},{n:"C999 Vase",p:5},{n:"7 inch White Cylinder",p:25},{n:"5x5 White Cylinder",p:12},{n:"7X4 White Ceramic Cyl",p:17},{n:"Red 4x4 Cube",p:7},{n:"Red 5x5 Cube",p:20},{n:"Red Upgraded Rose Vase",p:18},{n:"5x6 Clear Cylinder",p:8},{n:"6x8 Cylinder",p:15},{n:"6x6 Frosted Cube",p:25},{n:"6X6 Ginny Pot",p:30},{n:"Jordan Vase",p:16},{n:"6X4X12 Clear Rectangle",p:47},{n:"10x10 Clear Cylinder",p:36},{n:"5X10 Cylinder vase",p:18},{n:"10x10 Bubble Bowl",p:10},{n:"6x10 Cylinder",p:18},{n:"Rectangle Slate Gray Tray",p:18},{n:"White 6 inch Cylinder",p:18},{n:"3x5 Cylinder",p:4}]);
 let ACCENTS=[];const DEFAULT_ACCENTS=defR([{n:"None",p:0},{n:"Leaf Wrap",p:5},{n:"Multi-color Gems",p:3},{n:"Pink Ribbon",p:5},{n:"Purple Ribbon",p:5},{n:"Pink Gems",p:3},{n:"Red Gems",p:3},{n:"Red Heart Gems",p:3},{n:"Red Large Glass Gems",p:3},{n:"Red Ribbon",p:5},{n:"Rocks",p:3},{n:"Violet Ribbon",p:5},{n:"Yellow Ribbon",p:5},{n:"Clear Rocks",p:4}]);
 let HARDGOODS=[];const DEFAULT_HARDGOODS=defR([{n:"None",p:0},{n:"Bamboo Skewer",p:0.25},{n:"Corsage Pin",p:0.1},{n:"Floral Foam Block",p:2},{n:"Floral Tape - Green",p:0.5},{n:"Floral Tape - White",p:0.5},{n:"Floral Wire",p:0.1},{n:"Greening Pins",p:0.1},{n:"Mache Box - Small",p:4},{n:"Mache Box - Medium",p:6},{n:"Mache Box - Large",p:8},{n:"Organza Bag - Small",p:1},{n:"Organza Bag - Large",p:2},{n:"Pick - Wood",p:0.25},{n:"Tissue Paper",p:0.5},{n:"Wrap - Kraft",p:1},{n:"Wrap - Cellophane",p:1.5}]);
+let PAINTS=[];
 let PLANTS=[];const DEFAULT_PLANTS=defR([{n:"None",p:0},{n:"4\" Succulent",p:8},{n:"6\" Succulent",p:14},{n:"4\" Kalanchoe",p:6},{n:"6\" Kalanchoe",p:12},{n:"4\" Peace Lily",p:8},{n:"6\" Peace Lily",p:18},{n:"10\" Peace Lily",p:35},{n:"4\" Pothos",p:7},{n:"6\" Pothos",p:14},{n:"4\" Snake Plant",p:8},{n:"6\" Snake Plant",p:16},{n:"4\" ZZ Plant",p:10},{n:"6\" ZZ Plant",p:20},{n:"4\" Bromeliad",p:10},{n:"6\" Bromeliad",p:18},{n:"Mini Orchid",p:18},{n:"Single Stem Orchid",p:28},{n:"Double Stem Orchid",p:45},{n:"4\" Fern",p:6},{n:"6\" Fern",p:12},{n:"4\" Croton",p:8},{n:"6\" Croton",p:16},{n:"Dish Garden - Small",p:25},{n:"Dish Garden - Medium",p:45},{n:"Dish Garden - Large",p:75}]);
 let TAGS=[];const DEFAULT_TAGS=["Valentine's Day","Mother's Day","Christmas","Easter","Sympathy","Wedding","Birthday","Spring","Summer","Fall","Winter","Everyday","Premium","Under $75","Under $100","Under $150"];
 let activeTagFilters=[];
@@ -521,13 +545,15 @@ function sizeStr(r){const p=[];if(r.sizeH)p.push(r.sizeH+' in. tall');if(r.sizeW
 
 function setNav(nav){
   activeNav=nav;
-  ['recipes','prices','calc','order','reports','tags','users'].forEach(n=>{
+  ['recipes','usage','production','prices','calc','order','reports','tags','users'].forEach(n=>{
     const btn=document.getElementById('nt-'+n);
     if(btn)btn.classList.toggle('active',n===nav);
     const p=document.getElementById('sidebar-'+n);
     if(p)p.style.display=n===nav?'flex':'none';
   });
   if(nav==='users')showUsers();
+  else if(nav==='usage')renderUsageLog();
+  else if(nav==='production')renderProduction();
   else if(nav==='prices')showPL(activePL);
   else if(nav==='tags'){renderSidebarTags();renderTagsMain();}
   else if(nav==='calc')renderCalculator();
@@ -535,6 +561,11 @@ function setNav(nav){
   else if(nav==='reports'){showReport(activeReportView);}
   else if(nav==='recipes'&&activeId)renderEditor();
   else if(nav==='recipes')resetMain();
+  // Record this screen in browser history so Back navigates within the app
+  // instead of leaving the page (skip while restoring from a Back/Forward).
+  if(!uRestoring&&window.history&&history.pushState){
+    try{history.pushState({app:1,nav:activeNav,id:activeId||null,tab:activeTab||null},'');}catch(e){}
+  }
 }
 function resetMain(){
   document.getElementById('topTitle').textContent='Select a recipe';
@@ -773,6 +804,8 @@ function captureForm(r){
   r.projection=(proj&&parseFloat(proj)>0)?parseFloat(proj):null;
   r.container=document.getElementById('f_container').value;
   r.accent=document.getElementById('f_accent').value;
+  const accentPaint=[...document.querySelectorAll('.accent-paint-sel')].map(s=>s.value).filter(Boolean);
+  r.accentPaint=accentPaint.length?accentPaint:null;
   r.hardgood=document.getElementById('f_hardgood')?.value||'None';
   r.laborPct=parseFloat(document.getElementById('f_laborpct').value)||0;
   r.notes=document.getElementById('f_notes').value;
@@ -792,12 +825,14 @@ function captureForm(r){
   r.flowers=[];document.querySelectorAll('.flower-row').forEach(row=>{
     const sel=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
     const cs=row.querySelector('.f-color-sel'),color=cs?cs.value:'';
-    if(sel!=='None'&&qty>0){const o={name:sel,qty};if(color)o.color=color;r.flowers.push(o);}
+    const paint=[...row.querySelectorAll('.f-paint-sel')].map(s=>s.value).filter(Boolean);
+    if(sel!=='None'&&qty>0){const o={name:sel,qty};if(color)o.color=color;if(paint.length)o.paint=paint;r.flowers.push(o);}
   });
   r.fillers=[];document.querySelectorAll('.filler-row').forEach(row=>{
     const sel=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
     const cs=row.querySelector('.f-color-sel'),color=cs?cs.value:'';
-    if(sel!=='None'&&qty>0){const o={name:sel,qty};if(color)o.color=color;r.fillers.push(o);}
+    const paint=[...row.querySelectorAll('.f-paint-sel')].map(s=>s.value).filter(Boolean);
+    if(sel!=='None'&&qty>0){const o={name:sel,qty};if(color)o.color=color;if(paint.length)o.paint=paint;r.fillers.push(o);}
   });
   r.plants=[];document.querySelectorAll('.plant-row').forEach(row=>{
     const sel=row.querySelector('.f-sel').value,qty=parseFloat(row.querySelector('.f-qty').value)||0;
@@ -885,6 +920,7 @@ function renderRecipeTab(r){
      <div class="field-row">
       <div class="field"><label>Container</label><select id="f_container" onchange="refreshStatCards()">${mkOpts(CONTAINERS,r.container||'None')}</select></div>
       <div class="field"><label>Accent</label><select id="f_accent" onchange="refreshStatCards()">${mkOpts(ACCENTS,r.accent||'None')}</select></div>
+      <div class="field"><label>Accent paint</label><div id="accentPaintCell">${ingPaintCell(r.accentPaint,'accent-paint-sel')}</div></div>
      </div>
      <div class="field-row">
       <div class="field"><label>Hardgood <span style="font-style:italic;color:var(--text3)">(funeral base, etc.)</span></label><select id="f_hardgood" onchange="refreshStatCards()">${mkOpts(HARDGOODS,r.hardgood||'None')}</select></div>
@@ -892,13 +928,13 @@ function renderRecipeTab(r){
     </div>
     <div class="section">
      <h3>Flowers</h3>
-     <table class="ing-table"><thead><tr><th style="width:34%">Flower</th><th>Color</th><th>Stems</th><th>Each</th><th>Total</th><th></th></tr></thead>
+     <table class="ing-table"><thead><tr><th style="width:30%">Flower</th><th>Color</th><th>Paint</th><th>Stems</th><th>Each</th><th>Total</th><th></th></tr></thead>
      <tbody id="flowerRows">${flowers.map(f=>ingRow(f,'flower')).join('')}</tbody></table>
      <button class="add-row-btn" onclick="addRow('flower')"><i class="ti ti-plus"></i> Add flower</button>
     </div>
     <div class="section">
      <h3>Greenery &amp; filler</h3>
-     <table class="ing-table"><thead><tr><th style="width:34%">Filler</th><th>Color</th><th>Qty</th><th>Each</th><th>Total</th><th></th></tr></thead>
+     <table class="ing-table"><thead><tr><th style="width:30%">Filler</th><th>Color</th><th>Paint</th><th>Qty</th><th>Each</th><th>Total</th><th></th></tr></thead>
      <tbody id="fillerRows">${r.fillers.map(f=>ingRow(f,'filler')).join('')}</tbody></table>
      <button class="add-row-btn" onclick="addRow('filler')"><i class="ti ti-plus"></i> Add filler</button>
     </div>
@@ -980,7 +1016,7 @@ function renderRecipeView(r){
   const tagHtml=(r.tags||[]).map(t=>`<span style="font-size:11px;padding:3px 10px;background:var(--bg2);color:var(--text2);border:0.5px solid var(--border);border-radius:20px;">${t}</span>`).join('');
   const photoSafe=r.photo?r.photo.replace(/'/g,"\\'"):'';
   const photoHtml=r.photo
-    ?`<img src="${r.photo}" alt="${r.name||'Arrangement'}" onclick="openLightbox('${photoSafe}')" style="width:100%;max-height:400px;object-fit:cover;border-radius:var(--radius);cursor:zoom-in;display:block;"/>`
+    ?`<img src="${r.photo}" alt="${r.name||'Arrangement'}" onclick="openLightbox('${photoSafe}')" style="width:100%;max-height:400px;object-fit:contain;background:var(--bg2);border-radius:var(--radius);cursor:zoom-in;display:block;"/>`
     :`<div style="width:100%;height:220px;background:var(--bg2);border-radius:var(--radius);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;color:var(--text3);font-style:italic;font-size:13px;">No photo uploaded</div>`;
 
   // Ingredient list with per-line retail price (sell price, not cost).
@@ -989,24 +1025,29 @@ function renderRecipeView(r){
     if(!items.length)return'';
     const rows=items.map(f=>{
       const each=gpPrice(list,f.name,mult);
-      return `<li style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:14px;line-height:1.4;"><span style="min-width:40px;font-weight:600;color:var(--green-dark);">${f.qty}×</span><span style="flex:1;">${f.name}${f.color?` <span style="color:var(--text2);">— ${f.color}</span>`:''}</span><span style="color:var(--text2);white-space:nowrap;">$${fmt(f.qty*each)}</span></li>`;
+      return `<li style="display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:17.5px;line-height:1.45;"><span style="min-width:44px;font-weight:700;color:var(--text);">${f.qty}×</span><span style="flex:1;">${f.name}${f.color?` <span style="color:var(--text2);">— ${f.color}</span>`:''}${f.paint&&f.paint.length?` <span style="color:var(--accent2,#8a6d3b);">· painted ${f.paint.join(' + ')}</span>`:''}</span><span style="color:var(--text2);white-space:nowrap;">$${fmt(f.qty*each)}</span></li>`;
     }).join('');
-    return `<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">${title}</h3><ul style="list-style:none;margin:0;padding:0;">${rows}</ul></div>`;
+    return `<div style="margin-bottom:16px;"><h3 style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px;">${title}</h3><ul style="list-style:none;margin:0;padding:0;">${rows}</ul></div>`;
   }
 
   const extras=[];
   if(r.container&&r.container!=='None')extras.push(['Container',r.container,gpPrice(CONTAINERS,r.container,3.5)]);
-  if(r.accent&&r.accent!=='None')extras.push(['Accent',r.accent,gpPrice(ACCENTS,r.accent,3.5)]);
+  if(r.accent&&r.accent!=='None')extras.push(['Accent',r.accent+((r.accentPaint&&r.accentPaint.length)?` <span style="color:var(--accent2,#8a6d3b);">· painted ${r.accentPaint.join(' + ')}</span>`:''),gpPrice(ACCENTS,r.accent,3.5)]);
   if(r.hardgood&&r.hardgood!=='None')extras.push(['Hardgood',r.hardgood,gpPrice(HARDGOODS,r.hardgood,3.5)]);
-  const extrasHtml=extras.length?`<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Vessel &amp; extras</h3><ul style="list-style:none;margin:0;padding:0;">${extras.map(e=>`<li style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:14px;"><span style="min-width:84px;color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:0.04em;padding-top:2px;">${e[0]}</span><span style="flex:1;">${e[1]}</span><span style="color:var(--text2);white-space:nowrap;">$${fmt(e[2])}</span></li>`).join('')}</ul></div>`:'';
+  const extrasHtml=extras.length?`<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Vessel &amp; extras</h3><ul style="list-style:none;margin:0;padding:0;">${extras.map(e=>`<li style="display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:17.5px;"><span style="min-width:90px;color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;padding-top:3px;">${e[0]}</span><span style="flex:1;">${e[1]}</span><span style="color:var(--text2);white-space:nowrap;">$${fmt(e[2])}</span></li>`).join('')}</ul></div>`:'';
+
+  // Items listed on the recipe sheet that have no priced dropdown entry (glass,
+  // candles, ribbon, themed decor, discontinued bits). Shown so designers see
+  // the full arrangement; not separately priced (recipe total is the set price).
+  const alsoHtml=(r.extras&&r.extras.length)?`<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Also included</h3><ul style="list-style:none;margin:0;padding:0;">${r.extras.map(e=>`<li style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:14px;line-height:1.4;"><span style="min-width:40px;font-weight:600;color:var(--green-dark);">${e.qty}×</span><span style="flex:1;">${e.name}</span><span style="color:var(--text3);font-size:11px;white-space:nowrap;">incl.</span></li>`).join('')}</ul></div>`:'';
 
   const totalStems=(r.flowers||[]).filter(f=>f.name!=='None').reduce((s,f)=>s+f.qty,0);
-  const hasAny=totalStems>0||(r.fillers||[]).some(f=>f.name!=='None')||(r.plants||[]).some(f=>f.name!=='None')||extras.length>0;
+  const hasAny=totalStems>0||(r.fillers||[]).some(f=>f.name!=='None')||(r.plants||[]).some(f=>f.name!=='None')||extras.length>0||(r.extras&&r.extras.length>0);
   const compR=componentsRetail(r),laborAmt=compR*(r.laborPct||0)/100;
   const totalsHtml=`<div style="margin-top:4px;padding-top:12px;border-top:0.5px solid var(--border);display:flex;flex-direction:column;gap:6px;">
-     <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);"><span>Ingredients</span><span>$${fmt(compR)}</span></div>
-     <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);"><span>Labor (${r.laborPct||0}%)</span><span>$${fmt(laborAmt)}</span></div>
-     <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;padding-top:6px;border-top:0.5px solid var(--border);"><span>Total price</span><span style="color:var(--green-dark);">$${fmt(fp)}</span></div>
+     <div style="display:flex;justify-content:space-between;font-size:15px;color:var(--text2);"><span>Ingredients</span><span>$${fmt(compR)}</span></div>
+     <div style="display:flex;justify-content:space-between;font-size:15px;color:var(--text2);"><span>Labor (${r.laborPct||0}%)</span><span>$${fmt(laborAmt)}</span></div>
+     <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;padding-top:6px;border-top:0.5px solid var(--border);"><span>Total price</span><span style="color:var(--green-dark);">$${fmt(fp)}</span></div>
      ${(r.adjPrice&&r.adjPrice>0)?`<div style="font-size:11px;color:var(--text3);font-style:italic;text-align:right;">Adjusted from $${fmt(autoRetail(r))}</div>`:''}
     </div>`;
 
@@ -1016,24 +1057,49 @@ function renderRecipeView(r){
     ${r.photo?`<div style="font-size:11px;color:var(--text3);font-style:italic;text-align:center;margin-top:4px;">Tap the photo to enlarge</div>`:''}
    </div>
    <div class="section">
-    <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;font-family:monospace;">${r.sku||'—'}</div>
-    <div style="font-size:22px;color:var(--text);margin-top:2px;">${r.name||'Untitled'}</div>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;color:var(--text2);font-size:13px;">
+    <div style="font-size:15px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;font-family:monospace;">${r.sku||'—'}</div>
+    <div style="font-size:22px;color:var(--text);margin-top:3px;">${r.name||'Untitled'}</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;color:var(--text2);font-size:15px;">
      ${sz?`<span style="font-style:italic;">${sz}</span>`:''}
      ${(sz&&totalStems)?'<span style="color:var(--text3);">·</span>':''}
      ${totalStems?`<span>${totalStems} stem${totalStems!==1?'s':''}</span>`:''}
     </div>
     ${tagHtml?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;">${tagHtml}</div>`:''}
    </div>
+   <div class="section" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+    <div class="field" style="max-width:260px;flex:1;min-width:170px;">
+     <label>Making this for an order? Log it</label>
+     <input type="text" id="rv_order" placeholder="Scan or type the order #" autocomplete="off" style="font-size:16px;" onkeydown="if(event.key==='Enter'){event.preventDefault();uLogFromView(${r.id});}"/>
+    </div>
+    <button class="save-btn" onclick="uLogFromView(${r.id})"><i class="ti ti-clipboard-plus"></i> Log usage</button>
+   </div>
    <div class="section">
     ${ingSection('Flowers',r.flowers,FLOWERS,4)}
     ${ingSection('Greenery &amp; filler',r.fillers,FILLERS,4)}
     ${ingSection('Plants',r.plants,PLANTS,3.5)}
     ${extrasHtml}
+    ${alsoHtml}
     ${!hasAny?'<div style="font-size:13px;color:var(--text3);font-style:italic;">No ingredients added yet.</div>':totalsHtml}
-    ${r.notes?`<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border);"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:5px;">Notes</div><div style="font-size:14px;color:var(--text);line-height:1.6;white-space:pre-wrap;">${r.notes}</div></div>`:''}
+    ${r.notes?`<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border);"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:5px;">Notes</div><div style="font-size:16.5px;color:var(--text);line-height:1.6;white-space:pre-wrap;">${r.notes}</div></div>`:''}
    </div>
   </div>`;
+}
+// Shortcut from the recipe view: jump straight to the Log with this recipe
+// pre-loaded and (on prod) the typed order number looked up.
+function uLogFromView(recipeId){
+  const inp=document.getElementById('rv_order');
+  const ord=inp?(inp.value||'').trim():'';
+  setNav('usage');
+  const rs=document.getElementById('u_recipe');
+  if(rs){rs.value=String(recipeId);uPrefill();}   // sensible default / fallback
+  if(ord){
+    const of=document.getElementById('u_order');if(of)of.value=ord;
+    const vr=recipes.find(x=>String(x.id)===String(recipeId));
+    uExpectedSku=(vr&&vr.sku)?String(vr.sku).trim():'';   // remember what they were viewing
+    uExpectedName=(vr&&vr.name)?vr.name:uExpectedSku;
+    if(uIsProd())uLookupOrder();   // pulls the order; auto-loads its recipe + price
+  }
+  const oi=document.getElementById('u_order');if(oi)oi.focus();
 }
 
 
@@ -1069,6 +1135,15 @@ function ingColorCell(item,color){
   return `<select class="f-color-sel" style="font-size:12px;padding:3px 6px;max-width:140px;"><option value="">— any</option>`+
     colors.map(c=>`<option value="${esc(c)}"${c===sel?' selected':''}>${esc(c)}</option>`).join('')+`</select>`;
 }
+// Up to two paint shades per flower (descriptive — flowers can be painted one or
+// two colors). Options come from PAINTS; empty = not painted.
+function ingPaintCell(paint,cls){
+  paint=paint||[];cls=cls||'f-paint-sel';
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const one=sel=>`<select class="${cls}" style="font-size:12px;padding:3px 4px;max-width:118px;display:block;"><option value="">— none</option>`+
+    PAINTS.map(p=>`<option value="${esc(p)}"${p===sel?' selected':''}>${esc(p)}</option>`).join('')+`</select>`;
+  return one(paint[0]||'')+`<div style="height:3px;"></div>`+one(paint[1]||'');
+}
 function ingRow(f,type){
   const list=type==='flower'?FLOWERS:type==='plant'?PLANTS:FILLERS;
   const mult=type==='plant'?3.5:4;
@@ -1076,9 +1151,10 @@ function ingRow(f,type){
   const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*mult).toFixed(2));
   const total=f.qty*each;
   const colorTd=type==='plant'?'':`<td class="f-color">${ingColorCell(item,f.color)}</td>`;
+  const paintTd=(type==='flower'||type==='filler')?`<td class="f-paint" style="vertical-align:top;">${ingPaintCell(f.paint)}</td>`:'';
   return`<tr class="${type}-row">
     <td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,f.name)}</select></td>
-    ${colorTd}
+    ${colorTd}${paintTd}
     <td><input class="f-qty" type="number" value="${f.qty}" min="0" step="1" oninput="updateRowCost(this)" style="width:60px;"/></td>
     <td class="f-each" style="color:var(--text2);font-size:13px;white-space:nowrap;">$${fmt(each)}</td>
     <td class="f-cost" style="font-size:13px;font-weight:500;white-space:nowrap;">$${fmt(total)}</td>
@@ -1150,7 +1226,8 @@ function addRow(type){
   const tbody=document.getElementById(type==='flower'?'flowerRows':type==='plant'?'plantRows':'fillerRows'),tr=document.createElement('tr');
   tr.className=type+'-row';const list=type==='flower'?FLOWERS:type==='plant'?PLANTS:FILLERS;
   const colorTd=type==='plant'?'':`<td class="f-color">${ingColorCell(null,'')}</td>`;
-  tr.innerHTML=`<td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,'None')}</select></td>${colorTd}<td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateRowCost(this)" style="width:60px;"/></td><td class="f-each" style="color:var(--text2);font-size:13px;">$0.00</td><td class="f-cost" style="font-size:13px;font-weight:500;">$0.00</td><td><button class="del-btn" onclick="this.closest('tr').remove();refreshStatCards()"><i class="ti ti-x"></i></button></td>`;
+  const paintTd=(type==='flower'||type==='filler')?`<td class="f-paint" style="vertical-align:top;">${ingPaintCell([])}</td>`:'';
+  tr.innerHTML=`<td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,'None')}</select></td>${colorTd}${paintTd}<td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateRowCost(this)" style="width:60px;"/></td><td class="f-each" style="color:var(--text2);font-size:13px;">$0.00</td><td class="f-cost" style="font-size:13px;font-weight:500;">$0.00</td><td><button class="del-btn" onclick="this.closest('tr').remove();refreshStatCards()"><i class="ti ti-x"></i></button></td>`;
   tbody.appendChild(tr);
   refreshStatCards();
 }
@@ -1222,7 +1299,7 @@ function renderCostsTab(r){
     </div>`:''}
    </div>
    <div>
-    ${r.photo?`<div class="photo-box"><h3>Photo</h3><img src="${r.photo}" alt="photo" style="width:100%;border-radius:var(--radius);object-fit:cover;cursor:zoom-in;" onclick="openLightbox('${r.photo.replace(/'/g,"\\'")}')"/></div>`:''}
+    ${r.photo?`<div class="photo-box"><h3>Photo</h3><img src="${r.photo}" alt="photo" style="width:100%;max-height:400px;border-radius:var(--radius);object-fit:contain;background:var(--bg2);cursor:zoom-in;" onclick="openLightbox('${r.photo.replace(/'/g,"\\'")}')"/></div>`:''}
     ${sizeStr(r)?`<div class="section"><h3>Size</h3><div style="font-size:13px;color:var(--text2);">${sizeStr(r)}</div></div>`:''}
    </div>
   </div>`;
@@ -1800,6 +1877,773 @@ function exportOrderCSV(){
   a.download=tagLabel.replace(/[^a-z0-9]/gi,'_')+'_order.csv';a.click();
 }
 
+// ── Usage Log — designers record what they ACTUALLY put in an arrangement ──
+// Anchored to an order number (scanned or typed) so each log can later join to
+// Orda by orderNumber. Live order pull from Orda and voice entry arrive with
+// the production build (both need a server function); this is the manual
+// foundation. No pricing is shown here — this screen is designer-facing.
+let usageRecent=[];
+// Price-free option list (mkOpts appends "($x)" — never show that to designers).
+function uOptsPlain(list,sel){
+  sel=sel||'None';
+  return (list||[]).map(f=>{const e=String(f.n).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');return `<option value="${e}"${f.n.trim()===String(sel).trim()?' selected':''}>${e}</option>`;}).join('');
+}
+function uCells(f,type,fromRecipe){
+  f=f||{};
+  const list=type==='flower'?FLOWERS:type==='plant'?PLANTS:FILLERS;
+  const item=list.find(x=>x.n.trim()===String(f.name||'').trim());
+  const colorTd=type==='plant'?'':`<td class="uf-color">${ingColorCell(item,f.color)}</td>`;
+  const paintTd=type==='plant'?'':`<td class="uf-paint" style="vertical-align:top;">${ingPaintCell(f.paint,'uf-paint-sel')}</td>`;
+  // No Sub button — changing the flower or color on a recipe row auto-logs the
+  // substitution (consistent with how containers/accents/hardgoods work).
+  return `<td><select class="uf-sel" onchange="uRowChanged(this)">${mkOpts(list,f.name||'None')}</select></td>${colorTd}${paintTd}<td><input class="uf-qty" type="number" value="${f.qty!=null?f.qty:1}" min="0" step="1" style="width:56px;" oninput="uBudget()"/></td><td class="uf-cost" style="color:var(--text2);white-space:nowrap;font-size:13px;">$0.00</td><td style="white-space:nowrap;"><button class="del-btn" onclick="this.closest('tr').remove();uBudget()"><i class="ti ti-x"></i></button></td>`;
+}
+function uRowChanged(el){
+  const row=el.closest('tr');
+  const type=row.classList.contains('u-flower-row')?'flower':row.classList.contains('u-plant-row')?'plant':'filler';
+  const list=type==='flower'?FLOWERS:type==='plant'?PLANTS:FILLERS;
+  const item=list.find(x=>x.n.trim()===el.value.trim());
+  const cc=row.querySelector('.uf-color');
+  if(cc)cc.innerHTML=ingColorCell(item,'');
+  uMaybeAutoSub(row);
+  uBudget();
+}
+function uAddRow(type){
+  const tbody=document.getElementById(type==='flower'?'uFlowerRows':type==='plant'?'uPlantRows':'uFillerRows');
+  const tr=document.createElement('tr');tr.className='u-'+type+'-row';
+  tr.innerHTML=uCells({name:'None',qty:1},type);
+  tbody.appendChild(tr);
+}
+function uRows(items,type,fromRecipe){
+  items=(items||[]).filter(f=>f&&f.name&&f.name!=='None');
+  if(!items.length)items=[{name:'None',qty:1}];
+  const esc=s=>String(s).replace(/"/g,'&quot;');
+  return items.map(f=>`<tr class="u-${type}-row"${(fromRecipe&&f.name&&f.name!=='None')?` data-orig="${esc(f.name)}" data-orig-color="${esc(f.color||'')}"`:''}>${uCells(f,type,fromRecipe)}</tr>`).join('');
+}
+// Turn a recipe row into a substitution: strike the original item AND its color,
+// add a reason, and let them pick the replacement in place.
+function uMarkSubRow(row){
+  if(!row||row.dataset.sub==='1')return;
+  row.dataset.sub='1';
+  row.style.borderLeft='3px solid var(--amber)';
+  const strike=(txt)=>{const d=document.createElement('div');d.className='uf-orig';d.textContent=txt;return d;};
+  // Struck original goes UNDER each dropdown (not above), so the row stays aligned.
+  const nameCell=row.querySelector('td');
+  if(nameCell&&!nameCell.querySelector('.uf-orig'))nameCell.appendChild(strike(row.dataset.orig||''));
+  const origColor=row.dataset.origColor||'';
+  const colorCell=row.querySelector('.uf-color');
+  if(origColor&&colorCell&&!colorCell.querySelector('.uf-orig'))colorCell.appendChild(strike(origColor));
+  if(!nameCell.querySelector('.uf-reason')){
+    const rs=document.createElement('select');
+    rs.className='uf-reason';
+    rs.style.cssText='font-size:12px;margin-top:4px;display:block;max-width:130px;';
+    rs.innerHTML='<option value="out of stock" selected>Out of stock</option><option value="other">Other</option>';
+    nameCell.appendChild(rs);
+  }
+  const sb=row.querySelector('.sub-btn');if(sb)sb.style.display='none';
+  uBudget();
+}
+function uMarkSub(btn){uMarkSubRow(btn.closest('tr'));}
+// On a recipe row, ANY change from the original item OR its color counts as a
+// substitution — so a color change can't slip through unmarked.
+function uMaybeAutoSub(row){
+  if(!row||!row.dataset.orig||row.dataset.sub==='1')return;
+  const curName=row.querySelector('.uf-sel')?.value||'';
+  const curColor=row.querySelector('.f-color-sel')?.value||'';
+  const origName=row.dataset.orig||'', origColor=row.dataset.origColor||'';
+  if(curName!==origName || (origColor && curColor!==origColor)) uMarkSubRow(row);
+}
+function renderUsageLog(){
+  uMode='log';
+  document.getElementById('topTitle').textContent='Log Usage';
+  document.getElementById('tabBar').style.display='none';
+  document.getElementById('actionBtns').style.display='none';
+  const recipeOpts=recipes.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).map(r=>`<option value="${r.id}">${(r.name||'Untitled').replace(/</g,'&lt;')}${r.sku?' — '+r.sku:''}</option>`).join('');
+  document.getElementById('mainContent').innerHTML=`
+  <div class="usage-log">
+   <div class="section">
+    <h3>Order</h3>
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+     <div class="field" style="max-width:260px;flex:1;min-width:170px;">
+      <label>Order number</label>
+      <input type="text" id="u_order" placeholder="Scan the barcode or type the order #" autocomplete="off" style="font-size:16px;" onkeydown="if(event.key==='Enter'){event.preventDefault();uLookupOrder();}"/>
+     </div>
+     ${uIsProd()?`<button class="save-btn" onclick="uLookupOrder()"><i class="ti ti-search"></i> Look up order</button>`:''}
+     <div class="field" style="flex:1;min-width:220px;max-width:420px;">
+      <label>Base it on a recipe <span style="font-style:italic;color:var(--text3);">(optional)</span></label>
+      <select id="u_recipe" onchange="uPrefill()"><option value="">— Custom arrangement (start blank) —</option>${recipeOpts}</select>
+     </div>
+    </div>
+    <div id="uOrderLines" style="margin-top:10px;"></div>
+    <p style="font-size:12px;color:var(--text3);font-style:italic;margin-top:6px;">${uIsProd()?'Scan the barcode or type the number, then Look up. Or pick a recipe / leave blank for a custom build.':'A barcode scanner types the number straight into this box. Live Orda lookup runs on the live site (not staging).'}</p>
+   </div>
+   <div class="section" id="uBudgetPanel" style="display:none;">
+    <h3 id="u_valueHead">Build to price</h3>
+    <div id="u_customControls" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+     <div class="field" style="max-width:150px;"><label>Order price ($)</label><input type="number" id="u_target" min="0" step="0.01" placeholder="e.g. 100" oninput="uBudget()" style="width:100%;font-size:16px;"/></div>
+     <div class="field" style="max-width:130px;" id="u_laborWrap"><label>Labor</label><select id="u_labor" onchange="uBudget()" style="width:100%;"><option value="13" selected>13%</option><option value="20">20%</option><option value="custom">Custom…</option></select></div>
+     <div class="field" style="max-width:110px;display:none;" id="u_laborCustomWrap"><label>Labor %</label><input type="number" id="u_laborCustom" min="0" max="100" step="1" value="13" oninput="uBudget()" style="width:100%;"/></div>
+     <div class="field" style="max-width:130px;display:none;" id="u_discountWrap"><label>Discount %</label><input type="number" id="u_discount" min="0" max="100" step="1" value="30" oninput="uBudget()" style="width:100%;"/></div>
+     <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;padding-bottom:5px;"><input type="checkbox" id="u_funeral" onchange="uBudget()"/> Funeral home account <span style="color:var(--text3);font-size:11px;">(no labor; apply discount)</span></label>
+    </div>
+    <div id="u_budgetReadout" style="margin-top:12px;padding:12px 16px;background:var(--bg2);border-radius:var(--radius);font-size:18px;line-height:1.55;"></div>
+   </div>
+   <div class="section" id="uVoiceSection">
+    <h3>Speak what you used <span style="font-weight:normal;font-style:italic;font-size:11px;">(optional)</span></h3>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+     <button id="uMicBtn" class="save-btn" onclick="uToggleMic()"><i class="ti ti-microphone"></i> Start talking</button>
+     <button class="add-row-btn" onclick="uParseTranscript()"><i class="ti ti-wand"></i> Fill form from what I said</button>
+     <span id="uMicStatus" style="font-size:12px;color:var(--text3);"></span>
+    </div>
+    <textarea id="uTranscript" rows="2" style="width:100%;margin-top:8px;font-size:15px;" placeholder="Tap “Start talking” and say what you used — e.g. “three red roses, five white hydrangea, a 5 inch cylinder.” Watch the words appear; fix anything, then Fill the form."></textarea>
+   </div>
+   <div class="section">
+    <h3>Flowers</h3>
+    <table class="ing-table"><thead><tr><th style="width:30%">Flower</th><th>Color</th><th>Paint</th><th>Stems</th><th>Price</th><th></th></tr></thead><tbody id="uFlowerRows">${uRows([],'flower')}</tbody></table>
+    <button class="add-row-btn" onclick="uAddRow('flower')"><i class="ti ti-plus"></i> Add flower</button>
+   </div>
+   <div class="section">
+    <h3>Greenery &amp; filler</h3>
+    <table class="ing-table"><thead><tr><th style="width:30%">Filler</th><th>Color</th><th>Paint</th><th>Qty</th><th>Price</th><th></th></tr></thead><tbody id="uFillerRows">${uRows([],'filler')}</tbody></table>
+    <button class="add-row-btn" onclick="uAddRow('filler')"><i class="ti ti-plus"></i> Add filler</button>
+   </div>
+   <div class="section">
+    <h3>Plants <span style="font-weight:normal;font-style:italic;font-size:11px;">(for plant gardens)</span></h3>
+    <table class="ing-table"><thead><tr><th style="width:55%">Plant</th><th>Qty</th><th>Price</th><th></th></tr></thead><tbody id="uPlantRows">${uRows([],'plant')}</tbody></table>
+    <button class="add-row-btn" onclick="uAddRow('plant')"><i class="ti ti-plus"></i> Add plant</button>
+   </div>
+   <div class="section">
+    <h3>Container, accent &amp; hardgoods</h3>
+    <div class="field-row">
+     <div class="field"><label>Container</label><select id="u_container" onchange="uExtraChanged('container')">${mkOpts(CONTAINERS,'None')}</select><div id="u_container_sub" class="u-extra-sub" style="margin-top:4px;"></div></div>
+     <div class="field"><label>Accent</label><select id="u_accent" onchange="uExtraChanged('accent')">${mkOpts(ACCENTS,'None')}</select><div id="u_accent_sub" class="u-extra-sub" style="margin-top:4px;"></div></div>
+     <div class="field"><label>Accent paint</label><div id="uAccentPaint">${ingPaintCell([],'u-accent-paint-sel')}</div></div>
+    </div>
+    <div class="field-row">
+     <div class="field"><label>Hardgood</label><select id="u_hardgood" onchange="uExtraChanged('hardgood')">${mkOpts(HARDGOODS,'None')}</select><div id="u_hardgood_sub" class="u-extra-sub" style="margin-top:4px;"></div></div>
+    </div>
+   </div>
+   <div class="section">
+    <h3>Notes <span style="font-weight:normal;font-style:italic;font-size:11px;">(optional)</span></h3>
+    <textarea id="u_notes" rows="2" style="width:100%;" placeholder="Anything worth noting — why a substitution was made, etc."></textarea>
+   </div>
+   <div class="field" style="max-width:220px;margin-top:8px;"><label>Your employee #</label><input type="text" id="u_emp" autocomplete="off" placeholder="who filled this?" style="font-size:16px;"/></div>
+   <div id="uSaveMsg" style="font-size:13px;min-height:18px;margin:6px 0 8px;"></div>
+   <button class="save-btn" onclick="saveUsageLog()"><i class="ti ti-check"></i> Save usage log</button>
+   <div class="section" style="margin-top:16px;">
+    <h3>Recent logs</h3>
+    <div id="uRecent" style="font-size:13px;color:var(--text3);">Loading…</div>
+   </div>
+  </div>`;
+  const oi=document.getElementById('u_order');if(oi)oi.focus();
+  {const emp=document.getElementById('u_emp');if(emp)emp.value=uEmployeeNo;}
+  // Reset any prior speech session and gate the mic on browser support.
+  if(uRecog){try{uRecog.stop();}catch(e){}uRecog=null;} uListening=false;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){const b=document.getElementById('uMicBtn');if(b){b.disabled=true;b.style.opacity='0.5';}uSetMicStatus('Voice needs Chrome — you can still type above, then Fill the form.');}
+  // Color changes on a recipe row also count as a substitution.
+  ['uFlowerRows','uFillerRows','uPlantRows'].forEach(id=>{
+    const tb=document.getElementById(id);
+    if(tb)tb.addEventListener('change',function(e){
+      if(e.target.classList&&e.target.classList.contains('f-color-sel')){uMaybeAutoSub(e.target.closest('tr'));uBudget();}
+    });
+  });
+  uSyncBudgetPanel();
+  loadUsageRecent();
+}
+// Production log: pre-made / batch items. Same form as the Log (shared IDs), but
+// no order — a Quantity instead — and it keeps build-to-price for custom batches
+// ("make five $100 arrangements") and the recipe path for menu items.
+function renderProduction(){
+  uMode='production';
+  document.getElementById('topTitle').textContent='Production Log';
+  document.getElementById('tabBar').style.display='none';
+  document.getElementById('actionBtns').style.display='none';
+  const recipeOpts=recipes.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).map(r=>`<option value="${r.id}">${(r.name||'Untitled').replace(/</g,'&lt;')}${r.sku?' — '+r.sku:''}</option>`).join('');
+  document.getElementById('mainContent').innerHTML=`
+  <div class="usage-log">
+   <div class="section">
+    <h3>What are you making?</h3>
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+     <div class="field" style="max-width:110px;"><label>Quantity made</label><input type="number" id="u_qty" min="1" step="1" value="1" style="font-size:16px;"/></div>
+     <div class="field" style="max-width:190px;"><label>SKU</label><input type="text" id="u_sku" placeholder="Scan or type SKU" autocomplete="off" style="font-size:16px;" onkeydown="if(event.key==='Enter'){event.preventDefault();uSkuLookup();}" onchange="uSkuLookup()"/><div id="u_sku_note" style="font-size:11px;color:var(--amber);margin-top:3px;font-weight:600;"></div></div>
+     <div class="field" style="flex:1;min-width:200px;max-width:420px;">
+      <label>…or pick the menu item <span style="font-style:italic;color:var(--text3);">(or leave blank to build to a price)</span></label>
+      <select id="u_recipe" onchange="uPrefill()"><option value="">— Custom arrangement (start blank) —</option>${recipeOpts}</select>
+     </div>
+    </div>
+    <p style="font-size:12px;color:var(--text3);font-style:italic;margin-top:6px;">A batch you're pre-making — no order number. Scan/type the SKU (or pick the menu item), edit any substitutions below — or leave blank and build to a price (e.g. five $100 arrangements).</p>
+   </div>
+   <div class="section" id="uBudgetPanel" style="display:none;">
+    <h3 id="u_valueHead">Build to price</h3>
+    <div id="u_customControls" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+     <div class="field" style="max-width:150px;"><label>Price each ($)</label><input type="number" id="u_target" min="0" step="0.01" placeholder="e.g. 100" oninput="uBudget()" style="width:100%;font-size:16px;"/></div>
+     <div class="field" style="max-width:130px;" id="u_laborWrap"><label>Labor</label><select id="u_labor" onchange="uBudget()" style="width:100%;"><option value="13" selected>13%</option><option value="20">20%</option><option value="custom">Custom…</option></select></div>
+     <div class="field" style="max-width:110px;display:none;" id="u_laborCustomWrap"><label>Labor %</label><input type="number" id="u_laborCustom" min="0" max="100" step="1" value="13" oninput="uBudget()" style="width:100%;"/></div>
+     <div class="field" style="max-width:130px;display:none;" id="u_discountWrap"><label>Discount %</label><input type="number" id="u_discount" min="0" max="100" step="1" value="30" oninput="uBudget()" style="width:100%;"/></div>
+     <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;padding-bottom:5px;"><input type="checkbox" id="u_funeral" onchange="uBudget()"/> Funeral home account <span style="color:var(--text3);font-size:11px;">(no labor; apply discount)</span></label>
+    </div>
+    <div id="u_budgetReadout" style="margin-top:12px;padding:12px 16px;background:var(--bg2);border-radius:var(--radius);font-size:18px;line-height:1.55;"></div>
+   </div>
+   <div class="section" id="uVoiceSection">
+    <h3>Speak what you used <span style="font-weight:normal;font-style:italic;font-size:11px;">(optional)</span></h3>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+     <button id="uMicBtn" class="save-btn" onclick="uToggleMic()"><i class="ti ti-microphone"></i> Start talking</button>
+     <button class="add-row-btn" onclick="uParseTranscript()"><i class="ti ti-wand"></i> Fill form from what I said</button>
+     <span id="uMicStatus" style="font-size:12px;color:var(--text3);"></span>
+    </div>
+    <textarea id="uTranscript" rows="2" style="width:100%;margin-top:8px;font-size:15px;" placeholder="Tap “Start talking” and say what you used — e.g. “three red roses, five white hydrangea, a 5 inch cylinder.” Watch the words appear; fix anything, then Fill the form."></textarea>
+   </div>
+   <div class="section">
+    <h3>Flowers</h3>
+    <table class="ing-table"><thead><tr><th style="width:30%">Flower</th><th>Color</th><th>Paint</th><th>Stems</th><th>Price</th><th></th></tr></thead><tbody id="uFlowerRows">${uRows([],'flower')}</tbody></table>
+    <button class="add-row-btn" onclick="uAddRow('flower')"><i class="ti ti-plus"></i> Add flower</button>
+   </div>
+   <div class="section">
+    <h3>Greenery &amp; filler</h3>
+    <table class="ing-table"><thead><tr><th style="width:30%">Filler</th><th>Color</th><th>Paint</th><th>Qty</th><th>Price</th><th></th></tr></thead><tbody id="uFillerRows">${uRows([],'filler')}</tbody></table>
+    <button class="add-row-btn" onclick="uAddRow('filler')"><i class="ti ti-plus"></i> Add filler</button>
+   </div>
+   <div class="section">
+    <h3>Plants <span style="font-weight:normal;font-style:italic;font-size:11px;">(for plant gardens)</span></h3>
+    <table class="ing-table"><thead><tr><th style="width:55%">Plant</th><th>Qty</th><th>Price</th><th></th></tr></thead><tbody id="uPlantRows">${uRows([],'plant')}</tbody></table>
+    <button class="add-row-btn" onclick="uAddRow('plant')"><i class="ti ti-plus"></i> Add plant</button>
+   </div>
+   <div class="section">
+    <h3>Container, accent &amp; hardgoods</h3>
+    <div class="field-row">
+     <div class="field"><label>Container</label><select id="u_container" onchange="uExtraChanged('container')">${mkOpts(CONTAINERS,'None')}</select><div id="u_container_sub" class="u-extra-sub" style="margin-top:4px;"></div></div>
+     <div class="field"><label>Accent</label><select id="u_accent" onchange="uExtraChanged('accent')">${mkOpts(ACCENTS,'None')}</select><div id="u_accent_sub" class="u-extra-sub" style="margin-top:4px;"></div></div>
+     <div class="field"><label>Accent paint</label><div id="uAccentPaint">${ingPaintCell([],'u-accent-paint-sel')}</div></div>
+    </div>
+    <div class="field-row">
+     <div class="field"><label>Hardgood</label><select id="u_hardgood" onchange="uExtraChanged('hardgood')">${mkOpts(HARDGOODS,'None')}</select><div id="u_hardgood_sub" class="u-extra-sub" style="margin-top:4px;"></div></div>
+    </div>
+   </div>
+   <div class="section">
+    <h3>Notes <span style="font-weight:normal;font-style:italic;font-size:11px;">(optional)</span></h3>
+    <textarea id="u_notes" rows="2" style="width:100%;" placeholder="Anything worth noting — why a substitution was made, etc."></textarea>
+   </div>
+   <div class="field" style="max-width:220px;margin-top:8px;"><label>Your employee #</label><input type="text" id="u_emp" autocomplete="off" placeholder="who's making this?" style="font-size:16px;"/></div>
+   <div id="uSaveMsg" style="font-size:13px;min-height:18px;margin:6px 0 8px;"></div>
+   <button class="save-btn" onclick="saveUsageLog()"><i class="ti ti-check"></i> Save production log</button>
+   <div class="section" style="margin-top:16px;">
+    <h3>Recent production logs</h3>
+    <div id="uRecent" style="font-size:13px;color:var(--text3);">Loading…</div>
+   </div>
+  </div>`;
+  const q=document.getElementById('u_qty');if(q)q.focus();
+  const emp=document.getElementById('u_emp');if(emp)emp.value=uEmployeeNo;
+  if(uRecog){try{uRecog.stop();}catch(e){}uRecog=null;} uListening=false;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){const b=document.getElementById('uMicBtn');if(b){b.disabled=true;b.style.opacity='0.5';}uSetMicStatus('Voice needs Chrome — you can still type above, then Fill the form.');}
+  ['uFlowerRows','uFillerRows','uPlantRows'].forEach(id=>{const tb=document.getElementById(id);if(tb)tb.addEventListener('change',function(e){if(e.target.classList&&e.target.classList.contains('f-color-sel')){uMaybeAutoSub(e.target.closest('tr'));uBudget();}});});
+  uSyncBudgetPanel();
+  loadUsageRecent();
+}
+function uPrefill(){
+  const id=document.getElementById('u_recipe').value;
+  if(!id){
+    document.getElementById('uFlowerRows').innerHTML=uRows([],'flower');
+    document.getElementById('uFillerRows').innerHTML=uRows([],'filler');
+    document.getElementById('uPlantRows').innerHTML=uRows([],'plant');
+    document.getElementById('u_container').value='None';
+    document.getElementById('u_accent').value='None';
+    document.getElementById('u_hardgood').value='None';
+    document.getElementById('uAccentPaint').innerHTML=ingPaintCell([],'u-accent-paint-sel');
+    uRecipeValue=0;uOrigExtra={};uOrderPrice=parseFloat(document.getElementById('u_target')?.value)||0;
+    ['container','accent','hardgood'].forEach(k=>{const b=document.getElementById('u_'+k+'_sub');if(b)b.innerHTML='';});
+    // A stale "Loaded <recipe>" banner must not linger once we're in a blank/custom state.
+    const oh=document.getElementById('uOrderHead');if(oh&&/Loaded/.test(oh.textContent))oh.innerHTML='';
+    {const sk=document.getElementById('u_sku');if(sk)sk.value='';const nt=document.getElementById('u_sku_note');if(nt)nt.textContent='';}
+    uSyncBudgetPanel();
+    return;
+  }
+  const r=recipes.find(x=>String(x.id)===String(id));if(!r)return;
+  uRecipeValue=componentsRetail(r);
+  ['container','accent','hardgood'].forEach(k=>{const b=document.getElementById('u_'+k+'_sub');if(b)b.innerHTML='';});
+  document.getElementById('uFlowerRows').innerHTML=uRows(r.flowers,'flower',true);
+  document.getElementById('uFillerRows').innerHTML=uRows(r.fillers,'filler',true);
+  document.getElementById('uPlantRows').innerHTML=uRows(r.plants,'plant',true);
+  document.getElementById('u_container').value=(r.container&&CONTAINERS.some(c=>c.n===r.container))?r.container:'None';
+  document.getElementById('u_accent').value=(r.accent&&ACCENTS.some(c=>c.n===r.accent))?r.accent:'None';
+  document.getElementById('u_hardgood').value=(r.hardgood&&HARDGOODS.some(c=>c.n===r.hardgood))?r.hardgood:'None';
+  document.getElementById('uAccentPaint').innerHTML=ingPaintCell(r.accentPaint||[],'u-accent-paint-sel');
+  uOrigExtra={container:document.getElementById('u_container').value,accent:document.getElementById('u_accent').value,hardgood:document.getElementById('u_hardgood').value};
+  uOrderPrice=finalPrice(r);   // default to the recipe's price; an order lookup overrides this
+  {const sk=document.getElementById('u_sku');if(sk)sk.value=r.sku||'';const nt=document.getElementById('u_sku_note');if(nt)nt.textContent='';}
+  uSyncBudgetPanel();
+}
+// Production: resolve a typed/scanned SKU to its recipe and load it.
+function uSkuLookup(){
+  const el=document.getElementById('u_sku');if(!el)return;
+  const sku=(el.value||'').trim();
+  const nt=document.getElementById('u_sku_note');
+  const sel=document.getElementById('u_recipe');
+  if(!sku){if(nt)nt.textContent='';return;}
+  const r=recipes.find(x=>String(x.sku||'').trim().toLowerCase()===sku.toLowerCase());
+  if(r){if(sel){sel.value=String(r.id);uPrefill();}}   // uPrefill re-sets the SKU field + clears the note
+  else if(nt){nt.textContent='⚠ No recipe for that SKU — check it, pick from the list, or build to a price.';}
+}
+// Container / accent / hardgood are single dropdowns; changing one from the
+// recipe's original marks a substitution (struck original + reason under it).
+function uExtraChanged(kind){
+  const sel=document.getElementById('u_'+kind);const box=document.getElementById('u_'+kind+'_sub');
+  const orig=uOrigExtra[kind]||'None';
+  if(box){
+    if(orig&&orig!=='None'&&sel.value!==orig){
+      box.innerHTML=`<span class="uf-orig">${String(orig).replace(/</g,'&lt;')}</span> <select class="u-extra-reason" data-kind="${kind}" style="font-size:11px;margin-left:4px;"><option value="out of stock" selected>Out of stock</option><option value="other">Other</option></select>`;
+    }else box.innerHTML='';
+  }
+  uBudget();
+}
+// The build-to-price panel is for CUSTOM orders (no base recipe). Show it when
+// custom, hide when a recipe is loaded (the recipe defines the contents).
+function uSyncBudgetPanel(){
+  const panel=document.getElementById('uBudgetPanel');if(!panel)return;
+  panel.style.display='';   // shown in both modes now
+  uBudget();
+}
+// Retail value of everything currently in the form (designers never see the
+// per-item figure — only the running total/'$ left' the work-down needs).
+function uValueUsed(){
+  let sum=0;
+  const add=(tb,list,mult)=>document.querySelectorAll('#'+tb+' tr').forEach(r=>{const n=r.querySelector('.uf-sel')?.value;const q=parseFloat(r.querySelector('.uf-qty')?.value)||0;if(n&&n!=='None')sum+=q*gpPrice(list,n,mult);});
+  add('uFlowerRows',FLOWERS,4);add('uFillerRows',FILLERS,4);add('uPlantRows',PLANTS,3.5);
+  const c=document.getElementById('u_container')?.value;if(c&&c!=='None')sum+=gpPrice(CONTAINERS,c,3.5);
+  const a=document.getElementById('u_accent')?.value;if(a&&a!=='None')sum+=gpPrice(ACCENTS,a,3.5);
+  const h=document.getElementById('u_hardgood')?.value;if(h&&h!=='None')sum+=gpPrice(HARDGOODS,h,3.5);
+  return sum;
+}
+// Standard: fill budget = price − labor%. Funeral: price − discount%, no labor.
+function uBudgetMath(){
+  const target=parseFloat(document.getElementById('u_target')?.value)||0;
+  const funeral=!!document.getElementById('u_funeral')?.checked;
+  let deductPct,label;
+  if(funeral){deductPct=parseFloat(document.getElementById('u_discount')?.value)||0;label='funeral '+deductPct+'% off';}
+  else{const ls=document.getElementById('u_labor')?.value;deductPct=ls==='custom'?(parseFloat(document.getElementById('u_laborCustom')?.value)||0):(parseFloat(ls)||0);label=deductPct+'% labor';}
+  return {target,funeral,deductPct,label,budget:target>0?target*(1-deductPct/100):0,used:uValueUsed()};
+}
+// Update each ingredient row's Price cell (retail × qty).
+function uRefreshRowCosts(){
+  const upd=(tb,list,mult)=>document.querySelectorAll('#'+tb+' tr').forEach(r=>{const n=r.querySelector('.uf-sel')?.value;const q=parseFloat(r.querySelector('.uf-qty')?.value)||0;const c=r.querySelector('.uf-cost');if(c)c.textContent='$'+((n&&n!=='None')?(q*gpPrice(list,n,mult)):0).toFixed(2);});
+  upd('uFlowerRows',FLOWERS,4);upd('uFillerRows',FILLERS,4);upd('uPlantRows',PLANTS,3.5);
+}
+function uBudget(){
+  uRefreshRowCosts();
+  const panel=document.getElementById('uBudgetPanel');if(!panel||panel.style.display==='none')return;
+  const out=document.getElementById('u_budgetReadout');if(!out)return;
+  const custom=!document.getElementById('u_recipe').value;
+  const controls=document.getElementById('u_customControls');
+  const head=document.getElementById('u_valueHead');
+  const used=uValueUsed();
+  if(custom){
+    if(controls)controls.style.display='';
+    if(head)head.textContent='Build to price';
+    const funeral=!!document.getElementById('u_funeral')?.checked;
+    document.getElementById('u_laborWrap').style.display=funeral?'none':'';
+    document.getElementById('u_laborCustomWrap').style.display=(!funeral&&document.getElementById('u_labor').value==='custom')?'':'none';
+    document.getElementById('u_discountWrap').style.display=funeral?'':'none';
+    const m=uBudgetMath();
+    if(m.target<=0){out.innerHTML=`<span style="color:var(--text3);">Enter the price to see the fill budget. Value in arrangement so far: <strong>$${used.toFixed(2)}</strong></span>`;return;}
+    const remaining=m.budget-used;const over=remaining<-0.005;
+    out.innerHTML=`Price <strong>$${m.target.toFixed(2)}</strong> · ${m.label} → fill <strong>$${m.budget.toFixed(2)}</strong> of product`
+      +`<div style="margin-top:6px;font-size:16px;">Used <strong>$${used.toFixed(2)}</strong> · `
+      +(over?`<span style="color:var(--red);font-weight:700;">$${(-remaining).toFixed(2)} OVER</span>`
+            :`<span style="color:var(--green);font-weight:700;">$${remaining.toFixed(2)} left</span>`)+`</div>`;
+  }else{
+    // Recipe mode: a CALM value-match helper vs the recipe's own design — NOT the
+    // sale price. Designers just match a swap (remove a $5, add a ~$5); the
+    // value-vs-price judgment is the owner's job (captured silently for a report).
+    if(controls)controls.style.display='none';
+    if(head)head.textContent='Arrangement value';
+    const designed=uRecipeValue||0;
+    if(designed<=0){out.innerHTML=`Value in arrangement: <strong>$${used.toFixed(2)}</strong>`;return;}
+    const diff=used-designed;
+    out.innerHTML=`Recipe as designed <strong>$${designed.toFixed(2)}</strong> · in arrangement now <strong>$${used.toFixed(2)}</strong>`
+      +(Math.abs(diff)<0.005?` <span style="color:var(--green);font-weight:600;">· matches</span>`
+        :diff>0?` <span style="color:var(--amber);font-weight:700;">· $${diff.toFixed(2)} over the recipe</span>`
+        :` <span style="color:var(--text2);font-weight:600;">· $${(-diff).toFixed(2)} under the recipe</span>`);
+  }
+}
+function uReadRows(tbodyId){
+  return [...document.querySelectorAll('#'+tbodyId+' tr')].map(row=>{
+    const sel=row.querySelector('.uf-sel');if(!sel)return null;
+    const name=sel.value;const qty=parseFloat(row.querySelector('.uf-qty').value)||0;
+    if(name==='None'||qty<=0)return null;
+    const o={name,qty};
+    const cs=row.querySelector('.f-color-sel');if(cs&&cs.value)o.color=cs.value;
+    const paint=[...row.querySelectorAll('.uf-paint-sel')].map(s=>s.value).filter(Boolean);
+    if(paint.length)o.paint=paint;
+    return o;
+  }).filter(Boolean);
+}
+function captureUsage(){
+  const production=uMode==='production';
+  const order=(document.getElementById('u_order')?.value||'').trim();
+  const qty=Math.max(1,parseInt(document.getElementById('u_qty')?.value,10)||1);
+  const baseId=document.getElementById('u_recipe').value;
+  const base=baseId?recipes.find(x=>String(x.id)===String(baseId)):null;
+  const container=document.getElementById('u_container').value;
+  const accent=document.getElementById('u_accent').value;
+  const hardgood=document.getElementById('u_hardgood').value;
+  const accentPaint=[...document.querySelectorAll('.u-accent-paint-sel')].map(s=>s.value).filter(Boolean);
+  const notes=(document.getElementById('u_notes').value||'').trim();
+  const flowers=uReadRows('uFlowerRows'),fillers=uReadRows('uFillerRows'),plants=uReadRows('uPlantRows');
+  let extra={};
+  if(!baseId){
+    const m=uBudgetMath();
+    extra={targetPrice:m.target||null,funeral:m.funeral,deductPct:m.deductPct,budget:m.target?+m.budget.toFixed(2):null,valueUsed:+m.used.toFixed(2)};
+  }else{
+    // Substitution capture: explicit "Sub" rows (with reason) + auto-diff of the
+    // final arrangement vs the recipe (catches plain X-and-add). Feeds purchasing
+    // the "wanted but out of stock" signal.
+    const subs=[];
+    document.querySelectorAll('#uFlowerRows tr[data-sub="1"], #uFillerRows tr[data-sub="1"], #uPlantRows tr[data-sub="1"]').forEach(row=>{
+      const from=row.dataset.orig||'';const toV=row.querySelector('.uf-sel')?.value||'';
+      const toColor=row.querySelector('.f-color-sel')?.value||'';
+      if(from)subs.push({from,fromColor:row.dataset.origColor||null,to:(toV&&toV!=='None')?toV:null,toColor:toColor||null,reason:row.querySelector('.uf-reason')?.value||'out of stock'});
+    });
+    // Container / accent / hardgood substitutions (single dropdowns).
+    [['container',container],['accent',accent],['hardgood',hardgood]].forEach(([kind,val])=>{
+      const orig=uOrigExtra[kind]||'None';
+      if(orig&&orig!=='None'&&val!==orig){
+        const rs=document.querySelector('.u-extra-reason[data-kind="'+kind+'"]');
+        subs.push({from:orig,to:val!=='None'?val:null,reason:rs?rs.value:'out of stock',category:kind});
+      }
+    });
+    const origNames=new Set([...(base.flowers||[]),...(base.fillers||[]),...(base.plants||[])].map(f=>f.name).filter(n=>n&&n!=='None'));
+    const finalNames=new Set([...flowers,...fillers,...plants].map(o=>o.name));
+    const subFrom=new Set(subs.map(s=>s.from)),subTo=new Set(subs.filter(s=>s.to).map(s=>s.to));
+    const dropped=[...origNames].filter(n=>!finalNames.has(n)&&!subFrom.has(n));
+    const added=[...finalNames].filter(n=>!origNames.has(n)&&!subTo.has(n));
+    // Silent (not shown to designers): sale price + arrangement value, for the
+    // owner's future "recipes over their price" report.
+    extra={substitutions:subs,dropped,added,orderPrice:uOrderPrice||null,designedValue:+(uRecipeValue||0).toFixed(2),valueUsed:+uValueUsed().toFixed(2)};
+  }
+  return Object.assign({
+    type:production?'production':'order',
+    orderNumber:production?null:order,
+    quantityMade:production?qty:null,
+    employeeNumber:(document.getElementById('u_emp')?.value||'').trim()||null,
+    baseRecipeId:baseId||null,
+    baseRecipeSku:base?(base.sku||null):null,
+    baseRecipeName:base?(base.name||null):null,
+    custom:!baseId,
+    flowers,fillers,plants,
+    container:container!=='None'?container:null,
+    accent:accent!=='None'?accent:null,
+    accentPaint:accentPaint.length?accentPaint:null,
+    hardgood:hardgood!=='None'?hardgood:null,
+    notes:notes||null
+  },extra);
+}
+function uMsg(t,ok){const el=document.getElementById('uSaveMsg');if(el){el.textContent=t||'';el.style.color=ok?'var(--green)':'var(--red)';}}
+function saveUsageLog(){
+  const rec=captureUsage();
+  const has=rec.flowers.length||rec.fillers.length||rec.plants.length||rec.container||rec.accent||rec.hardgood;
+  if(rec.type==='production'){
+    if(!rec.employeeNumber){uMsg('Enter your employee # before saving.');document.getElementById('u_emp')?.focus();return;}
+    if(!has){uMsg('Add at least one item you made.');return;}
+    uEmployeeNo=rec.employeeNumber;   // keep for the next batch at this station
+    uMsg('Saving…',true);
+    RecipeStore.saveUsage(rec).then(()=>{
+      RecipeStore.log('production.created','usage',rec.baseRecipeSku||'custom',rec.baseRecipeName||'Custom',{qty:rec.quantityMade,custom:rec.custom});
+      renderProduction();
+      setTimeout(()=>uMsg('Logged '+rec.quantityMade+' × '+(rec.baseRecipeName||'custom')+'. Ready for the next batch.',true),60);
+    }).catch(e=>{uMsg('Could not save: '+(e.message||e));});
+    return;
+  }
+  if(!rec.orderNumber){uMsg('Enter (or scan) the order number first.');document.getElementById('u_order').focus();return;}
+  if(!has){uMsg('Add at least one item you used.');return;}
+  if(!rec.employeeNumber){uMsg('Enter your employee # before saving.');document.getElementById('u_emp')?.focus();return;}
+  uEmployeeNo=rec.employeeNumber;   // keep for the next log at this station
+  uMsg('Saving…',true);
+  RecipeStore.saveUsage(rec).then(()=>{
+    RecipeStore.log('usage.created','usage',rec.orderNumber,rec.baseRecipeName||'Custom',{custom:rec.custom});
+    renderUsageLog();
+    setTimeout(()=>uMsg('Saved order '+rec.orderNumber+'. Ready for the next one.',true),60);
+  }).catch(e=>{uMsg('Could not save: '+(e.message||e));});
+}
+function loadUsageRecent(){
+  const el=document.getElementById('uRecent');if(!el)return;
+  const prodMode=uMode==='production';
+  RecipeStore.loadUsage(60).then(all=>{
+    const list=all.filter(u=>prodMode?u.type==='production':u.type!=='production').slice(0,30);
+    usageRecent=list;
+    if(!list.length){el.innerHTML='<span style="font-style:italic;">No logs yet.</span>';return;}
+    const me=(RecipeStore.context&&RecipeStore.context().user)?RecipeStore.context().user.uid:null;
+    el.innerHTML=list.map(u=>{
+      const n=(u.flowers||[]).length+(u.fillers||[]).length+(u.plants||[]).length+(u.container?1:0)+(u.accent?1:0)+(u.hardgood?1:0);
+      const who=(u.userEmail||'').split('@')[0];
+      const when=(u.createdAt&&u.createdAt.toDate)?u.createdAt.toDate().toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+      const label=u.custom?'<span style="color:var(--amber);">Custom</span>':('Recipe '+(u.baseRecipeSku||u.baseRecipeName||''));
+      const nSub=((u.substitutions||[]).length)+((u.dropped||[]).length);
+      const subTag=nSub?` · <span style="color:var(--amber);">${nSub} sub${nSub!==1?'s':''}</span>`:'';
+      const canDel=(me&&u.userId===me)||currentRole!=='designer';
+      const lead=prodMode
+        ? `<strong>${u.quantityMade||1}×</strong> ${u.baseRecipeName||u.baseRecipeSku||'Custom'}`
+        : `<strong style="font-family:monospace;">${u.orderNumber||'—'}</strong> · ${label}`;
+      const meta=(u.employeeNumber?('#'+u.employeeNumber):who)+(when?' · '+when:'');
+      return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border);color:var(--text);">
+        <span>${lead} · ${n} item${n!==1?'s':''}${subTag}</span>
+        <span style="color:var(--text3);font-size:12px;white-space:nowrap;">${meta}${canDel?` <button onclick="deleteUsage('${u.id}')" title="Delete" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:0 2px;"><i class="ti ti-x"></i></button>`:''}</span>
+      </div>`;
+    }).join('');
+  }).catch(e=>{el.innerHTML='<span style="color:var(--red);">Could not load recent logs: '+(e.message||e)+'</span>';});
+}
+function deleteUsage(id){
+  if(!confirm('Delete this usage log?'))return;
+  RecipeStore.deleteUsage(id).then(()=>loadUsageRecent()).catch(e=>alert('Could not delete: '+(e.message||e)));
+}
+
+// ── Orda order lookup (production only) ─────────────────────────────────────
+function uIsProd(){try{return RecipeStore.context&&RecipeStore.context().env==='production';}catch(e){return false;}}
+// Tidy a raw Orda description ("FFE2600 - MARDI GRAS SEE LINK - https://…") down
+// to a readable name.
+function uCleanDesc(d){return String(d||'').replace(/https?:\/\/\S+/g,'').replace(/\*+/g,' ').replace(/\bSEE LINK\b/ig,'').replace(/\bFILL TO VALUE\b/ig,'').replace(/^\s*FFE\d+\s*-?\s*/i,'').replace(/[-–]\s*$/,'').replace(/\s+/g,' ').trim();}
+// Classify an order line: a designed "arrangement" we log, vs an "add-on"
+// (balloon, wine, chocolate, ribbon, delivery…) we don't count.
+let uLastLines=[];
+let uOrderFuneral=false;
+let uExpectedSku='';   // set by the recipe-view shortcut: warn if the looked-up order isn't this recipe
+let uExpectedName='';
+let uMode='log';       // 'log' = order-based usage; 'production' = pre-made batch (no order, has quantity)
+let uEmployeeNo='';    // last-entered production employee #, kept across saves at a shared station
+let uRestoring=false;  // true while restoring nav from a browser Back/Forward (don't re-push history)
+let uRecipeValue=0;
+let uOrderPrice=0;   // what the order sold for (recipe mode compares value to this)
+let uOrigExtra={};   // recipe's original container/accent/hardgood, for sub tracking
+const U_ARR_CODES=/^(ffe|lva|mva|sva|mca|sca|lca|wrap|cut)/i;
+const U_ADDON=/balloon|mylar|\bwine\b|champagne|prosecco|\bcandle\b|diffuser|chocolate|truffle|cookie|candy|\bbear\b|teddy|plush|ribbon|greeting|\bcard\b|delivery|\bfee\b|service charge|gift ?card|\bbottle\b|snack|sympathy card|keepsake|\bmug\b/i;
+function uLineKind(code,desc){
+  const c=String(code||'').trim();
+  const s=c+' '+String(desc||'');
+  if(U_ARR_CODES.test(c))return 'arrangement';
+  if(recipes.find(r=>String(r.sku||'').trim()===c))return 'arrangement';
+  if(U_ADDON.test(s))return 'addon';
+  return 'arrangement'; // unknown codes default to loggable; designer can ignore
+}
+function uLookupOrder(){
+  const ord=(document.getElementById('u_order').value||'').trim();
+  const box=document.getElementById('uOrderLines');
+  if(!ord){if(box)box.innerHTML='<span style="color:var(--red);font-size:12px;">Enter an order number first.</span>';return;}
+  if(box)box.innerHTML='<span style="color:var(--text3);font-size:12px;">Looking up order '+ord+'…</span>';
+  const expected=uExpectedSku, expectedName=uExpectedName; uExpectedSku='';uExpectedName='';   // one-shot: recipe-view shortcut only
+  RecipeStore.lookupOrder(ord).then(res=>{
+    const lines=(res&&res.lines)||[];
+    uLastLines=lines;
+    uOrderFuneral=!!(res&&res.isFuneral);
+    if(!box)return;
+    if(!lines.length){box.innerHTML='<span style="color:var(--amber);font-size:13px;">No lines found for order '+ord+'. Double-check the number, or log it manually below.</span>';return;}
+    const arrs=[],addons=[];
+    lines.forEach(l=>{(uLineKind(l.productCode,l.description)==='addon'?addons:arrs).push(l);});
+    // Shortcut safety: if they came from a recipe view but this order isn't that
+    // recipe, warn loudly — likely a mistyped order number.
+    let warnHtml='';
+    if(expected&&arrs.length&&!arrs.some(l=>String(l.productCode||'').trim()===expected)){
+      const got=arrs.map(l=>{const code=String(l.productCode||'').trim();const rec=recipes.find(r=>String(r.sku||'').trim()===code);return rec?rec.name:(uCleanDesc(l.description)||code);}).join(', ');
+      warnHtml=`<div style="background:var(--amber-light,#f5ead9);border:1px solid var(--amber);border-radius:var(--radius);padding:9px 12px;margin-bottom:8px;font-size:13.5px;color:var(--amber);font-weight:700;">⚠ This order is for ${got} — not the ${expectedName||expected} you were viewing. Double-check the order number.</div>`;
+    }
+    let html=`<div id="uOrderHead" style="font-size:13px;color:var(--text2);margin-bottom:6px;">Order <strong>${ord}</strong> — ${arrs.length} arrangement${arrs.length!==1?'s':''}${addons.length?` <span style="color:var(--text3);">(+${addons.length} add-on${addons.length!==1?'s':''}, not logged)</span>`:''}:</div>`;
+    html+=arrs.map(l=>{
+      const code=(l.productCode||'').trim();
+      const rec=recipes.find(r=>String(r.sku||'').trim()===code);
+      const nm=uCleanDesc(l.description)||code;
+      const codeEsc=code.replace(/[^A-Za-z0-9\- ]/g,'');
+      return `<div class="u-ordline" data-code="${codeEsc}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:6px;">
+        <span style="font-size:13px;">${code?`<strong style="font-family:monospace;">${code}</strong> · `:''}${nm}${l.units>1?` · ×${l.units}`:''}${rec?'':' <span style="color:var(--amber);font-size:11px;">(no recipe — custom)</span>'}</span>
+        <button class="add-row-btn" style="white-space:nowrap;" onclick="uUseLine('${codeEsc}')">${rec?'<i class="ti ti-clipboard-check"></i> Fill as recipe':'<i class="ti ti-pencil"></i> Log custom'}</button>
+      </div>`;
+    }).join('');
+    if(addons.length)html+=`<div style="margin-top:2px;font-size:11px;color:var(--text3);">Add-ons skipped: ${addons.map(l=>uCleanDesc(l.description)||l.productCode).join(', ')}</div>`;
+    if(arrs.length>1)html+=`<div style="margin-top:8px;font-size:12px;color:var(--text3);font-style:italic;">This order has more than one arrangement — fill one, Save, then come back and log the next.</div>`;
+    box.innerHTML=warnHtml+html;
+    // Single arrangement: load it automatically so the recipe shows right away.
+    // If there's a mismatch warning, DON'T scroll to the work area — keep the
+    // designer at the top so they actually see the warning.
+    if(arrs.length===1)uUseLine((arrs[0].productCode||'').trim(),{noScroll:!!warnHtml});
+    if(warnHtml)box.scrollIntoView({behavior:'smooth',block:'start'});
+  }).catch(e=>{
+    if(box)box.innerHTML='<span style="color:var(--red);font-size:12px;">Lookup failed: '+(e.message||e)+'</span>';
+  });
+}
+function uUseLine(code,opts){
+  const rec=recipes.find(r=>String(r.sku||'').trim()===String(code).trim());
+  const sel=document.getElementById('u_recipe');
+  if(sel){sel.value=rec?String(rec.id):'';uPrefill();}
+  const line=(uLastLines||[]).find(l=>String(l.productCode||'').trim()===String(code).trim());
+  if(!rec){
+    // Custom line → seed the build-to-price target + auto-flip funeral toggle.
+    const t=document.getElementById('u_target');
+    if(t&&line&&line.unitPrice!=null){t.value=line.unitPrice;}
+    const fun=document.getElementById('u_funeral');if(fun)fun.checked=uOrderFuneral;
+    uBudget();
+  }else if(line&&line.unitPrice!=null){
+    // Recipe line → the order's actual sale price drives the value comparison.
+    uOrderPrice=Number(line.unitPrice);uBudget();
+  }
+  // Highlight the chosen line + show a clear confirmation banner.
+  document.querySelectorAll('.u-ordline').forEach(el=>{el.style.borderColor='var(--border)';el.style.background='';});
+  const active=document.querySelector('.u-ordline[data-code="'+String(code).replace(/[^A-Za-z0-9\- ]/g,'')+'"]');
+  if(active){active.style.borderColor='var(--green)';active.style.background='var(--bg2)';}
+  const head=document.getElementById('uOrderHead');
+  if(head){const n=rec?(rec.name||rec.sku||'recipe'):'custom line';
+    head.innerHTML=`<span style="color:var(--green);font-weight:600;"><i class="ti ti-check"></i> Loaded ${rec?('“'+n+'” — its ingredients are filled in below'):'a custom line — enter what you used below'}.</span> Adjust any substitutions, then Save.`;}
+  if(!(opts&&opts.noScroll)){
+    const anchor=document.getElementById('uVoiceSection')||document.getElementById('uFlowerRows');
+    if(anchor)anchor.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+}
+
+// ── Voice entry for the Log tab ────────────────────────────────────────────
+// Browser Web Speech API for live dictation (no server) + an ON-DEVICE parser
+// that maps the spoken transcript to real catalog items. Both edit points
+// (the transcript textarea AND the ingredient rows) stay editable. A smarter
+// Claude-powered parse can be added on prod later for messy phrasing.
+let uRecog=null, uListening=false;
+function uSetMicStatus(t,warn){const s=document.getElementById('uMicStatus');if(s){s.textContent=t||'';s.style.color=warn?'var(--amber)':'var(--text3)';s.style.fontWeight=warn?'600':'';}}
+function uMicUI(){const b=document.getElementById('uMicBtn');if(!b)return;b.innerHTML=uListening?'<i class="ti ti-player-stop"></i> Stop':'<i class="ti ti-microphone"></i> Start talking';b.style.background=uListening?'var(--red)':'';}
+function uToggleMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){uSetMicStatus('Voice needs Chrome — type above instead.');return;}
+  if(uListening){if(uRecog)try{uRecog.stop();}catch(e){}return;}
+  uRecog=new SR();uRecog.lang='en-US';uRecog.continuous=true;uRecog.interimResults=true;
+  let base=document.getElementById('uTranscript').value||'';
+  if(base&&!/\s$/.test(base))base+=' ';
+  uRecog.onresult=e=>{
+    let interim='',finalTxt='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal)finalTxt+=t+' ';else interim+=t;
+    }
+    if(finalTxt)base+=finalTxt;
+    const ta=document.getElementById('uTranscript');if(ta)ta.value=base+interim;
+  };
+  uRecog.onerror=e=>{uSetMicStatus('Mic: '+(e.error==='not-allowed'?'allow microphone access and try again':e.error));uListening=false;uMicUI();};
+  uRecog.onend=()=>{uListening=false;uMicUI();if(!document.getElementById('uMicStatus').textContent.startsWith('Mic'))uSetMicStatus('Stopped. Tap “Fill form from what I said,” or keep talking.');};
+  try{uRecog.start();uListening=true;uMicUI();uSetMicStatus('Listening… tap Stop when done.');}
+  catch(e){uSetMicStatus('Could not start mic: '+e.message);}
+}
+// ── On-device transcript → ingredient rows ─────────────────────────────────
+const U_NUMWORDS={a:1,an:1,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,dozen:12,couple:2,few:3,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,half:0.5};
+const U_COLORS=['hot pink','light pink','red','white','pink','purple','yellow','orange','lavender','blue','green','peach','burgundy','cream','ivory','coral','fuchsia','magenta','bronze','gold','silver','black','brown'];
+const U_STOP=new Set(['the','a','an','of','with','and','some','stem','stems','stalk','stalks','piece','pieces','pcs','plus','in','inch','inches','tall','wide']);
+function unorm(s){return String(s||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/(\d)\s*(?:x|by)\s*(\d)/g,'$1x$2').replace(/\s+/g,' ').trim();}
+function uItemIndex(){
+  const cats=[['flower',FLOWERS],['filler',FILLERS],['plant',PLANTS],['container',CONTAINERS],['accent',ACCENTS],['hardgood',HARDGOODS]];
+  const idx=[];
+  for(const [cat,list] of cats)for(const it of (list||[])){
+    if(!it.n||it.n==='None')continue;
+    const toks=unorm(it.n).split(' ').filter(w=>w.length>2&&!U_STOP.has(w));
+    idx.push({cat,name:it.n,colors:it.colors||[],toks:new Set(toks)});
+  }
+  return idx;
+}
+// Category prior: in cut arrangements flowers/fillers dominate; potted plants
+// are least likely unless clearly named. Breaks ties like "white hydrangea"
+// (cut flower) vs a potted "6in Hydrangea White".
+const U_CATW={flower:1.05,filler:1.0,accent:0.9,container:0.9,hardgood:0.85,plant:0.7};
+function uMatchItem(phrase,idx){
+  const words=unorm(phrase).split(' ').filter(w=>w.length>2&&!U_STOP.has(w));
+  if(!words.length)return null;
+  let best=null,bestScore=0;
+  for(const e of idx){
+    let shared=0;
+    for(const w of words)if(e.toks.has(w)||[...e.toks].some(t=>t.startsWith(w)||w.startsWith(t)))shared++;
+    if(!shared)continue;
+    const precision=shared/words.length, recall=shared/(e.toks.size||1);
+    const score=(precision+recall)*(U_CATW[e.cat]||1);
+    if(score>bestScore){bestScore=score;best=e;}
+  }
+  return bestScore>0?best:null;
+}
+// Split a transcript into one chunk per item. Speech gives NO commas, so we
+// also start a new item at each new quantity ("five … two … seven …").
+// Consecutive number tokens ("a dozen") stay together.
+function uSegment(txt){
+  const isNum=w=>/^\d+(?:\.\d+)?$/.test(w)||Object.prototype.hasOwnProperty.call(U_NUMWORDS,w);
+  const chunks=String(txt).split(/,|;|\n|\band\b|\bthen\b|\bplus\b/i);
+  const out=[];
+  for(const chunk of chunks){
+    const tokens=unorm(chunk).split(/\s+/).filter(Boolean);
+    let cur=[],prevNum=false;
+    for(const t of tokens){
+      const num=isNum(t);
+      // A new number after we've already collected a real (content) word means
+      // the previous item is complete — cut here.
+      if(num&&!prevNum&&cur.some(w=>!isNum(w)&&!U_STOP.has(w))){out.push(cur.join(' '));cur=[];}
+      cur.push(t);prevNum=num;
+    }
+    if(cur.length)out.push(cur.join(' '));
+  }
+  return out.map(s=>s.trim()).filter(Boolean);
+}
+function parseUsageText(txt){
+  const idx=uItemIndex();
+  const out={flowers:[],fillers:[],plants:[],container:null,accent:null,accentPaint:null,hardgood:null,unmatched:[]};
+  const segs=uSegment(txt);
+  for(const seg of segs){
+    let s=' '+unorm(seg)+' ';
+    // paint shades (only when the word paint/painted appears)
+    let paint=[];
+    if(/\bpaint/.test(s)){
+      for(const p of PAINTS){const pn=unorm(p);if(pn&&s.includes(' '+pn+' ')){paint.push(p);}}
+      s=s.replace(/\bpainted?\b/g,' ');
+    }
+    // quantity: digits first; else a specific number word (longest first, so
+    // "dozen" beats the "a" in "a dozen"); else a/an => 1.
+    let qty=1;
+    const dm=s.match(/\s(\d+(?:\.\d+)?)\s/);
+    if(dm){qty=parseFloat(dm[1]);s=s.replace(dm[1],' ');}
+    else{
+      let hit=false;
+      const nwords=Object.keys(U_NUMWORDS).filter(w=>w!=='a'&&w!=='an').sort((x,y)=>y.length-x.length);
+      for(const w of nwords){if(new RegExp('\\b'+w+'\\b').test(s)){qty=U_NUMWORDS[w];s=s.replace(new RegExp('\\b'+w+'\\b'),' ');hit=true;break;}}
+      if(!hit&&/\b(an?|)\b/.test(s))s=s.replace(/\b(an?)\b/,' ');
+    }
+    // color
+    let color='';for(const c of U_COLORS){if(s.includes(' '+c+' ')){color=c;break;}}
+    const m=uMatchItem(s,idx);
+    if(!m){out.unmatched.push(seg.trim());continue;}
+    let useColor='',colorHeard='';
+    if(color){const cl=(m.colors||[]).map(x=>x.toLowerCase());if(cl.includes(color))useColor=m.colors.find(x=>x.toLowerCase()===color);else if(cl.length)colorHeard=color;}
+    const row={name:m.name,qty};if(useColor)row.color=useColor;if(colorHeard)row._colorHeard=colorHeard;
+    if(paint.length&&(m.cat==='flower'||m.cat==='filler'))row.paint=paint.slice(0,2);
+    if(m.cat==='flower')out.flowers.push(row);
+    else if(m.cat==='filler')out.fillers.push(row);
+    else if(m.cat==='plant')out.plants.push({name:m.name,qty});
+    else if(m.cat==='container')out.container=m.name;
+    else if(m.cat==='accent'){out.accent=m.name;if(paint.length)out.accentPaint=paint.slice(0,2);}
+    else if(m.cat==='hardgood')out.hardgood=m.name;
+  }
+  return out;
+}
+function uParseTranscript(){
+  const txt=(document.getElementById('uTranscript').value||'').trim();
+  if(!txt){uSetMicStatus('Say or type something first.');return;}
+  const p=parseUsageText(txt);
+  if(p.flowers.length)document.getElementById('uFlowerRows').innerHTML=p.flowers.map(f=>`<tr class="u-flower-row">${uCells(f,'flower')}</tr>`).join('');
+  if(p.fillers.length)document.getElementById('uFillerRows').innerHTML=p.fillers.map(f=>`<tr class="u-filler-row">${uCells(f,'filler')}</tr>`).join('');
+  if(p.plants.length)document.getElementById('uPlantRows').innerHTML=p.plants.map(f=>`<tr class="u-plant-row">${uCells(f,'plant')}</tr>`).join('');
+  if(p.container){document.getElementById('u_container').value=p.container;uExtraChanged('container');}
+  if(p.accent){document.getElementById('u_accent').value=p.accent;uExtraChanged('accent');}
+  if(p.hardgood){document.getElementById('u_hardgood').value=p.hardgood;uExtraChanged('hardgood');}
+  if(p.accentPaint)document.getElementById('uAccentPaint').innerHTML=ingPaintCell(p.accentPaint,'u-accent-paint-sel');
+  // Flag rows where a spoken color couldn't be applied (e.g. "purple roses" when
+  // that flower has no purple) so the designer notices instead of it silently
+  // becoming "any".
+  const markColorMiss=(tbId,arr)=>{[...document.querySelectorAll('#'+tbId+' tr')].forEach((tr,i)=>{const f=arr[i];if(f&&f._colorHeard){const cc=tr.querySelector('.uf-color');if(cc){const d=document.createElement('div');d.style.cssText='color:var(--amber);font-size:11px;margin-top:3px;font-weight:600;';d.textContent='⚠ heard “'+f._colorHeard+'”';cc.appendChild(d);}tr.querySelector('.uf-sel')&&(tr.querySelector('.uf-sel').style.borderColor='var(--amber)');}});};
+  markColorMiss('uFlowerRows',p.flowers);markColorMiss('uFillerRows',p.fillers);
+  uBudget();  // recompute per-row prices + running value after a voice fill
+  const n=p.flowers.length+p.fillers.length+p.plants.length+(p.container?1:0)+(p.accent?1:0)+(p.hardgood?1:0);
+  const colorMisses=[...p.flowers,...p.fillers].filter(f=>f&&f._colorHeard).length;
+  let msg=`Filled ${n} item${n!==1?'s':''}.`;
+  if(p.unmatched.length)msg+=` Couldn’t match: “${p.unmatched.join('”, “')}” — add it by hand.`;
+  if(colorMisses)msg+=` Couldn’t apply a spoken color on ${colorMisses} — see the ⚠ note${colorMisses!==1?'s':''}.`;
+  uSetMicStatus(msg,(p.unmatched.length||colorMisses)?'warn':'');
+}
+
 function openLightbox(src){
   document.getElementById('lightboxImg').src=src;
   document.getElementById('lightbox').classList.add('open');
@@ -1845,6 +2689,9 @@ async function boot(){
     ACCENTS=ensureNone(sortByName(defR(data.priceLists.accents)));
     HARDGOODS=ensureNone(sortByName(defR(data.priceLists.hardgoods)));
     PLANTS=ensureNone(sortByName(defR(data.priceLists.plants)));
+    // Paint colors for the per-flower "Paint" picker — the "Paint <shade>" items
+    // live in the hardgoods list; show just the shade name.
+    PAINTS=HARDGOODS.filter(h=>/^paint\s+\S/i.test(h.n)).map(h=>h.n.replace(/^paint\s+/i,'').trim()).sort((a,b)=>a.localeCompare(b));
     TAGS=data.tags||[];
     recipes=data.recipes||[];
     MARGIN_GOOD=data.marginGood;MARGIN_WARN=data.marginWarn;
@@ -1854,6 +2701,15 @@ async function boot(){
     migrateRecipeShape();
     applyAuthRole(c);
     filterRecipes();
+    // In-app Back button: seed the initial entry + restore state on Back/Forward
+    // so Back moves between app screens instead of leaving the page.
+    try{history.replaceState({app:1,nav:activeNav||'recipes',id:activeId||null,tab:activeTab||null},'');}catch(e){}
+    window.addEventListener('popstate',function(e){
+      const s=e.state;if(!(s&&s.app))return;
+      uRestoring=true;
+      try{ activeId=s.id||null; if(s.id)activeTab=s.tab||'view'; filterRecipes(); setNav(s.nav||'recipes'); }
+      finally{uRestoring=false;}
+    });
   }catch(e){
     console.error('Startup failed:',e);
     // Gentle inline message instead of a modal alert (also avoids a popup in

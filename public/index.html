@@ -2508,14 +2508,18 @@ function uToggleMic(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){uSetMicStatus('Voice needs Chrome — type above instead.');return;}
   if(uListening){if(uRecog)try{uRecog.stop();}catch(e){}return;}
-  uRecog=new SR();uRecog.lang='en-US';uRecog.continuous=true;uRecog.interimResults=true;
+  uRecog=new SR();uRecog.lang='en-US';uRecog.continuous=true;uRecog.interimResults=true;uRecog.maxAlternatives=5;
+  const uIdx=uItemIndex();
   let base=document.getElementById('uTranscript').value||'';
   if(base&&!/\s$/.test(base))base+=' ';
   uRecog.onresult=e=>{
     let interim='',finalTxt='';
     for(let i=e.resultIndex;i<e.results.length;i++){
-      const t=e.results[i][0].transcript;
-      if(e.results[i].isFinal)finalTxt+=t+' ';else interim+=t;
+      const r=e.results[i];
+      if(r.isFinal){
+        const alts=[];for(let k=0;k<r.length;k++)alts.push(r[k].transcript);
+        finalTxt+=uPickBestAlt(alts,uIdx)+' ';
+      }else interim+=r[0].transcript;
     }
     if(finalTxt)base+=finalTxt;
     const ta=document.getElementById('uTranscript');if(ta)ta.value=base+interim;
@@ -2544,19 +2548,68 @@ function uItemIndex(){
 // are least likely unless clearly named. Breaks ties like "white hydrangea"
 // (cut flower) vs a potted "6in Hydrangea White".
 const U_CATW={flower:1.05,filler:1.0,accent:0.9,container:0.9,hardgood:0.85,plant:0.7};
+// Bounded Levenshtein: bails out early once the best possible distance > max.
+function ulev(a,b,max){
+  const m=a.length,n=b.length;
+  if(Math.abs(m-n)>max)return max+1;
+  let prev=new Array(n+1),cur=new Array(n+1);
+  for(let j=0;j<=n;j++)prev[j]=j;
+  for(let i=1;i<=m;i++){
+    cur[0]=i;let rowMin=cur[0];
+    for(let j=1;j<=n;j++){
+      const cost=a.charCodeAt(i-1)===b.charCodeAt(j-1)?0:1;
+      cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+cost);
+      if(cur[j]<rowMin)rowMin=cur[j];
+    }
+    if(rowMin>max)return max+1;
+    const t=prev;prev=cur;cur=t;
+  }
+  return prev[n];
+}
+// How well a spoken word matches a catalog token set: 1 for exact/prefix, 0.7 for
+// a near-miss spelling (the speech engine dropped/added a letter, e.g.
+// "alstromeria" -> "alstroemeria"), else 0. Fuzzy only kicks in for words >=6
+// chars (short words like "roses"/"poses" are 1 edit apart — too risky),
+// tolerance scaled to length.
+function uTokMatch(w,toks){
+  if(toks.has(w))return 1;
+  for(const t of toks)if(t.startsWith(w)||w.startsWith(t))return 1;
+  if(w.length>=6)for(const t of toks){
+    if(Math.abs(t.length-w.length)>2)continue;
+    const tol=Math.max(w.length,t.length)>=8?2:1;
+    if(ulev(w,t,tol)<=tol)return 0.7;
+  }
+  return 0;
+}
 function uMatchItem(phrase,idx){
   const words=unorm(phrase).split(' ').filter(w=>w.length>2&&!U_STOP.has(w));
   if(!words.length)return null;
   let best=null,bestScore=0;
   for(const e of idx){
     let shared=0;
-    for(const w of words)if(e.toks.has(w)||[...e.toks].some(t=>t.startsWith(w)||w.startsWith(t)))shared++;
+    for(const w of words){const s=uTokMatch(w,e.toks);if(s>0)shared+=s;}
     if(!shared)continue;
     const precision=shared/words.length, recall=shared/(e.toks.size||1);
     const score=(precision+recall)*(U_CATW[e.cat]||1);
     if(score>bestScore){bestScore=score;best=e;}
   }
   return bestScore>0?best:null;
+}
+// Pick the speech alternative whose words best hit the catalog. Chrome often
+// ranks a wrong-but-common word first ("pincushion") while the real product
+// ("spray rose") sits in a lower alternative — this recovers it. Only overrides
+// the engine's top pick when another alternative strictly scores higher.
+function uCatScore(text,idx){
+  const words=unorm(text).split(' ').filter(w=>w.length>2&&!U_STOP.has(w));
+  let hits=0;
+  for(const w of words)for(const e of idx){if(uTokMatch(w,e.toks)>0){hits++;break;}}
+  return hits;
+}
+function uPickBestAlt(alts,idx){
+  if(!alts||!alts.length)return '';
+  let best=alts[0],bestScore=uCatScore(alts[0],idx);
+  for(let k=1;k<alts.length;k++){const sc=uCatScore(alts[k],idx);if(sc>bestScore){bestScore=sc;best=alts[k];}}
+  return best;
 }
 // Split a transcript into one chunk per item. Speech gives NO commas, so we
 // also start a new item at each new quantity ("five … two … seven …").
@@ -2582,7 +2635,8 @@ function uSegment(txt){
 function parseUsageText(txt){
   const idx=uItemIndex();
   const out={flowers:[],fillers:[],plants:[],container:null,accent:null,accentPaint:null,hardgood:null,unmatched:[]};
-  const segs=uSegment(txt);
+  // "the number four" is a speech-engine artifact for a plain number — drop it.
+  const segs=uSegment(String(txt||'').replace(/\bthe number\b/gi,' '));
   for(const seg of segs){
     let s=' '+unorm(seg)+' ';
     // paint shades (only when the word paint/painted appears)

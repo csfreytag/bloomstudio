@@ -134,9 +134,9 @@ Roles are per-app — the same person can be a Manager here and a Buyer in Purch
 ## Pricing data source (Google Sheet → Firestore)
 
 - Pricing is a **one-way sync**: Google Sheet → Firestore. The app is **read-only** for pricing. Bulk price edits happen in the Sheet, never in the app.
-- Sheet ID: `1DI59WCs_7xiDbjUHDCkFINy9WKoIokFzAX1S203uUvo`
-- Lives in the service account's "LLM Inbox" folder (`1f7MYLYBgKuDB1kW5O2EFkQF6MlWLs-kL`), **not** in a personal Google Drive.
-- Tabs: Flowers, Fillers, Containers, Accents, Hardgoods, Plants. Columns: `Name | Cost ($) | Your Final Price ($)`. Cost is currently left blank — to be fed later by the Purchasing app's invoice history (highest vendor cost, conservative).
+- **Sheet: "PRICE SHEETS"**, id `1OEhdT3brIBNhE65GNtzzarQqPSMVN1HZVPjjjdHssYc` (owned by carrie@freytags.com). This is the sheet the daily cron actually reads (`scripts/sync-pricing.js`, default `--layout=priceSheets` → `DEFAULT_SHEET_ID`). *(The old `1DI59WCs…` "Freytag's Pricing" sheet is an unused setup scaffold — ignore it.)*
+- Tabs: **FLOWERS, GREENS, HARDGOODS, CONTAINERS, PLANTS**. **Retail price only — no cost column.** FLOWERS and GREENS use **two side-by-side blocks** (`Flower | Color | Price` in cols A/B/C and E/F/G, blank col D between); Color is optional and comma-separated. `**seasonal` in a price cell = market price (syncs as no fixed retail).
+- A second layout (`--layout=product`) can instead read the "PRODUCT SPREADSHEET" (`1bhPOKRkqVmAtyIxim61Y9LBX4udiDr2z4bnc0Su2PZY`, same workbook as the recipes); the cron does **not** use it today. See the pricing-sync memory for the consolidation plan.
 - Service account key is stored in Google Secret Manager; scoped to specific sheets only (no broad Drive access). **Never commit the key to GitHub.**
 
 ## Features built in the prototype

@@ -408,13 +408,26 @@ function lineP(list,name,mult,qty){
   if(isMarketItem(it))return '<span class="market-ask">ask</span>';
   return '$'+fmt(gpPrice(list,name,mult)*(qty==null?1:qty));
 }
+// Paint: a painted stem/item adds a FLAT fee (one fee regardless of how many
+// shades). All "Paint <shade>" hardgoods share a price; use it so a future price
+// change follows, default $2. paintAdd() returns the per-unit fee (0 if unpainted).
+function paintUnitPrice(){const p=(HARDGOODS||[]).find(h=>/^paint\s+\S/i.test(h.n||''));return (p&&p.r>0)?p.r:2;}
+function paintAdd(paintArr){return (paintArr&&paintArr.length)?paintUnitPrice():0;}
+// Line total as display HTML, including any paint fee: "$X.XX" or an "ask" chip.
+function lineTotalP(list,name,mult,qty,paintArr){
+  const it=findItem(list,name);
+  if(isMarketItem(it))return '<span class="market-ask">ask</span>';
+  return '$'+fmt((gpPrice(list,name,mult)+paintAdd(paintArr))*(qty==null?1:qty));
+}
 // What this recipe would retail at against CURRENT ingredient prices (retail + labor).
 // Sum of every ingredient's retail price (flowers/fillers/plants + container/
 // accent/hardgood). This is what the line items add up to.
 function componentsRetail(r){
-  return gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)+gpPrice(HARDGOODS,r.hardgood||'None',3.5)
-    +(r.flowers||[]).reduce((s,f)=>s+f.qty*gpPrice(FLOWERS,f.name,4),0)
-    +(r.fillers||[]).reduce((s,f)=>s+f.qty*gpPrice(FILLERS,f.name,4),0)
+  const cPaint=(r.container&&r.container!=='None')?paintAdd(r.containerPaint):0;
+  const aPaint=(r.accent&&r.accent!=='None')?paintAdd(r.accentPaint):0;
+  return gpPrice(CONTAINERS,r.container||'None',3.5)+gpPrice(ACCENTS,r.accent||'None',3.5)+gpPrice(HARDGOODS,r.hardgood||'None',3.5)+cPaint+aPaint
+    +(r.flowers||[]).reduce((s,f)=>s+f.qty*(gpPrice(FLOWERS,f.name,4)+paintAdd(f.paint)),0)
+    +(r.fillers||[]).reduce((s,f)=>s+f.qty*(gpPrice(FILLERS,f.name,4)+paintAdd(f.paint)),0)
     +(r.plants||[]).reduce((s,f)=>s+f.qty*gpPrice(PLANTS,f.name,3.5),0);
 }
 // Auto retail = components + labor, where labor is laborPct% ON TOP of the
@@ -828,6 +841,8 @@ function captureForm(r){
   r.accent=document.getElementById('f_accent').value;
   const accentPaint=[...document.querySelectorAll('.accent-paint-sel')].map(s=>s.value).filter(Boolean);
   r.accentPaint=accentPaint.length?accentPaint:null;
+  const containerPaint=[...document.querySelectorAll('.container-paint-sel')].map(s=>s.value).filter(Boolean);
+  r.containerPaint=containerPaint.length?containerPaint:null;
   r.hardgood=document.getElementById('f_hardgood')?.value||'None';
   r.laborPct=parseFloat(document.getElementById('f_laborpct').value)||0;
   r.notes=document.getElementById('f_notes').value;
@@ -941,8 +956,9 @@ function renderRecipeTab(r){
      <h3>Container, accent &amp; hardgoods</h3>
      <div class="field-row">
       <div class="field"><label>Container</label><select id="f_container" onchange="refreshStatCards()">${mkOpts(CONTAINERS,r.container||'None')}</select></div>
+      <div class="field"><label>Container paint <span style="font-style:italic;color:var(--text3)">(+$2)</span></label><div id="containerPaintCell">${ingPaintCell(r.containerPaint,'container-paint-sel','refreshStatCards()')}</div></div>
       <div class="field"><label>Accent</label><select id="f_accent" onchange="refreshStatCards()">${mkOpts(ACCENTS,r.accent||'None')}</select></div>
-      <div class="field"><label>Accent paint</label><div id="accentPaintCell">${ingPaintCell(r.accentPaint,'accent-paint-sel')}</div></div>
+      <div class="field"><label>Accent paint <span style="font-style:italic;color:var(--text3)">(+$2)</span></label><div id="accentPaintCell">${ingPaintCell(r.accentPaint,'accent-paint-sel','refreshStatCards()')}</div></div>
      </div>
      <div class="field-row">
       <div class="field"><label>Hardgood <span style="font-style:italic;color:var(--text3)">(funeral base, etc.)</span></label><select id="f_hardgood" onchange="refreshStatCards()">${mkOpts(HARDGOODS,r.hardgood||'None')}</select></div>
@@ -1046,16 +1062,17 @@ function renderRecipeView(r){
     items=(items||[]).filter(f=>f.name&&f.name!=='None');
     if(!items.length)return'';
     const rows=items.map(f=>{
-      return `<li style="display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:17.5px;line-height:1.45;"><span style="min-width:44px;font-weight:700;color:var(--text);">${f.qty}×</span><span style="flex:1;">${f.name}${f.color?` <span style="color:var(--text2);">— ${f.color}</span>`:''}${f.paint&&f.paint.length?` <span style="color:var(--accent2,#8a6d3b);">· painted ${f.paint.join(' + ')}</span>`:''}${seasonalTag(findItem(list,f.name))}</span><span style="color:var(--text2);white-space:nowrap;">${lineP(list,f.name,mult,f.qty)}</span></li>`;
+      return `<li style="display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:17.5px;line-height:1.45;"><span style="min-width:44px;font-weight:700;color:var(--text);">${f.qty}×</span><span style="flex:1;">${f.name}${f.color?` <span style="color:var(--text2);">— ${f.color}</span>`:''}${f.paint&&f.paint.length?` <span style="color:var(--accent2,#8a6d3b);">· painted ${f.paint.join(' + ')}</span>`:''}${seasonalTag(findItem(list,f.name))}</span><span style="color:var(--text2);white-space:nowrap;">${lineTotalP(list,f.name,mult,f.qty,f.paint)}</span></li>`;
     }).join('');
     return `<div style="margin-bottom:16px;"><h3 style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px;">${title}</h3><ul style="list-style:none;margin:0;padding:0;">${rows}</ul></div>`;
   }
 
+  const paintTxt=arr=>(arr&&arr.length)?` <span style="color:var(--accent2,#8a6d3b);">· painted ${arr.join(' + ')}</span>`:'';
   const extras=[];
-  if(r.container&&r.container!=='None')extras.push(['Container',r.container+seasonalTag(findItem(CONTAINERS,r.container)),CONTAINERS,r.container,3.5]);
-  if(r.accent&&r.accent!=='None')extras.push(['Accent',r.accent+((r.accentPaint&&r.accentPaint.length)?` <span style="color:var(--accent2,#8a6d3b);">· painted ${r.accentPaint.join(' + ')}</span>`:'')+seasonalTag(findItem(ACCENTS,r.accent)),ACCENTS,r.accent,3.5]);
-  if(r.hardgood&&r.hardgood!=='None')extras.push(['Hardgood',r.hardgood+seasonalTag(findItem(HARDGOODS,r.hardgood)),HARDGOODS,r.hardgood,3.5]);
-  const extrasHtml=extras.length?`<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Vessel &amp; extras</h3><ul style="list-style:none;margin:0;padding:0;">${extras.map(e=>`<li style="display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:17.5px;"><span style="min-width:90px;color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;padding-top:3px;">${e[0]}</span><span style="flex:1;">${e[1]}</span><span style="color:var(--text2);white-space:nowrap;">${lineP(e[2],e[3],e[4])}</span></li>`).join('')}</ul></div>`:'';
+  if(r.container&&r.container!=='None')extras.push(['Container',r.container+paintTxt(r.containerPaint)+seasonalTag(findItem(CONTAINERS,r.container)),CONTAINERS,r.container,3.5,r.containerPaint]);
+  if(r.accent&&r.accent!=='None')extras.push(['Accent',r.accent+paintTxt(r.accentPaint)+seasonalTag(findItem(ACCENTS,r.accent)),ACCENTS,r.accent,3.5,r.accentPaint]);
+  if(r.hardgood&&r.hardgood!=='None')extras.push(['Hardgood',r.hardgood+seasonalTag(findItem(HARDGOODS,r.hardgood)),HARDGOODS,r.hardgood,3.5,null]);
+  const extrasHtml=extras.length?`<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Vessel &amp; extras</h3><ul style="list-style:none;margin:0;padding:0;">${extras.map(e=>`<li style="display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:17.5px;"><span style="min-width:90px;color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;padding-top:3px;">${e[0]}</span><span style="flex:1;">${e[1]}</span><span style="color:var(--text2);white-space:nowrap;">${lineTotalP(e[2],e[3],e[4],1,e[5])}</span></li>`).join('')}</ul></div>`:'';
 
   // Items listed on the recipe sheet that have no priced dropdown entry (glass,
   // candles, ribbon, themed decor, discontinued bits). Shown so designers see
@@ -1125,12 +1142,16 @@ function uLogFromView(recipeId){
 
 
 // Sum the retail of every ingredient currently in the editor form.
+function domRowPainted(row){return [...row.querySelectorAll('.f-paint-sel')].some(s=>s.value);}
 function liveComponents(){
-  let ing=gpPrice(CONTAINERS,document.getElementById('f_container')?.value||'None',3.5)
-    +gpPrice(ACCENTS,document.getElementById('f_accent')?.value||'None',3.5)
+  const cVal=document.getElementById('f_container')?.value||'None';
+  const aVal=document.getElementById('f_accent')?.value||'None';
+  let ing=gpPrice(CONTAINERS,cVal,3.5)+gpPrice(ACCENTS,aVal,3.5)
     +gpPrice(HARDGOODS,document.getElementById('f_hardgood')?.value||'None',3.5);
-  document.querySelectorAll('.flower-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FLOWERS,n||'None',4);});
-  document.querySelectorAll('.filler-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(FILLERS,n||'None',4);});
+  if(cVal!=='None'&&[...document.querySelectorAll('.container-paint-sel')].some(s=>s.value))ing+=paintUnitPrice();
+  if(aVal!=='None'&&[...document.querySelectorAll('.accent-paint-sel')].some(s=>s.value))ing+=paintUnitPrice();
+  document.querySelectorAll('.flower-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*(gpPrice(FLOWERS,n||'None',4)+(domRowPainted(row)?paintUnitPrice():0));});
+  document.querySelectorAll('.filler-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*(gpPrice(FILLERS,n||'None',4)+(domRowPainted(row)?paintUnitPrice():0));});
   document.querySelectorAll('.plant-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;ing+=q*gpPrice(PLANTS,n||'None',3.5);});
   return ing;
 }
@@ -1158,10 +1179,11 @@ function ingColorCell(item,color){
 }
 // Up to two paint shades per flower (descriptive — flowers can be painted one or
 // two colors). Options come from PAINTS; empty = not painted.
-function ingPaintCell(paint,cls){
+function ingPaintCell(paint,cls,onch){
   paint=paint||[];cls=cls||'f-paint-sel';
   const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const one=sel=>`<select class="${cls}" style="font-size:12px;padding:3px 4px;max-width:118px;display:block;"><option value="">— none</option>`+
+  const oc=onch?` onchange="${onch}"`:'';
+  const one=sel=>`<select class="${cls}"${oc} style="font-size:12px;padding:3px 4px;max-width:118px;display:block;"><option value="">— none</option>`+
     PAINTS.map(p=>`<option value="${esc(p)}"${p===sel?' selected':''}>${esc(p)}</option>`).join('')+`</select>`;
   return one(paint[0]||'')+`<div style="height:3px;"></div>`+one(paint[1]||'');
 }
@@ -1169,10 +1191,11 @@ function ingRow(f,type){
   const list=type==='flower'?FLOWERS:type==='plant'?PLANTS:FILLERS;
   const mult=type==='plant'?3.5:4;
   const item=list.find(x=>x.n.trim()===f.name.trim());
-  const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*mult).toFixed(2));
+  const base=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*mult).toFixed(2));
+  const each=base+((type!=='plant'&&f.paint&&f.paint.length)?paintUnitPrice():0);
   const total=f.qty*each;
   const colorTd=type==='plant'?'':`<td class="f-color">${ingColorCell(item,f.color)}</td>`;
-  const paintTd=(type==='flower'||type==='filler')?`<td class="f-paint" style="vertical-align:top;">${ingPaintCell(f.paint)}</td>`:'';
+  const paintTd=(type==='flower'||type==='filler')?`<td class="f-paint" style="vertical-align:top;">${ingPaintCell(f.paint,'f-paint-sel','updateRowCost(this)')}</td>`:'';
   return`<tr class="${type}-row">
     <td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,f.name)}</select></td>
     ${colorTd}${paintTd}
@@ -1235,7 +1258,8 @@ function updateRowCost(el){
   const name=row.querySelector('.f-sel').value;
   const qty=parseFloat(row.querySelector('.f-qty').value)||0;
   const item=list.find(x=>x.n.trim()===name.trim());
-  const each=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*(type==='plant'?3.5:4)).toFixed(2));
+  const base=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*(type==='plant'?3.5:4)).toFixed(2));
+  const each=base+((type!=='plant'&&domRowPainted(row))?paintUnitPrice():0);
   if(row.querySelector('.f-each'))row.querySelector('.f-each').textContent='$'+fmt(each);
   if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(qty*each);
   // When the flower/filler itself changes, repopulate its color options.
@@ -1247,7 +1271,7 @@ function addRow(type){
   const tbody=document.getElementById(type==='flower'?'flowerRows':type==='plant'?'plantRows':'fillerRows'),tr=document.createElement('tr');
   tr.className=type+'-row';const list=type==='flower'?FLOWERS:type==='plant'?PLANTS:FILLERS;
   const colorTd=type==='plant'?'':`<td class="f-color">${ingColorCell(null,'')}</td>`;
-  const paintTd=(type==='flower'||type==='filler')?`<td class="f-paint" style="vertical-align:top;">${ingPaintCell([])}</td>`:'';
+  const paintTd=(type==='flower'||type==='filler')?`<td class="f-paint" style="vertical-align:top;">${ingPaintCell([],'f-paint-sel','updateRowCost(this)')}</td>`:'';
   tr.innerHTML=`<td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,'None')}</select></td>${colorTd}${paintTd}<td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateRowCost(this)" style="width:60px;"/></td><td class="f-each" style="color:var(--text2);font-size:13px;">$0.00</td><td class="f-cost" style="font-size:13px;font-weight:500;">$0.00</td><td><button class="del-btn" onclick="this.closest('tr').remove();refreshStatCards()"><i class="ti ti-x"></i></button></td>`;
   tbody.appendChild(tr);
   refreshStatCards();
@@ -1951,7 +1975,7 @@ function uCells(f,type,fromRecipe){
   const list=type==='flower'?FLOWERS:type==='plant'?PLANTS:FILLERS;
   const item=list.find(x=>x.n.trim()===String(f.name||'').trim());
   const colorTd=type==='plant'?'':`<td class="uf-color">${ingColorCell(item,f.color)}</td>`;
-  const paintTd=type==='plant'?'':`<td class="uf-paint" style="vertical-align:top;">${ingPaintCell(f.paint,'uf-paint-sel')}</td>`;
+  const paintTd=type==='plant'?'':`<td class="uf-paint" style="vertical-align:top;">${ingPaintCell(f.paint,'uf-paint-sel','uBudget()')}</td>`;
   // No Sub button — changing the flower or color on a recipe row auto-logs the
   // substitution (consistent with how containers/accents/hardgoods work).
   return `<td><select class="uf-sel" onchange="uRowChanged(this)">${mkOpts(list,f.name||'None')}</select></td>${colorTd}${paintTd}<td><input class="uf-qty" type="number" value="${f.qty!=null?f.qty:1}" min="0" step="1" style="width:56px;" oninput="uBudget()"/></td><td class="uf-cost" style="color:var(--text2);white-space:nowrap;font-size:13px;">$0.00</td><td style="white-space:nowrap;"><button class="del-btn" onclick="this.closest('tr').remove();uBudget()"><i class="ti ti-x"></i></button></td>`;
@@ -2074,8 +2098,9 @@ function renderUsageLog(){
     <h3>Container, accent &amp; hardgoods</h3>
     <div class="field-row">
      <div class="field"><label>Container</label><select id="u_container" onchange="uExtraChanged('container')">${mkOpts(CONTAINERS,'None')}</select><div id="u_container_sub" class="u-extra-sub" style="margin-top:4px;"></div></div>
+     <div class="field"><label>Container paint <span style="font-style:italic;color:var(--text3)">(+$2)</span></label><div id="uContainerPaint">${ingPaintCell([],'u-container-paint-sel','uBudget()')}</div></div>
      <div class="field"><label>Accent</label><select id="u_accent" onchange="uExtraChanged('accent')">${mkOpts(ACCENTS,'None')}</select><div id="u_accent_sub" class="u-extra-sub" style="margin-top:4px;"></div></div>
-     <div class="field"><label>Accent paint</label><div id="uAccentPaint">${ingPaintCell([],'u-accent-paint-sel')}</div></div>
+     <div class="field"><label>Accent paint <span style="font-style:italic;color:var(--text3)">(+$2)</span></label><div id="uAccentPaint">${ingPaintCell([],'u-accent-paint-sel','uBudget()')}</div></div>
     </div>
     <div class="field-row">
      <div class="field"><label>Hardgood</label><select id="u_hardgood" onchange="uExtraChanged('hardgood')">${mkOpts(HARDGOODS,'None')}</select><div id="u_hardgood_sub" class="u-extra-sub" style="margin-top:4px;"></div></div>
@@ -2171,8 +2196,9 @@ function renderProduction(){
     <h3>Container, accent &amp; hardgoods</h3>
     <div class="field-row">
      <div class="field"><label>Container</label><select id="u_container" onchange="uExtraChanged('container')">${mkOpts(CONTAINERS,'None')}</select><div id="u_container_sub" class="u-extra-sub" style="margin-top:4px;"></div></div>
+     <div class="field"><label>Container paint <span style="font-style:italic;color:var(--text3)">(+$2)</span></label><div id="uContainerPaint">${ingPaintCell([],'u-container-paint-sel','uBudget()')}</div></div>
      <div class="field"><label>Accent</label><select id="u_accent" onchange="uExtraChanged('accent')">${mkOpts(ACCENTS,'None')}</select><div id="u_accent_sub" class="u-extra-sub" style="margin-top:4px;"></div></div>
-     <div class="field"><label>Accent paint</label><div id="uAccentPaint">${ingPaintCell([],'u-accent-paint-sel')}</div></div>
+     <div class="field"><label>Accent paint <span style="font-style:italic;color:var(--text3)">(+$2)</span></label><div id="uAccentPaint">${ingPaintCell([],'u-accent-paint-sel','uBudget()')}</div></div>
     </div>
     <div class="field-row">
      <div class="field"><label>Hardgood</label><select id="u_hardgood" onchange="uExtraChanged('hardgood')">${mkOpts(HARDGOODS,'None')}</select><div id="u_hardgood_sub" class="u-extra-sub" style="margin-top:4px;"></div></div>
@@ -2208,7 +2234,8 @@ function uPrefill(){
     document.getElementById('u_container').value='None';
     document.getElementById('u_accent').value='None';
     document.getElementById('u_hardgood').value='None';
-    document.getElementById('uAccentPaint').innerHTML=ingPaintCell([],'u-accent-paint-sel');
+    document.getElementById('uAccentPaint').innerHTML=ingPaintCell([],'u-accent-paint-sel','uBudget()');
+    {const cp=document.getElementById('uContainerPaint');if(cp)cp.innerHTML=ingPaintCell([],'u-container-paint-sel','uBudget()');}
     uRecipeValue=0;uOrigExtra={};uOrderPrice=parseFloat(document.getElementById('u_target')?.value)||0;
     ['container','accent','hardgood'].forEach(k=>{const b=document.getElementById('u_'+k+'_sub');if(b)b.innerHTML='';});
     // A stale "Loaded <recipe>" banner must not linger once we're in a blank/custom state.
@@ -2226,7 +2253,8 @@ function uPrefill(){
   document.getElementById('u_container').value=(r.container&&CONTAINERS.some(c=>c.n===r.container))?r.container:'None';
   document.getElementById('u_accent').value=(r.accent&&ACCENTS.some(c=>c.n===r.accent))?r.accent:'None';
   document.getElementById('u_hardgood').value=(r.hardgood&&HARDGOODS.some(c=>c.n===r.hardgood))?r.hardgood:'None';
-  document.getElementById('uAccentPaint').innerHTML=ingPaintCell(r.accentPaint||[],'u-accent-paint-sel');
+  document.getElementById('uAccentPaint').innerHTML=ingPaintCell(r.accentPaint||[],'u-accent-paint-sel','uBudget()');
+  {const cp=document.getElementById('uContainerPaint');if(cp)cp.innerHTML=ingPaintCell(r.containerPaint||[],'u-container-paint-sel','uBudget()');}
   uOrigExtra={container:document.getElementById('u_container').value,accent:document.getElementById('u_accent').value,hardgood:document.getElementById('u_hardgood').value};
   uOrderPrice=finalPrice(r);   // default to the recipe's price; an order lookup overrides this
   {const sk=document.getElementById('u_sku');if(sk)sk.value=r.sku||'';const nt=document.getElementById('u_sku_note');if(nt)nt.textContent='';}
@@ -2266,10 +2294,10 @@ function uSyncBudgetPanel(){
 // per-item figure — only the running total/'$ left' the work-down needs).
 function uValueUsed(){
   let sum=0;
-  const add=(tb,list,mult)=>document.querySelectorAll('#'+tb+' tr').forEach(r=>{const n=r.querySelector('.uf-sel')?.value;const q=parseFloat(r.querySelector('.uf-qty')?.value)||0;if(n&&n!=='None')sum+=q*gpPrice(list,n,mult);});
+  const add=(tb,list,mult)=>document.querySelectorAll('#'+tb+' tr').forEach(r=>{const n=r.querySelector('.uf-sel')?.value;const q=parseFloat(r.querySelector('.uf-qty')?.value)||0;if(n&&n!=='None'){const painted=[...r.querySelectorAll('.uf-paint-sel')].some(s=>s.value);sum+=q*(gpPrice(list,n,mult)+(painted?paintUnitPrice():0));}});
   add('uFlowerRows',FLOWERS,4);add('uFillerRows',FILLERS,4);add('uPlantRows',PLANTS,3.5);
-  const c=document.getElementById('u_container')?.value;if(c&&c!=='None')sum+=gpPrice(CONTAINERS,c,3.5);
-  const a=document.getElementById('u_accent')?.value;if(a&&a!=='None')sum+=gpPrice(ACCENTS,a,3.5);
+  const c=document.getElementById('u_container')?.value;if(c&&c!=='None'){sum+=gpPrice(CONTAINERS,c,3.5);if([...document.querySelectorAll('.u-container-paint-sel')].some(s=>s.value))sum+=paintUnitPrice();}
+  const a=document.getElementById('u_accent')?.value;if(a&&a!=='None'){sum+=gpPrice(ACCENTS,a,3.5);if([...document.querySelectorAll('.u-accent-paint-sel')].some(s=>s.value))sum+=paintUnitPrice();}
   const h=document.getElementById('u_hardgood')?.value;if(h&&h!=='None')sum+=gpPrice(HARDGOODS,h,3.5);
   return sum;
 }
@@ -2284,7 +2312,7 @@ function uBudgetMath(){
 }
 // Update each ingredient row's Price cell (retail × qty).
 function uRefreshRowCosts(){
-  const upd=(tb,list,mult)=>document.querySelectorAll('#'+tb+' tr').forEach(r=>{const n=r.querySelector('.uf-sel')?.value;const q=parseFloat(r.querySelector('.uf-qty')?.value)||0;const c=r.querySelector('.uf-cost');if(!c)return;if(n&&n!=='None'&&isMarketItem(findItem(list,n))){c.innerHTML='<span class="market-ask">ask</span>';return;}c.textContent='$'+((n&&n!=='None')?(q*gpPrice(list,n,mult)):0).toFixed(2);});
+  const upd=(tb,list,mult)=>document.querySelectorAll('#'+tb+' tr').forEach(r=>{const n=r.querySelector('.uf-sel')?.value;const q=parseFloat(r.querySelector('.uf-qty')?.value)||0;const c=r.querySelector('.uf-cost');if(!c)return;if(n&&n!=='None'&&isMarketItem(findItem(list,n))){c.innerHTML='<span class="market-ask">ask</span>';return;}const painted=[...r.querySelectorAll('.uf-paint-sel')].some(s=>s.value);c.textContent='$'+((n&&n!=='None')?(q*(gpPrice(list,n,mult)+(painted?paintUnitPrice():0))):0).toFixed(2);});
   upd('uFlowerRows',FLOWERS,4);upd('uFillerRows',FILLERS,4);upd('uPlantRows',PLANTS,3.5);
 }
 function uBudget(){
@@ -2346,6 +2374,7 @@ function captureUsage(){
   const accent=document.getElementById('u_accent').value;
   const hardgood=document.getElementById('u_hardgood').value;
   const accentPaint=[...document.querySelectorAll('.u-accent-paint-sel')].map(s=>s.value).filter(Boolean);
+  const containerPaint=[...document.querySelectorAll('.u-container-paint-sel')].map(s=>s.value).filter(Boolean);
   const notes=(document.getElementById('u_notes').value||'').trim();
   const flowers=uReadRows('uFlowerRows'),fillers=uReadRows('uFillerRows'),plants=uReadRows('uPlantRows');
   let extra={};
@@ -2392,6 +2421,7 @@ function captureUsage(){
     container:container!=='None'?container:null,
     accent:accent!=='None'?accent:null,
     accentPaint:accentPaint.length?accentPaint:null,
+    containerPaint:containerPaint.length?containerPaint:null,
     hardgood:hardgood!=='None'?hardgood:null,
     notes:notes||null
   },extra);

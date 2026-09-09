@@ -453,6 +453,13 @@
         .then(function (r) { return r.data; });
     },
 
+    // Manually run the Google Sheet -> Firestore price sync (managers/admins).
+    // Production only (functions don't run on the staging Spark tier).
+    syncPricesNow: function () {
+      return fns().httpsCallable('syncPricesNow')({})
+        .then(function (r) { return r.data; });
+    },
+
     /** Append a change-log entry (best effort — never blocks the UI). */
     log: function (action, entityType, entityId, entityName, extra) {
       var rec = Object.assign({

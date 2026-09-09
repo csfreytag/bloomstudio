@@ -10,7 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
-<script src="firebase.js?v=5"></script>
+<script src="firebase.js?v=6"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -142,6 +142,8 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .usage-log .ing-table td { vertical-align: top; }
 .usage-log .ing-table th { font-size: 11.5px; }
 .usage-log .uf-orig { text-decoration: line-through; color: var(--text3); font-size: 12px; margin-top: 4px; }
+.market-ask { color: var(--amber); font-style: italic; font-weight: 600; }
+.seasonal-tag { display: inline-block; background: var(--amber-light); color: var(--amber); font-size: 11px; font-weight: 600; font-style: normal; padding: 1px 7px; border-radius: 999px; margin-left: 6px; vertical-align: middle; white-space: nowrap; }
 .usage-log .ing-table select, .usage-log .ing-table input[type=number] { font-size: 15px; }
 .usage-log .ing-table .del-btn { font-size: 20px; padding: 4px 8px; }
 .usage-log .ing-table .sub-btn { font-size: 20px; }
@@ -379,7 +381,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
  </div>
 </div>
 <script>
-function defR(l){return l.map(x=>({n:x.n,p:x.p,r:x.r!==undefined?x.r:null,colors:x.colors}));}
+function defR(l){return l.map(x=>({n:x.n,p:x.p,r:x.r!==undefined?x.r:null,colors:x.colors,seasonal:x.seasonal||undefined,availableUntil:x.availableUntil||undefined,expired:x.expired||undefined}));}
 // Synced sheet lists have no "None" entry — prepend one so recipes can select
 // "no flower / no container" and default to it (instead of the first real item).
 function ensureNone(list){if(!list.some(x=>x.n&&x.n.trim()==='None'))list.unshift({n:'None',p:0,r:0});return list;}
@@ -387,6 +389,25 @@ function sortByName(l){const k=s=>String(s).replace(/\s+/g,' ').trim();return l.
 function getMult(t){return(t==='flowers'||t==='fillers')?4:3.5;}
 function gpCost(list,name){const f=list.find(x=>x.n.trim()===name.trim());return f?f.p:0;}
 function gpPrice(list,name,mult){const f=list.find(x=>x.n.trim()===name.trim());if(!f)return 0;return(f.r!==null&&f.r!==undefined&&f.r>0)?f.r:(f.p||0)*(mult||1);}
+// ── Seasonal / market-price helpers ─────────────────────────────────────────
+function findItem(list,name){return (list||[]).find(x=>x.n&&x.n.trim()===String(name||'').trim());}
+// A "market" item has no fixed retail and no fallback cost — its price is "ask"
+// (a **market seasonal row, or a seasonal row whose Expiration has passed).
+function isMarketItem(it){return !!it&&(it.r===null||it.r===undefined)&&!(it.p>0);}
+function fmtShortDate(iso){if(!iso)return '';const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?(parseInt(m[2],10)+'/'+parseInt(m[3],10)):iso;}
+// Small "Seasonal" chip shown beside an item name (price list / drop-in lists).
+function seasonalTag(it){
+  if(!it||!it.seasonal)return '';
+  const txt=it.expired?'Seasonal · price expired':(it.availableUntil?('Seasonal · thru '+fmtShortDate(it.availableUntil)):'Seasonal');
+  return ` <span class="seasonal-tag">${txt}</span>`;
+}
+// One ingredient line's retail as display HTML: a $ amount, or an "ask" chip when
+// the item is market-priced. qty defaults to 1.
+function lineP(list,name,mult,qty){
+  const it=findItem(list,name);
+  if(isMarketItem(it))return '<span class="market-ask">ask</span>';
+  return '$'+fmt(gpPrice(list,name,mult)*(qty==null?1:qty));
+}
 // What this recipe would retail at against CURRENT ingredient prices (retail + labor).
 // Sum of every ingredient's retail price (flowers/fillers/plants + container/
 // accent/hardgood). This is what the line items add up to.
@@ -448,6 +469,7 @@ let activeReportView='margins';
 let MARGIN_GOOD=40;
 let MARGIN_WARN=20;
 let PRICING_SYNC=null;
+let activePriceType='flowers';
 
 // Migrate old recipes missing status/approvalNote (run after cloud load)
 function migrateRecipeShape(){
@@ -1024,17 +1046,16 @@ function renderRecipeView(r){
     items=(items||[]).filter(f=>f.name&&f.name!=='None');
     if(!items.length)return'';
     const rows=items.map(f=>{
-      const each=gpPrice(list,f.name,mult);
-      return `<li style="display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:17.5px;line-height:1.45;"><span style="min-width:44px;font-weight:700;color:var(--text);">${f.qty}×</span><span style="flex:1;">${f.name}${f.color?` <span style="color:var(--text2);">— ${f.color}</span>`:''}${f.paint&&f.paint.length?` <span style="color:var(--accent2,#8a6d3b);">· painted ${f.paint.join(' + ')}</span>`:''}</span><span style="color:var(--text2);white-space:nowrap;">$${fmt(f.qty*each)}</span></li>`;
+      return `<li style="display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:17.5px;line-height:1.45;"><span style="min-width:44px;font-weight:700;color:var(--text);">${f.qty}×</span><span style="flex:1;">${f.name}${f.color?` <span style="color:var(--text2);">— ${f.color}</span>`:''}${f.paint&&f.paint.length?` <span style="color:var(--accent2,#8a6d3b);">· painted ${f.paint.join(' + ')}</span>`:''}${seasonalTag(findItem(list,f.name))}</span><span style="color:var(--text2);white-space:nowrap;">${lineP(list,f.name,mult,f.qty)}</span></li>`;
     }).join('');
     return `<div style="margin-bottom:16px;"><h3 style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px;">${title}</h3><ul style="list-style:none;margin:0;padding:0;">${rows}</ul></div>`;
   }
 
   const extras=[];
-  if(r.container&&r.container!=='None')extras.push(['Container',r.container,gpPrice(CONTAINERS,r.container,3.5)]);
-  if(r.accent&&r.accent!=='None')extras.push(['Accent',r.accent+((r.accentPaint&&r.accentPaint.length)?` <span style="color:var(--accent2,#8a6d3b);">· painted ${r.accentPaint.join(' + ')}</span>`:''),gpPrice(ACCENTS,r.accent,3.5)]);
-  if(r.hardgood&&r.hardgood!=='None')extras.push(['Hardgood',r.hardgood,gpPrice(HARDGOODS,r.hardgood,3.5)]);
-  const extrasHtml=extras.length?`<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Vessel &amp; extras</h3><ul style="list-style:none;margin:0;padding:0;">${extras.map(e=>`<li style="display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:17.5px;"><span style="min-width:90px;color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;padding-top:3px;">${e[0]}</span><span style="flex:1;">${e[1]}</span><span style="color:var(--text2);white-space:nowrap;">$${fmt(e[2])}</span></li>`).join('')}</ul></div>`:'';
+  if(r.container&&r.container!=='None')extras.push(['Container',r.container+seasonalTag(findItem(CONTAINERS,r.container)),CONTAINERS,r.container,3.5]);
+  if(r.accent&&r.accent!=='None')extras.push(['Accent',r.accent+((r.accentPaint&&r.accentPaint.length)?` <span style="color:var(--accent2,#8a6d3b);">· painted ${r.accentPaint.join(' + ')}</span>`:'')+seasonalTag(findItem(ACCENTS,r.accent)),ACCENTS,r.accent,3.5]);
+  if(r.hardgood&&r.hardgood!=='None')extras.push(['Hardgood',r.hardgood+seasonalTag(findItem(HARDGOODS,r.hardgood)),HARDGOODS,r.hardgood,3.5]);
+  const extrasHtml=extras.length?`<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Vessel &amp; extras</h3><ul style="list-style:none;margin:0;padding:0;">${extras.map(e=>`<li style="display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:17.5px;"><span style="min-width:90px;color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;padding-top:3px;">${e[0]}</span><span style="flex:1;">${e[1]}</span><span style="color:var(--text2);white-space:nowrap;">${lineP(e[2],e[3],e[4])}</span></li>`).join('')}</ul></div>`:'';
 
   // Items listed on the recipe sheet that have no priced dropdown entry (glass,
   // candles, ribbon, themed decor, discontinued bits). Shown so designers see
@@ -1316,22 +1337,59 @@ function showPL(type){
 }
 function fmtSyncDate(s){try{const d=new Date(s);return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});}catch(e){return s;}}
 // Read-only view — prices are owned by the master Google Sheet (one-way sync).
-function renderPriceList(type){
+function renderPriceList(type,flash){
+  activePriceType=type;
   const list=getList(type),mult=getMult(type);
   const items=list.filter(x=>x.n!=='None');
   const rows=items.map(item=>{
     const hasRetail=(item.r!==null&&item.r!==undefined&&item.r>0);
-    const priceCell=hasRetail?('$'+item.r.toFixed(2)):(item.p>0?('$'+(item.p*mult).toFixed(2)):'<span style="color:var(--amber);font-style:italic;">market price</span>');
-    return`<tr><td>${item.n}</td><td style="text-align:right;font-weight:500;">${priceCell}</td></tr>`;
+    const priceCell=hasRetail?('$'+item.r.toFixed(2)):(item.p>0?('$'+(item.p*mult).toFixed(2)):'<span class="market-ask">Market — ask</span>');
+    return`<tr><td>${item.n}${seasonalTag(item)}</td><td style="text-align:right;font-weight:500;">${priceCell}</td></tr>`;
   }).join('')||'<tr><td colspan="2" style="color:var(--text3);font-style:italic;padding:10px;">No items yet — add them in the master price sheet.</td></tr>';
   const s=PRICING_SYNC;
   const syncedLine=(s&&s.at)?`Synced from the master price sheet · ${fmtSyncDate(s.at)}`:'Prices are managed in the master Google Sheet and are read-only here.';
   const banner=(s&&s.changedCount>0)?`<div style="background:var(--blue-light);border:0.5px solid var(--blue);border-radius:var(--radius);padding:8px 12px;margin-bottom:10px;font-size:13px;color:var(--blue);"><i class="ti ti-bell"></i> <strong>${s.changedCount} price${s.changedCount!==1?'s':''} changed</strong> in the last sync (${fmtSyncDate(s.at)}). Worth reviewing web items for re-pricing.</div>`:'';
+  // "Sync now" — managers/admins, production only (the Cloud Function doesn't run
+  // on the staging Spark tier). Lets a just-added seasonal item go live now.
+  const isProdHost=(location.hostname==='freytags-recipes.web.app'||location.hostname==='freytags-recipes.firebaseapp.com');
+  const canSync=(currentRole==='admin'||currentRole==='manager')&&isProdHost;
+  const syncBtn=canSync?`<button id="syncNowBtn" onclick="uSyncPricesNow()" style="margin-left:auto;font-size:12px;padding:5px 12px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);cursor:pointer;white-space:nowrap;font-style:normal;"><i class="ti ti-refresh"></i> Sync now</button>`:'';
+  const flashHtml=flash?`<div style="background:var(--bg2);border:0.5px solid ${flash.ok===false?'var(--red)':'var(--green)'};border-radius:var(--radius);padding:8px 12px;margin-bottom:10px;font-size:13px;color:${flash.ok===false?'var(--red)':'var(--green)'};font-weight:600;">${flash.text}</div>`:'';
   document.getElementById('mainContent').innerHTML=`
+  ${flashHtml}
   ${banner}
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:12px;color:var(--text2);font-style:italic;"><i class="ti ti-cloud-check"></i> ${syncedLine} — edit prices in the sheet, not here.</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:var(--text2);font-style:italic;"><i class="ti ti-cloud-check"></i> <span>${syncedLine} — edit prices in the sheet, not here.</span>${syncBtn}</div>
   <div class="section"><div class="pl-wrap"><table class="pl-table"><thead><tr><th>Name</th><th style="text-align:right;">Price</th></tr></thead><tbody>${rows}</tbody></table></div>
   <p style="font-size:11px;color:var(--text3);margin-top:8px;font-style:italic;">Cost &amp; margin appear here once the Purchasing app feeds vendor costs.</p></div>`;
+}
+// Reload price lists into the in-memory globals from Firestore (after a sync).
+function uReloadPriceGlobals(data){
+  FLOWERS=ensureNone(sortByName(defR(data.priceLists.flowers)));
+  FILLERS=ensureNone(sortByName(defR(data.priceLists.fillers)));
+  CONTAINERS=ensureNone(sortByName(defR(data.priceLists.containers)));
+  ACCENTS=ensureNone(sortByName(defR(data.priceLists.accents)));
+  HARDGOODS=ensureNone(sortByName(defR(data.priceLists.hardgoods)));
+  PLANTS=ensureNone(sortByName(defR(data.priceLists.plants)));
+  PAINTS=HARDGOODS.filter(h=>/^paint\s+\S/i.test(h.n)).map(h=>h.n.replace(/^paint\s+/i,'').trim()).sort((a,b)=>a.localeCompare(b));
+  PRICING_SYNC=data.pricingSync||PRICING_SYNC;
+}
+function uSyncPricesNow(){
+  const btn=document.getElementById('syncNowBtn');
+  if(!btn||btn.disabled)return;
+  const type=activePriceType||'flowers';
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Syncing…';
+  RecipeStore.syncPricesNow().then(res=>{
+    return RecipeStore.loadAll({recipes:DEFAULT_RECIPES,priceLists:{flowers:DEFAULT_FLOWERS,fillers:DEFAULT_FILLERS,containers:DEFAULT_CONTAINERS,accents:DEFAULT_ACCENTS,hardgoods:DEFAULT_HARDGOODS,plants:DEFAULT_PLANTS},tags:DEFAULT_TAGS}).then(data=>{
+      uReloadPriceGlobals(data);
+      const n=res.changedCount||0;
+      let msg=n?`✓ Synced — ${n} price${n!==1?'s':''} updated.`:'✓ Synced — no price changes.';
+      if(res.warnings&&res.warnings.length)msg+=` ⚠ ${res.warnings.length} seasonal row(s) need attention — check the sheet.`;
+      renderPriceList(type,{text:msg,ok:true});
+    });
+  }).catch(e=>{
+    const msg=(e&&e.message)?String(e.message):'Sync failed.';
+    renderPriceList(type,{text:'⚠ '+msg,ok:false});
+  });
 }
 function updatePLName(type,idx,val){getList(type)[idx].n=val;}
 function updatePLCost(type,idx,val,el){
@@ -2226,7 +2284,7 @@ function uBudgetMath(){
 }
 // Update each ingredient row's Price cell (retail × qty).
 function uRefreshRowCosts(){
-  const upd=(tb,list,mult)=>document.querySelectorAll('#'+tb+' tr').forEach(r=>{const n=r.querySelector('.uf-sel')?.value;const q=parseFloat(r.querySelector('.uf-qty')?.value)||0;const c=r.querySelector('.uf-cost');if(c)c.textContent='$'+((n&&n!=='None')?(q*gpPrice(list,n,mult)):0).toFixed(2);});
+  const upd=(tb,list,mult)=>document.querySelectorAll('#'+tb+' tr').forEach(r=>{const n=r.querySelector('.uf-sel')?.value;const q=parseFloat(r.querySelector('.uf-qty')?.value)||0;const c=r.querySelector('.uf-cost');if(!c)return;if(n&&n!=='None'&&isMarketItem(findItem(list,n))){c.innerHTML='<span class="market-ask">ask</span>';return;}c.textContent='$'+((n&&n!=='None')?(q*gpPrice(list,n,mult)):0).toFixed(2);});
   upd('uFlowerRows',FLOWERS,4);upd('uFillerRows',FILLERS,4);upd('uPlantRows',PLANTS,3.5);
 }
 function uBudget(){

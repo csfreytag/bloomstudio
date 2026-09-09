@@ -52,8 +52,24 @@ const SOURCES = [
   { tab: 'GREENS',     blocks: [ { name: 0, price: 1, target: 'fillers' }, { name: 3, price: 4, target: 'fillers' } ] },
   { tab: 'CONTAINERS', blocks: [ { name: 0, price: 1, target: 'containers' } ] },
   { tab: 'HARDGOODS',  blocks: [ { name: 0, price: 1, target: 'hardgoods' } ] },
-  { tab: 'PLANTS',     headerRows: 0, blocks: [ { name: 0, price: 1, target: 'plants' } ] },
+  { tab: 'PLANTS',     headerRows: 1, blocks: [ { name: 0, price: 1, target: 'plants' } ] },
   { tab: 'ACCENTS',    blocks: [ { name: 0, price: 1, target: 'accents' } ] }
+];
+
+// ── Seasonal tabs (PRICE SHEETS layout only) ──────────────────────────────────
+// Occasional / market items with a per-row Expiration date. They merge into the
+// SAME target lists as the permanent tabs, tagged { seasonal:true }. Past the
+// expiration date, the price flips to market (r=null → "ask") but the item stays
+// so it can be extended (edit the date) or removed (delete the row). Layout
+// mirrors each permanent sibling; only FLOWERS has a Color column, and GREENERY
+// keeps the two-block Greenery/Dried split. See docs/seasonal-pricing-spec.md.
+const SEASONAL_SOURCES = [
+  { tab: 'SEASONAL FLOWERS',    blocks: [ { name: 0, colors: 1, price: 2, exp: 3, target: 'flowers' } ] },
+  { tab: 'SEASONAL GREENERY',   blocks: [ { name: 0, price: 1, exp: 2, target: 'fillers' }, { name: 4, price: 5, exp: 6, target: 'fillers' } ] },
+  { tab: 'SEASONAL PLANTS',     blocks: [ { name: 0, price: 1, exp: 2, target: 'plants' } ] },
+  { tab: 'SEASONAL CONTAINERS', blocks: [ { name: 0, price: 1, exp: 2, target: 'containers' } ] },
+  { tab: 'SEASONAL ACCENTS',    blocks: [ { name: 0, price: 1, exp: 2, target: 'accents' } ] },
+  { tab: 'SEASONAL HARDGOODS',  blocks: [ { name: 0, price: 1, exp: 2, target: 'hardgoods' } ] }
 ];
 
 // ── Alternate layout: the PRODUCT SPREADSHEET (recipes + prices in one file) ──
@@ -113,6 +129,38 @@ function parseMoney(raw) {
   const n = parseFloat(s);
   return isNaN(n) ? null : n;
 }
+
+// Today's date as YYYY-MM-DD in America/Chicago (en-CA formats as YYYY-MM-DD),
+// so expiry comparisons follow the shop's local calendar day, not UTC.
+function chicagoToday() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(new Date());
+}
+// Parse a sheet date cell to YYYY-MM-DD. Returns null for blank, a string for a
+// good date, and undefined for present-but-unparseable (so the caller can warn
+// and keep the item rather than silently drop it).
+function parseSheetDate(raw) {
+  if (raw == null) return null;
+  const s = String(raw).trim();
+  if (s === '') return null;
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);   // M/D/YYYY or M/D/YY
+  if (m) {
+    let [, mo, d, y] = m;
+    if (y.length === 2) y = '20' + y;
+    return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);            // YYYY-MM-DD
+  if (m) return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+  const t = Date.parse(s);                                 // last resort
+  if (!isNaN(t)) {
+    const dt = new Date(t);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  }
+  return undefined;
+}
+// Normalize a name for collision matching (seasonal vs permanent same item).
+function unormName(s) { return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
 
 // (block parsing is handled inline in readSheet)
 
@@ -238,7 +286,70 @@ async function readSheet() {
       });
     }
   }
-  return { priceLists, summary };
+  // ── Seasonal pass (PRICE SHEETS layout only) ──────────────────────────────
+  const seasonalWarnings = [];
+  if (LAYOUT === 'priceSheets') {
+    const today = chicagoToday();
+    for (const src of SEASONAL_SOURCES) {
+      if (!existing.has(src.tab)) { summary.push({ tab: src.tab, skipped: true }); continue; }
+      let rows = [];
+      try {
+        const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${src.tab}!A:Z` });
+        rows = res.data.values || [];
+      } catch (e) {
+        const msg = (e && e.errors && e.errors[0] && e.errors[0].message) || e.message || String(e);
+        summary.push({ tab: src.tab, error: msg });
+        continue;
+      }
+      const header = rows[0] || [];
+      for (const block of src.blocks) {
+        const items = [];
+        for (let i = 1; i < rows.length; i++) {   // seasonal tabs always have a header row
+          const r = rows[i] || [];
+          const name = (r[block.name] || '').trim();
+          if (!name || name.toLowerCase() === 'none') continue;
+          const item = { n: name, p: 0, r: parseMoney(r[block.price]), seasonal: true };
+          if (block.colors != null) {
+            const colors = String(r[block.colors] || '').split(',').map(s => s.trim()).filter(Boolean);
+            if (colors.length) item.colors = colors;
+          }
+          const parsed = parseSheetDate(r[block.exp]);
+          if (parsed === undefined) {
+            seasonalWarnings.push(`${src.tab} row ${i + 1} ("${name}"): unreadable Expiration "${String(r[block.exp]).trim()}" — kept with no expiry`);
+          } else if (parsed) {
+            item.availableUntil = parsed;
+            if (parsed < today) { item.r = null; item.expired = true; }   // past → market ("ask")
+          }
+          items.push(item);
+        }
+        if (!priceLists[block.target]) priceLists[block.target] = [];
+        priceLists[block.target].push(...items);
+        summary.push({
+          tab: src.tab,
+          blockName: (header[block.name] || '').trim() || '(block)',
+          target: block.target,
+          count: items.length,
+          seasonal: true,
+          expiredCount: items.filter(i => i.expired).length,
+          marketCount: items.filter(i => i.r == null).length,
+          sample: items.slice(0, 3)
+        });
+      }
+    }
+    // Collision: a seasonal row wins over a same-named permanent item in the same
+    // list (it reflects the current market reality). Drop the permanent duplicate.
+    for (const key of Object.keys(priceLists)) {
+      const list = priceLists[key];
+      const seasonalNames = new Set(list.filter(i => i.seasonal).map(i => unormName(i.n)));
+      if (!seasonalNames.size) continue;
+      const before = list.length;
+      priceLists[key] = list.filter(i => i.seasonal || !seasonalNames.has(unormName(i.n)));
+      const dropped = before - priceLists[key].length;
+      if (dropped) seasonalWarnings.push(`${key}: ${dropped} permanent item(s) overridden by a same-named seasonal entry`);
+    }
+  }
+
+  return { priceLists, summary, seasonalWarnings };
 }
 
 // ── Write to Firestore (only with --write) ────────────────────────────────--
@@ -346,7 +457,10 @@ function diffPriceLists(prev, next) {
     if (s.skipped) { skipped.push(s.tab); continue; }
     if (s.error) { errors++; console.log(`  [${s.tab}]  ERROR: ${s.error}`); continue; }
     catTotals[s.target] = (catTotals[s.target] || 0) + s.count;
-    console.log(`  [${s.tab} › ${s.blockName}]  ${s.count} items → ${s.target}` + (s.marketCount ? `  (${s.marketCount} market-priced)` : ''));
+    const tags = [];
+    if (s.marketCount) tags.push(`${s.marketCount} market-priced`);
+    if (s.seasonal && s.expiredCount) tags.push(`${s.expiredCount} expired → ask`);
+    console.log(`  ${s.seasonal ? '⌛ ' : ''}[${s.tab} › ${s.blockName}]  ${s.count} items → ${s.target}` + (tags.length ? `  (${tags.join(', ')})` : ''));
     for (const it of s.sample) {
       console.log(`       · ${it.n}${it.r != null ? ` — $${it.r}` : ' — market price'}`);
     }
@@ -356,6 +470,10 @@ function diffPriceLists(prev, next) {
   if (skipped.length) console.log('  Tabs not in sheet yet (skipped, category kept as-is):', skipped.join(', '));
   console.log('  Never synced (app-managed):', UNMANAGED_KEYS.join(', '));
   if (errors) console.log(`  ${errors} tab error(s).`);
+  if (result.seasonalWarnings && result.seasonalWarnings.length) {
+    console.log(`\n  ⚠ Seasonal rows needing attention (${result.seasonalWarnings.length}):`);
+    result.seasonalWarnings.forEach(w => console.log(`    · ${w}`));
+  }
 
   // Always write a local preview for inspection (no cloud writes).
   const previewPath = path.join(__dirname, 'pricing-preview.json');

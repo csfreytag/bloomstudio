@@ -63,6 +63,18 @@ async function assertRecipeUser(req) {
   throw new HttpsError('permission-denied', 'Recipe Guide access required.');
 }
 
+// Managers or admins — for actions that change shared data but aren't user admin
+// (e.g. triggering the price sync). Designers are excluded.
+async function assertRecipeManager(req) {
+  const auth = req.auth;
+  if (!auth) throw new HttpsError('unauthenticated', 'You must be signed in.');
+  const ok = r => r === 'admin' || r === 'manager';
+  if (auth.token && ok(auth.token.recipeGuideRole)) return;
+  const snap = await db.collection('users').doc(auth.uid).get();
+  if (snap.exists && ok((snap.data() || {}).recipeGuideRole)) return;
+  throw new HttpsError('permission-denied', 'Recipe Guide managers or admins only.');
+}
+
 function cleanEmail(e) { return String(e || '').trim().toLowerCase(); }
 
 // Set the recipe role on both the auth claims (merged) and the users doc.
@@ -274,4 +286,54 @@ exports.lookupOrder = onCall({ secrets: [ORDA_SA_KEY] }, async (req) => {
   if (hdr && hdr[0]) { soldName = hdr[0].soldName || null; isFuneral = !!hdr[0].isFuneral; }
 
   return { ok: true, orderNumber, lines, soldName, isFuneral };
+});
+
+// ── "Sync now": run the Google Sheet → Firestore price sync on demand ────────
+// Managers/admins only. Reads the PRICE SHEETS workbook (via the analytics SA
+// that the nightly cron uses — it's shared on that sheet) and writes priceLists
+// to settings/recipeGuide, exactly like scripts/sync-pricing.js. Lets a manager
+// push a just-added seasonal item live without waiting for the daily cron.
+exports.syncPricesNow = onCall({ secrets: [ORDA_SA_KEY] }, async (req) => {
+  await assertRecipeManager(req);
+
+  let creds;
+  try { creds = JSON.parse(ORDA_SA_KEY.value()); }
+  catch (e) { throw new HttpsError('failed-precondition', 'Sheet credentials are not configured.'); }
+
+  const core = require('./pricingCore');
+  const { google } = require('googleapis');
+  const auth = new google.auth.GoogleAuth({
+    credentials: creds,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
+  });
+  const sheets = google.sheets({ version: 'v4', auth: await auth.getClient() });
+
+  let priceLists, warnings;
+  try {
+    ({ priceLists, warnings } = await core.buildPriceLists(sheets, core.SHEET_ID));
+  } catch (e) {
+    throw new HttpsError('internal', 'Could not read the price sheet: ' + (e.message || e));
+  }
+  if (!Object.keys(priceLists).length) {
+    throw new HttpsError('internal', 'The price sheet returned no items — refusing to overwrite.');
+  }
+
+  const ref = db.collection('settings').doc('recipeGuide');
+  const snap = await ref.get();
+  const prev = (snap.exists && snap.data().priceLists) || {};
+  const changes = core.diffPriceLists(prev, priceLists);
+
+  await ref.set({
+    priceLists,
+    pricingSyncedAt: admin.firestore.FieldValue.serverTimestamp(),
+    pricingSync: {
+      at: new Date().toISOString(),
+      changedCount: changes.length,
+      changes: changes.slice(0, 200),
+      manual: true,
+      by: (req.auth.token && req.auth.token.email) || req.auth.uid
+    }
+  }, { merge: true });
+
+  return { ok: true, changedCount: changes.length, changes: changes.slice(0, 50), warnings: warnings || [] };
 });

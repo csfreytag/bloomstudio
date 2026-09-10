@@ -961,19 +961,19 @@ function renderRecipeTab(r){
      <tbody>
       <tr>
        <td style="color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;">Container</td>
-       <td><select id="f_container" onchange="refreshStatCards()">${mkOpts(CONTAINERS,r.container||'None',true)}</select></td>
+       <td><select id="f_container" onchange="refreshStatCards()">${mkOpts(CONTAINERS,r.container||'None')}</select></td>
        <td class="f-paint" style="vertical-align:top;"><div id="containerPaintCell">${ingPaintCell(r.containerPaint,'container-paint-sel','refreshStatCards()')}</div></td>
        <td class="f-cost" id="f_container_price" style="font-size:13px;font-weight:500;white-space:nowrap;">${extraPrice(CONTAINERS,r.container,r.containerPaint)}</td>
       </tr>
       <tr>
        <td style="color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;">Accent</td>
-       <td><select id="f_accent" onchange="refreshStatCards()">${mkOpts(ACCENTS,r.accent||'None',true)}</select></td>
+       <td><select id="f_accent" onchange="refreshStatCards()">${mkOpts(ACCENTS,r.accent||'None')}</select></td>
        <td class="f-paint" style="vertical-align:top;"><div id="accentPaintCell">${ingPaintCell(r.accentPaint,'accent-paint-sel','refreshStatCards()')}</div></td>
        <td class="f-cost" id="f_accent_price" style="font-size:13px;font-weight:500;white-space:nowrap;">${extraPrice(ACCENTS,r.accent,r.accentPaint)}</td>
       </tr>
       <tr>
        <td style="color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;">Hardgood</td>
-       <td><select id="f_hardgood" onchange="refreshStatCards()">${mkOpts(HARDGOODS,r.hardgood||'None',true)}</select></td>
+       <td><select id="f_hardgood" onchange="refreshStatCards()">${mkOpts(HARDGOODS,r.hardgood||'None')}</select></td>
        <td style="color:var(--text3);">—</td>
        <td class="f-cost" id="f_hardgood_price" style="font-size:13px;font-weight:500;white-space:nowrap;">${extraPrice(HARDGOODS,r.hardgood,null)}</td>
       </tr>
@@ -2120,19 +2120,19 @@ function renderUsageLog(){
     <tbody>
      <tr>
       <td style="color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;">Container</td>
-      <td><select id="u_container" onchange="uExtraChanged('container')">${mkOpts(CONTAINERS,'None',true)}</select><div id="u_container_sub" class="u-extra-sub" style="margin-top:4px;"></div></td>
+      <td><select id="u_container" onchange="uExtraChanged('container')">${mkOpts(CONTAINERS,'None')}</select><div id="u_container_sub" class="u-extra-sub" style="margin-top:4px;"></div></td>
       <td class="uf-paint" style="vertical-align:top;"><div id="uContainerPaint">${ingPaintCell([],'u-container-paint-sel','uBudget()')}</div></td>
       <td class="uf-cost" id="u_container_price" style="color:var(--text2);white-space:nowrap;font-size:13px;">$0.00</td>
      </tr>
      <tr>
       <td style="color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;">Accent</td>
-      <td><select id="u_accent" onchange="uExtraChanged('accent')">${mkOpts(ACCENTS,'None',true)}</select><div id="u_accent_sub" class="u-extra-sub" style="margin-top:4px;"></div></td>
+      <td><select id="u_accent" onchange="uExtraChanged('accent')">${mkOpts(ACCENTS,'None')}</select><div id="u_accent_sub" class="u-extra-sub" style="margin-top:4px;"></div></td>
       <td class="uf-paint" style="vertical-align:top;"><div id="uAccentPaint">${ingPaintCell([],'u-accent-paint-sel','uBudget()')}</div></td>
       <td class="uf-cost" id="u_accent_price" style="color:var(--text2);white-space:nowrap;font-size:13px;">$0.00</td>
      </tr>
      <tr>
       <td style="color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;">Hardgood</td>
-      <td><select id="u_hardgood" onchange="uExtraChanged('hardgood')">${mkOpts(HARDGOODS,'None',true)}</select><div id="u_hardgood_sub" class="u-extra-sub" style="margin-top:4px;"></div></td>
+      <td><select id="u_hardgood" onchange="uExtraChanged('hardgood')">${mkOpts(HARDGOODS,'None')}</select><div id="u_hardgood_sub" class="u-extra-sub" style="margin-top:4px;"></div></td>
       <td style="color:var(--text3);">—</td>
       <td class="uf-cost" id="u_hardgood_price" style="color:var(--text2);white-space:nowrap;font-size:13px;">$0.00</td>
      </tr>
@@ -2230,19 +2230,19 @@ function renderProduction(){
     <tbody>
      <tr>
       <td style="color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;">Container</td>
-      <td><select id="u_container" onchange="uExtraChanged('container')">${mkOpts(CONTAINERS,'None',true)}</select><div id="u_container_sub" class="u-extra-sub" style="margin-top:4px;"></div></td>
+      <td><select id="u_container" onchange="uExtraChanged('container')">${mkOpts(CONTAINERS,'None')}</select><div id="u_container_sub" class="u-extra-sub" style="margin-top:4px;"></div></td>
       <td class="uf-paint" style="vertical-align:top;"><div id="uContainerPaint">${ingPaintCell([],'u-container-paint-sel','uBudget()')}</div></td>
       <td class="uf-cost" id="u_container_price" style="color:var(--text2);white-space:nowrap;font-size:13px;">$0.00</td>
      </tr>
      <tr>
       <td style="color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;">Accent</td>
-      <td><select id="u_accent" onchange="uExtraChanged('accent')">${mkOpts(ACCENTS,'None',true)}</select><div id="u_accent_sub" class="u-extra-sub" style="margin-top:4px;"></div></td>
+      <td><select id="u_accent" onchange="uExtraChanged('accent')">${mkOpts(ACCENTS,'None')}</select><div id="u_accent_sub" class="u-extra-sub" style="margin-top:4px;"></div></td>
       <td class="uf-paint" style="vertical-align:top;"><div id="uAccentPaint">${ingPaintCell([],'u-accent-paint-sel','uBudget()')}</div></td>
       <td class="uf-cost" id="u_accent_price" style="color:var(--text2);white-space:nowrap;font-size:13px;">$0.00</td>
      </tr>
      <tr>
       <td style="color:var(--text3);font-size:12px;text-transform:uppercase;letter-spacing:0.04em;">Hardgood</td>
-      <td><select id="u_hardgood" onchange="uExtraChanged('hardgood')">${mkOpts(HARDGOODS,'None',true)}</select><div id="u_hardgood_sub" class="u-extra-sub" style="margin-top:4px;"></div></td>
+      <td><select id="u_hardgood" onchange="uExtraChanged('hardgood')">${mkOpts(HARDGOODS,'None')}</select><div id="u_hardgood_sub" class="u-extra-sub" style="margin-top:4px;"></div></td>
       <td style="color:var(--text3);">—</td>
       <td class="uf-cost" id="u_hardgood_price" style="color:var(--text2);white-space:nowrap;font-size:13px;">$0.00</td>
      </tr>

@@ -32,3 +32,4 @@ CLI and `main` fast-forwarded to match (the merge also fixed a junk "PLANT" head
 - Recipe functions on Node 22 — done (2026-06-25)
 - Seasonal pricing: six separate SEASONAL tabs (one per permanent tab); expired price → "Market — ask" (reuses the market-price state), extend by editing the date; admin/manager "Sync now" button; sheet stays the only price source (2026-09-09)
 - Paint pricing: a painted stem/item adds a FLAT $2 (× qty for stems), regardless of how many colors. Flowers, fillers, accent, and container are paintable; NOT hardgoods. Reverses the 2026-08-08 "paint is descriptive only" call. The old flat "$2 Paint" accent is now redundant (left selectable; would double-charge if added on top) (2026-09-09)
+- Container/accent/hardgood now render as an `.ing-table` (Slot · Item · Paint · Price) like the flower rows, with the price in its own column; the `($price)` was dropped from THOSE dropdowns (flowers still show it). `mkOpts(list,sel,noPrice)` (2026-09-10)

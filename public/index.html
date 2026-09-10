@@ -10,7 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
-<script src="firebase.js?v=6"></script>
+<script src="firebase.js?v=7"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -1985,6 +1985,8 @@ function exportOrderCSV(){
 // the production build (both need a server function); this is the manual
 // foundation. No pricing is shown here — this screen is designer-facing.
 let usageRecent=[];
+let uRecentCache=[];   // the list currently shown (recent or search) — source for Reopen
+let uEditing=null;     // {id,rootId,version} when reopening a log to edit; null otherwise
 // Price-free option list (mkOpts appends "($x)" — never show that to designers).
 function uOptsPlain(list,sel){
   sel=sel||'None';
@@ -2143,12 +2145,10 @@ function renderUsageLog(){
     <textarea id="u_notes" rows="2" style="width:100%;" placeholder="Anything worth noting — why a substitution was made, etc."></textarea>
    </div>
    <div class="field" style="max-width:220px;margin-top:8px;"><label>Your employee #</label><input type="text" id="u_emp" autocomplete="off" placeholder="who filled this?" style="font-size:16px;"/></div>
+   <div id="uEditBar" style="display:none;margin:6px 0;padding:7px 10px;border-radius:var(--radius);background:var(--amber-light);color:var(--amber);font-size:13px;font-weight:600;"></div>
    <div id="uSaveMsg" style="font-size:13px;min-height:18px;margin:6px 0 8px;"></div>
    <button class="save-btn" onclick="saveUsageLog()"><i class="ti ti-check"></i> Save usage log</button>
-   <div class="section" style="margin-top:16px;">
-    <h3>Recent logs</h3>
-    <div id="uRecent" style="font-size:13px;color:var(--text3);">Loading…</div>
-   </div>
+   <div class="section" style="margin-top:16px;">${uRecentPanelHtml(false)}</div>
   </div>`;
   const oi=document.getElementById('u_order');if(oi)oi.focus();
   {const emp=document.getElementById('u_emp');if(emp)emp.value=uEmployeeNo;}
@@ -2253,12 +2253,10 @@ function renderProduction(){
     <textarea id="u_notes" rows="2" style="width:100%;" placeholder="Anything worth noting — why a substitution was made, etc."></textarea>
    </div>
    <div class="field" style="max-width:220px;margin-top:8px;"><label>Your employee #</label><input type="text" id="u_emp" autocomplete="off" placeholder="who's making this?" style="font-size:16px;"/></div>
+   <div id="uEditBar" style="display:none;margin:6px 0;padding:7px 10px;border-radius:var(--radius);background:var(--amber-light);color:var(--amber);font-size:13px;font-weight:600;"></div>
    <div id="uSaveMsg" style="font-size:13px;min-height:18px;margin:6px 0 8px;"></div>
    <button class="save-btn" onclick="saveUsageLog()"><i class="ti ti-check"></i> Save production log</button>
-   <div class="section" style="margin-top:16px;">
-    <h3>Recent production logs</h3>
-    <div id="uRecent" style="font-size:13px;color:var(--text3);">Loading…</div>
-   </div>
+   <div class="section" style="margin-top:16px;">${uRecentPanelHtml(true)}</div>
   </div>`;
   const q=document.getElementById('u_qty');if(q)q.focus();
   const emp=document.getElementById('u_emp');if(emp)emp.value=uEmployeeNo;
@@ -2270,6 +2268,7 @@ function renderProduction(){
   loadUsageRecent();
 }
 function uPrefill(){
+  uEditing=null;uEditBanner();   // switching the recipe starts a fresh build, not an edit
   const id=document.getElementById('u_recipe').value;
   if(!id){
     document.getElementById('uFlowerRows').innerHTML=uRows([],'flower');
@@ -2461,6 +2460,7 @@ function captureUsage(){
     extra={substitutions:subs,dropped,added,orderPrice:uOrderPrice||null,designedValue:+(uRecipeValue||0).toFixed(2),valueUsed:+uValueUsed().toFixed(2)};
   }
   return Object.assign({
+    ...(uEditing?{id:uEditing.id,rootId:uEditing.rootId,version:uEditing.version}:{}),
     type:production?'production':'order',
     orderNumber:production?null:order,
     quantityMade:production?qty:null,
@@ -2481,59 +2481,160 @@ function captureUsage(){
 function uMsg(t,ok){const el=document.getElementById('uSaveMsg');if(el){el.textContent=t||'';el.style.color=ok?'var(--green)':'var(--red)';}}
 function saveUsageLog(){
   const rec=captureUsage();
+  const editing=!!rec.id;
   const has=rec.flowers.length||rec.fillers.length||rec.plants.length||rec.container||rec.accent||rec.hardgood;
   if(rec.type==='production'){
     if(!rec.employeeNumber){uMsg('Enter your employee # before saving.');document.getElementById('u_emp')?.focus();return;}
     if(!has){uMsg('Add at least one item you made.');return;}
-    uEmployeeNo=rec.employeeNumber;   // keep for the next batch at this station
     uMsg('Saving…',true);
     RecipeStore.saveUsage(rec).then(()=>{
-      RecipeStore.log('production.created','usage',rec.baseRecipeSku||'custom',rec.baseRecipeName||'Custom',{qty:rec.quantityMade,custom:rec.custom});
+      RecipeStore.log(editing?'production.edited':'production.created','usage',rec.baseRecipeSku||'custom',rec.baseRecipeName||'Custom',{qty:rec.quantityMade,custom:rec.custom,editOf:editing?(rec.rootId||null):null});
+      uEmployeeNo='';uEditing=null;   // deliberate re-entry for the next person
       renderProduction();
-      setTimeout(()=>uMsg('Logged '+rec.quantityMade+' × '+(rec.baseRecipeName||'custom')+'. Ready for the next batch.',true),60);
+      setTimeout(()=>uMsg(editing?'Saved as a new version — the original log is kept.':('Logged '+rec.quantityMade+' × '+(rec.baseRecipeName||'custom')+'. Ready for the next batch.'),true),60);
     }).catch(e=>{uMsg('Could not save: '+(e.message||e));});
     return;
   }
   if(!rec.orderNumber){uMsg('Enter (or scan) the order number first.');document.getElementById('u_order').focus();return;}
   if(!has){uMsg('Add at least one item you used.');return;}
   if(!rec.employeeNumber){uMsg('Enter your employee # before saving.');document.getElementById('u_emp')?.focus();return;}
-  uEmployeeNo=rec.employeeNumber;   // keep for the next log at this station
   uMsg('Saving…',true);
   RecipeStore.saveUsage(rec).then(()=>{
-    RecipeStore.log('usage.created','usage',rec.orderNumber,rec.baseRecipeName||'Custom',{custom:rec.custom});
+    RecipeStore.log(editing?'usage.edited':'usage.created','usage',rec.orderNumber,rec.baseRecipeName||'Custom',{custom:rec.custom,editOf:editing?(rec.rootId||null):null});
+    uEmployeeNo='';uEditing=null;
     renderUsageLog();
-    setTimeout(()=>uMsg('Saved order '+rec.orderNumber+'. Ready for the next one.',true),60);
+    setTimeout(()=>uMsg(editing?('Saved as a new version of order '+rec.orderNumber+' — the original is kept.'):('Saved order '+rec.orderNumber+'. Ready for the next one.'),true),60);
   }).catch(e=>{uMsg('Could not save: '+(e.message||e));});
+}
+// Recent-logs panel markup. Admins get an auto-loaded recent list; everyone else
+// gets search-only (find your own by employee #) — on a shared station that is
+// the only identity we have, and the append-only history is the real safeguard.
+function uRecentPanelHtml(prod){
+  const admin=currentRole==='admin';
+  const search=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+     <input id="uSearchEmp" type="text" inputmode="numeric" placeholder="employee #" style="width:120px;font-size:14px;" onkeydown="if(event.key==='Enter')uSearchLogs()"/>
+     <input id="uSearchOrder" type="text" placeholder="order #" style="width:130px;font-size:14px;" onkeydown="if(event.key==='Enter')uSearchLogs()"/>
+     <button class="add-row-btn" style="margin:0;" onclick="uSearchLogs()"><i class="ti ti-search"></i> Search</button>
+     ${admin?`<button class="add-row-btn" style="margin:0;" onclick="loadUsageRecent()">Recent</button>`:''}
+   </div>`;
+  const hint=admin?'Loading…':'Enter your employee # (or an order #) above to find a log to reopen.';
+  return `<h3>${prod?'Recent production logs':'Recent logs'}</h3>${search}<div id="uRecent" style="font-size:13px;color:var(--text3);">${hint}</div>`;
+}
+// Collapse a version chain to its latest version, newest-touched first.
+function uLatestPerRoot(list){
+  const by={};
+  for(const u of (list||[])){const root=u.rootId||u.id;const c=by[root];if(!c||(u.version||1)>=(c.version||1))by[root]=u;}
+  return Object.values(by).sort((a,b)=>{const ta=a.createdAt&&a.createdAt.toMillis?a.createdAt.toMillis():0,tb=b.createdAt&&b.createdAt.toMillis?b.createdAt.toMillis():0;return tb-ta;});
+}
+function uLogRowHtml(u,prodMode){
+  const admin=currentRole==='admin';
+  const n=(u.flowers||[]).length+(u.fillers||[]).length+(u.plants||[]).length+(u.container?1:0)+(u.accent?1:0)+(u.hardgood?1:0);
+  const who=(u.userEmail||'').split('@')[0];
+  const when=(u.createdAt&&u.createdAt.toDate)?u.createdAt.toDate().toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+  const label=u.custom?'<span style="color:var(--amber);">Custom</span>':('Recipe '+(u.baseRecipeSku||u.baseRecipeName||''));
+  const nSub=((u.substitutions||[]).length)+((u.dropped||[]).length);
+  const subTag=nSub?` · <span style="color:var(--amber);">${nSub} sub${nSub!==1?'s':''}</span>`:'';
+  const ver=(u.version&&u.version>1)?` · <span style="color:var(--amber);">edited v${u.version}</span>`:'';
+  const lead=prodMode
+    ? `<strong>${u.quantityMade||1}×</strong> ${u.baseRecipeName||u.baseRecipeSku||'Custom'}`
+    : `<strong style="font-family:monospace;">${u.orderNumber||'—'}</strong> · ${label}`;
+  const meta=(u.employeeNumber?('#'+u.employeeNumber):who)+(when?' · '+when:'');
+  const btn=(fn,icon,txt,title)=>`<button onclick="${fn}" title="${title}" style="background:none;border:0.5px solid var(--border2);border-radius:6px;color:var(--text2);cursor:pointer;padding:2px 7px;font-size:12px;margin-left:4px;"><i class="ti ${icon}"></i> ${txt}</button>`;
+  const acts=btn(`uReopen('${u.id}')`,'ti-pencil','Reopen','Reopen to edit — saves a new version, keeps the original')
+    +((admin&&u.version>1)?btn(`uShowHistory('${u.rootId||u.id}')`,'ti-history','History','See every version'):'')
+    +(admin?`<button onclick="deleteUsage('${u.id}')" title="Delete this version" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:0 2px;margin-left:4px;"><i class="ti ti-x"></i></button>`:'');
+  return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);color:var(--text);flex-wrap:wrap;">
+    <span>${lead} · ${n} item${n!==1?'s':''}${subTag}${ver}</span>
+    <span style="color:var(--text3);font-size:12px;white-space:nowrap;">${meta} ${acts}</span>
+  </div>`;
+}
+function uRenderLogList(el,list,prodMode){
+  uRecentCache=(list||[]).slice();
+  if(!list||!list.length){el.innerHTML='<span style="font-style:italic;">No logs found.</span>';return;}
+  el.innerHTML=list.map(u=>uLogRowHtml(u,prodMode)).join('');
 }
 function loadUsageRecent(){
   const el=document.getElementById('uRecent');if(!el)return;
+  if(currentRole!=='admin'){el.innerHTML='<span style="font-style:italic;">Enter your employee # (or an order #) above to find a log to reopen.</span>';return;}
   const prodMode=uMode==='production';
-  RecipeStore.loadUsage(60).then(all=>{
-    const list=all.filter(u=>prodMode?u.type==='production':u.type!=='production').slice(0,30);
-    usageRecent=list;
-    if(!list.length){el.innerHTML='<span style="font-style:italic;">No logs yet.</span>';return;}
-    const me=(RecipeStore.context&&RecipeStore.context().user)?RecipeStore.context().user.uid:null;
-    el.innerHTML=list.map(u=>{
-      const n=(u.flowers||[]).length+(u.fillers||[]).length+(u.plants||[]).length+(u.container?1:0)+(u.accent?1:0)+(u.hardgood?1:0);
-      const who=(u.userEmail||'').split('@')[0];
-      const when=(u.createdAt&&u.createdAt.toDate)?u.createdAt.toDate().toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
-      const label=u.custom?'<span style="color:var(--amber);">Custom</span>':('Recipe '+(u.baseRecipeSku||u.baseRecipeName||''));
-      const nSub=((u.substitutions||[]).length)+((u.dropped||[]).length);
-      const subTag=nSub?` · <span style="color:var(--amber);">${nSub} sub${nSub!==1?'s':''}</span>`:'';
-      const canDel=(me&&u.userId===me)||currentRole!=='designer';
-      const lead=prodMode
-        ? `<strong>${u.quantityMade||1}×</strong> ${u.baseRecipeName||u.baseRecipeSku||'Custom'}`
-        : `<strong style="font-family:monospace;">${u.orderNumber||'—'}</strong> · ${label}`;
-      const meta=(u.employeeNumber?('#'+u.employeeNumber):who)+(when?' · '+when:'');
-      return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border);color:var(--text);">
-        <span>${lead} · ${n} item${n!==1?'s':''}${subTag}</span>
-        <span style="color:var(--text3);font-size:12px;white-space:nowrap;">${meta}${canDel?` <button onclick="deleteUsage('${u.id}')" title="Delete" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:0 2px;"><i class="ti ti-x"></i></button>`:''}</span>
-      </div>`;
-    }).join('');
+  el.innerHTML='<span style="font-style:italic;">Loading…</span>';
+  RecipeStore.loadUsage(80).then(all=>{
+    const list=uLatestPerRoot(all.filter(u=>prodMode?u.type==='production':u.type!=='production')).slice(0,30);
+    usageRecent=list;uRenderLogList(el,list,prodMode);
   }).catch(e=>{el.innerHTML='<span style="color:var(--red);">Could not load recent logs: '+(e.message||e)+'</span>';});
 }
+function uSearchLogs(){
+  const el=document.getElementById('uRecent');if(!el)return;
+  const emp=(document.getElementById('uSearchEmp')?.value||'').trim();
+  const ord=(document.getElementById('uSearchOrder')?.value||'').trim();
+  if(!emp&&!ord){el.innerHTML='<span style="font-style:italic;">Enter an employee # or order # to search.</span>';return;}
+  const prodMode=uMode==='production';
+  el.innerHTML='<span style="font-style:italic;">Searching…</span>';
+  RecipeStore.searchUsage({employeeNumber:emp||null,orderNumber:emp?null:(ord||null)}).then(all=>{
+    let res=all;
+    if(emp&&ord)res=res.filter(u=>String(u.orderNumber||'')===ord);   // both given → narrow client-side
+    res=uLatestPerRoot(res.filter(u=>prodMode?u.type==='production':u.type!=='production'));
+    uRenderLogList(el,res,prodMode);
+  }).catch(e=>{el.innerHTML='<span style="color:var(--red);">Search failed: '+(e.message||e)+'</span>';});
+}
+function uReopen(id){
+  const u=(uRecentCache||[]).find(x=>x.id===id);
+  if(!u){uMsg('Could not find that log to reopen.');return;}
+  uLoadRecord(u);
+}
+// Load a saved usage record back into the form for editing. Populates the actual
+// items USED (not the recipe), and marks the form as editing so Save appends a
+// version instead of overwriting.
+function uLoadRecord(u){
+  uEditing={id:u.id,rootId:u.rootId||u.id,version:u.version||1};
+  const rsel=document.getElementById('u_recipe');
+  if(rsel)rsel.value=(u.baseRecipeId&&recipes.some(r=>String(r.id)===String(u.baseRecipeId)))?u.baseRecipeId:'';
+  document.getElementById('uFlowerRows').innerHTML=uRows(u.flowers,'flower');
+  document.getElementById('uFillerRows').innerHTML=uRows(u.fillers,'filler');
+  document.getElementById('uPlantRows').innerHTML=uRows(u.plants,'plant');
+  document.getElementById('u_container').value=(u.container&&CONTAINERS.some(c=>c.n===u.container))?u.container:'None';
+  document.getElementById('u_accent').value=(u.accent&&ACCENTS.some(c=>c.n===u.accent))?u.accent:'None';
+  document.getElementById('u_hardgood').value=(u.hardgood&&HARDGOODS.some(c=>c.n===u.hardgood))?u.hardgood:'None';
+  {const cp=document.getElementById('uContainerPaint');if(cp)cp.innerHTML=ingPaintCell(u.containerPaint||[],'u-container-paint-sel','uBudget()');}
+  {const ap=document.getElementById('uAccentPaint');if(ap)ap.innerHTML=ingPaintCell(u.accentPaint||[],'u-accent-paint-sel','uBudget()');}
+  const nt=document.getElementById('u_notes');if(nt)nt.value=u.notes||'';
+  const emp=document.getElementById('u_emp');if(emp)emp.value=u.employeeNumber||'';
+  if(uMode==='production'){const q=document.getElementById('u_qty');if(q)q.value=u.quantityMade||1;}
+  else{const o=document.getElementById('u_order');if(o)o.value=u.orderNumber||'';}
+  if(u.custom){
+    const t=document.getElementById('u_target');if(t)t.value=u.targetPrice||'';
+    const f=document.getElementById('u_funeral');if(f)f.checked=!!u.funeral;
+    if(u.funeral){const d=document.getElementById('u_discount');if(d&&u.deductPct!=null)d.value=u.deductPct;}
+    else{const l=document.getElementById('u_labor');if(l&&u.deductPct!=null)l.value=String(u.deductPct);}
+  }
+  uOrigExtra={container:document.getElementById('u_container').value,accent:document.getElementById('u_accent').value,hardgood:document.getElementById('u_hardgood').value};
+  uRecipeValue=(u.designedValue!=null)?u.designedValue:0;
+  uOrderPrice=(u.orderPrice!=null)?u.orderPrice:(u.targetPrice||0);
+  uSyncBudgetPanel();uBudget();uEditBanner();
+  try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){window.scrollTo(0,0);}
+  uMsg('Reopened for editing — change what you need and Save (the original is kept).',true);
+}
+function uEditBanner(){
+  const b=document.getElementById('uEditBar');if(!b)return;
+  if(uEditing){b.style.display='';b.innerHTML='✎ Editing an existing log (v'+uEditing.version+'). Saving keeps the original and adds a new version. <button onclick="uCancelEdit()" style="margin-left:8px;background:none;border:0.5px solid var(--amber);color:var(--amber);border-radius:6px;cursor:pointer;font-size:12px;padding:2px 8px;">Cancel edit</button>';}
+  else{b.style.display='none';b.innerHTML='';}
+}
+function uCancelEdit(){uEditing=null;if(uMode==='production')renderProduction();else renderUsageLog();}
+function uShowHistory(rootId){
+  RecipeStore.loadUsageHistory(rootId).then(vs=>{
+    if(!vs.length){alert('No history found.');return;}
+    const rows=vs.map(u=>{
+      const when=(u.createdAt&&u.createdAt.toDate)?u.createdAt.toDate().toLocaleString():'(just now)';
+      const stems=(u.flowers||[]).reduce((s,x)=>s+(+x.qty||0),0)+(u.fillers||[]).reduce((s,x)=>s+(+x.qty||0),0);
+      const v=(u.valueUsed!=null)?('$'+(+u.valueUsed).toFixed(2)):'—';
+      return `v${u.version||1} · ${when} · emp #${u.employeeNumber||'—'} · ${stems} stems · ${v}`;
+    }).join('\n');
+    alert('Version history (oldest first):\n\n'+rows+'\n\nThe original (v1) is always kept — an edit only adds a new version.');
+  }).catch(e=>alert('Could not load history: '+(e.message||e)));
+}
 function deleteUsage(id){
-  if(!confirm('Delete this usage log?'))return;
+  if(currentRole!=='admin'){uMsg('Only an admin can delete a log.');return;}
+  if(!confirm('Delete this version? The append-only history is the audit trail — deleting removes a version from it.'))return;
   RecipeStore.deleteUsage(id).then(()=>loadUsageRecent()).catch(e=>alert('Could not delete: '+(e.message||e)));
 }
 

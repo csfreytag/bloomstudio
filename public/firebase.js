@@ -419,25 +419,71 @@
     // One doc per logged arrangement: what a designer actually used, tied to an
     // order number so it can later join to Orda. Auto-id docs; createdAt +
     // author stamped server-side.
+    // APPEND-ONLY. A new log is version 1. Editing a reopened log NEVER overwrites
+    // it — we write a NEW version doc and keep every prior one, so an edit can't
+    // erase the original (e.g. an overstuffed stem count). `rootId` ties a chain
+    // together; `version` increments; `supersedes` points at the prior version.
     saveUsage: function (record) {
       var clean = JSON.parse(JSON.stringify(record)); // drop undefined / functions
       clean.createdAt = firebase.firestore.FieldValue.serverTimestamp();
       clean.userId = ctx.user ? ctx.user.uid : '';
       clean.userEmail = ctx.user ? ctx.user.email : '';
+      var col = db.collection('usageRecords');
       if (clean.id) {
-        var id = String(clean.id); delete clean.id;
-        return db.collection('usageRecords').doc(id).set(clean, { merge: true });
+        // Editing an existing log → append a new version, original untouched.
+        var prevId = String(clean.id);
+        clean.rootId = clean.rootId || prevId;   // legacy records: they are their own root
+        clean.version = (clean.version || 1) + 1;
+        clean.supersedes = prevId;
+        delete clean.id;
+        var vref = col.doc();
+        return vref.set(clean).then(function () { return vref.id; });
       }
-      return db.collection('usageRecords').add(clean);
+      // New log → v1; rootId = its own id (set client-side, no follow-up write).
+      delete clean.supersedes;
+      clean.version = 1;
+      var ref = col.doc();
+      clean.rootId = ref.id;
+      return ref.set(clean).then(function () { return ref.id; });
     },
 
-    // Most-recent usage logs (default 30), newest first.
+    // Most-recent usage logs (default 30), newest first (all versions).
     loadUsage: function (max) {
       return db.collection('usageRecords')
         .orderBy('createdAt', 'desc').limit(max || 30).get()
         .then(function (snap) {
           var out = [];
           snap.forEach(function (d) { var x = d.data() || {}; x.id = d.id; out.push(x); });
+          return out;
+        });
+    },
+
+    // Find logs by employee number OR order number (equality only → no composite
+    // index needed; sorted newest-first client-side).
+    searchUsage: function (opts) {
+      opts = opts || {};
+      var q = db.collection('usageRecords');
+      if (opts.employeeNumber) q = q.where('employeeNumber', '==', String(opts.employeeNumber));
+      else if (opts.orderNumber) q = q.where('orderNumber', '==', String(opts.orderNumber));
+      return q.limit(opts.max || 200).get().then(function (snap) {
+        var out = [];
+        snap.forEach(function (d) { var x = d.data() || {}; x.id = d.id; out.push(x); });
+        out.sort(function (a, b) {
+          var ta = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : 0;
+          var tb = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : 0;
+          return tb - ta;
+        });
+        return out;
+      });
+    },
+
+    // Every version in one record's chain, oldest → newest (for the admin history).
+    loadUsageHistory: function (rootId) {
+      return db.collection('usageRecords').where('rootId', '==', String(rootId)).get()
+        .then(function (snap) {
+          var out = [];
+          snap.forEach(function (d) { var x = d.data() || {}; x.id = d.id; out.push(x); });
+          out.sort(function (a, b) { return (a.version || 1) - (b.version || 1); });
           return out;
         });
     },

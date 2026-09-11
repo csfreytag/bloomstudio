@@ -19,7 +19,7 @@ Live at https://freytags-recipes.web.app. Recent work (2026-09-09/10), all on pr
 - Add the team in the in-app Users tab
 
 ## Next up
-- Enable PITR + scheduled daily backups on prod Firestore (console/gcloud; SHARED project — helps both apps)
+- IDEA (Chad, revisit Mon 2026-09-15): a "Add seasonal item" form in the **Purchasing app** so the buyer doesn't open the Google Sheet — it appends a row to the SEASONAL tab of PRICE SHEETS via the Sheets API, then the existing seasonal sync + "Sync now" makes it live. Recommended over an app-managed Firestore seasonal collection (keeps sheet = one-way source of truth; reuses what's built). It's a PURCHASING-side build; Recipe side already consumes it. Settle: which SA writes the sheet; form matches tab layout (Name·Color·Price·Expiration). Offer to draft a handoff spec.
 - Overstuffing report (manager): the append-only audit + `valueUsed`/`designedValue` now make it buildable — needs a threshold definition
 - Held: Plant Items import (~423 recipes) — do in one pass after review (Chad's call)
 

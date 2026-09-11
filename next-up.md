@@ -20,7 +20,6 @@ Live at https://freytags-recipes.web.app. Recent work (2026-09-09/10), all on pr
 
 ## Next up
 - Enable PITR + scheduled daily backups on prod Firestore (console/gcloud; SHARED project — helps both apps)
-- OPEN DECISION: designers now see prices in Log/Production (per-line, value box, container price column) — the role says "Designer: no pricing visible." Decide keep vs hide (there's a dormant `uOptsPlain` price-free option list ready)
 - Overstuffing report (manager): the append-only audit + `valueUsed`/`designedValue` now make it buildable — needs a threshold definition
 - Held: Plant Items import (~423 recipes) — do in one pass after review (Chad's call)
 
@@ -32,3 +31,4 @@ Live at https://freytags-recipes.web.app. Recent work (2026-09-09/10), all on pr
 - Paint: painted stem/item adds a FLAT $2 (× qty for stems), any # colors. Flowers/fillers/accent/container paintable, NOT hardgoods. Reverses 2026-08-08 "descriptive only"; old flat "$2 Paint" accent now redundant (2026-09-09)
 - Container/accent/hardgood shown as a table like flowers; price in BOTH dropdown and column (2026-09-10)
 - Usage logs are APPEND-ONLY (edit = new version; original never overwritten). Admin: full list + search + history; others: search by employee # only. Employee # required + cleared after save; delete admin-only (2026-09-10)
+- Designer pricing in Log/Production is INTENDED, not a leak: CUSTOM → show build-to-price (build to the final total); RECIPE → show each item's price (so a substitution matches dollar-for-dollar) and alert "over the recipe" vs the recipe's DESIGNED value, never the sale price/margin (that's hidden, saved silently for the manager report). Supersedes the prototype "Designer: no pricing visible" line. Do NOT hide these prices (2026-08 / reaffirmed 2026-09-11)

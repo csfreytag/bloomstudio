@@ -117,7 +117,9 @@ This is what the client app uses for Auth/Firestore/Storage. It is public by des
 
 - **Admin** — everything: users, price lists, recipes, reports, exports.
 - **Manager** — create/edit recipes, reports, ordering. No user management.
-- **Designer** — Recipe view + calculator only. Read-only. **No pricing visible.**
+- **Designer** — Recipe view + calculator + **Log / Production** (record actual usage). No recipe editing, no price-list editing, no reports/exports, no user management.
+  - **Pricing they DO see (by design, decided 2026-08):** in Log/Production, per-item prices on recipe items (so a substitution can be matched dollar-for-dollar) and the build-to-price panel on custom arrangements (so they build to the final total). Substitution "over" alerts reference the recipe's **designed value**, never the sale price.
+  - **Pricing they do NOT see:** margin / cost, and the arrangement's value vs the **sale price** (captured silently for the manager's overstuffing report). The old blanket "no pricing visible" was prototype-era and is superseded by this.
 
 Roles are per-app — the same person can be a Manager here and a Buyer in Purchasing. In the prototype there's a "Role preview" dropdown to simulate roles; in the real build the role comes from the login.
 

@@ -31,6 +31,14 @@ This repo (`bloomstudio`) is **Freytag's Recipe Guide**, an internal flower-reci
 - Deploy production ONLY with the explicit hosting target: `firebase deploy --only hosting:freytags-recipes`. **Never** a bare `firebase deploy` (that once overwrote the wrong site).
 - **Test the Firebase migration against staging first** so the production database is never touched until the migration is verified.
 
+## Shared prod rules — coordination (read `docs/shared-prod-coordination.md`)
+
+- Prod Firestore is ONE database shared with the **Purchasing app**; **rules + data are the only shared surface** (hosting & functions are isolated — recipe functions are `codebase="recipe-guide"`).
+- **The canonical `firestore.rules` lives in the PURCHASING repo** (the complete union of both apps' rules) and is the ONLY file deployed to prod rules.
+- **This repo NEVER deploys rules.** `firebase.json` here intentionally has **no `firestore`/`storage` block**, so a stray `firebase deploy` can't clobber the shared rules. The local `firestore.rules` is a stale, purchasing-less draft (loud DO-NOT-DEPLOY banner) — never deploy it.
+- **To change a recipe rule:** run a surgical REST script on live prod (`scripts/prod-rules-fetch.js` to read; model new changes on `scripts/prod-rules-usage-appendonly.js` — validate, then `--release`; it prints a rollback ruleset id) **AND** hand the exact block to the purchasing repo to mirror into canonical, or their next deploy reverts it. Verify live-vs-file before any rules deploy.
+- Recovery net: PITR is ON (7-day) + a daily 7-day backup schedule (verified 2026-09-11).
+
 ## Environments
 
 - **Production** — Recipe hosting site `freytags-recipes` in Firebase project `freytags-purchasing`. Uses the web config in "Secrets & config" above.

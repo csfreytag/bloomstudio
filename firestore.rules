@@ -1,5 +1,16 @@
 rules_version = '2';
 
+// ██████████████████████████████████████████████████████████████████████████
+// ██  DO NOT DEPLOY THIS FILE TO PRODUCTION. IT IS A STALE, PURCHASING-LESS  ██
+// ██  DRAFT. Prod Firestore rules are SHARED with the Purchasing app and are ██
+// ██  owned by the PURCHASING repo's canonical firestore.rules (the complete ██
+// ██  union of both apps). Deploying this file would WIPE all Purchasing     ██
+// ██  rules. This repo's firebase.json intentionally declares NO firestore   ██
+// ██  block so it cannot deploy rules. Recipe rule changes = surgical REST   ██
+// ██  script on live prod (see scripts/prod-rules-*.js) + mirror into the    ██
+// ██  purchasing canonical file. See docs/shared-prod-coordination.md.       ██
+// ██████████████████████████████████████████████████████████████████████████
+
 // ─────────────────────────────────────────────────────────────
 // Freytag's — shared Firestore security rules
 //

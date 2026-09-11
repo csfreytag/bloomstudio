@@ -89,6 +89,7 @@ products/{productId}
   aliases: ["Freedom Rose", "Rosa Freedom 60cm", "FREEDOM RD 60CM"]
   retailPrice: 16.00             Google Sheet sync ONLY — purchasing NEVER writes this
   defaultVendor: vendor_id       purchasing uses; Recipe Guide ignores
+  isAssorted: false             true = a genuinely mixed-color box (e.g. "Cremon — Assorted", color:"Assorted"). Purchasing sets it; the true split is unknowable until opened.
   active: true
 ```
 
@@ -167,3 +168,4 @@ Google Sheet → Firestore pricing sync; shared Firestore data + photo storage; 
 - Designers use email/password (no Workspace accounts).
 - Both apps share one Firebase project (`freytags-purchasing`).
 - Both apps should connect to Firebase with the shared schema in mind — design the schema once to serve both.
+- **Assorted / mixed-color boxes (rare, ~2–3/wk):** Purchasing represents them honestly as one product, `color:"Assorted"` + `isAssorted:true`; the true per-color split is unknowable until opened. Recipe consumes them at the **flower level ("any color") only — NEVER split/allocate colors in software.** Designers pick colors physically at build time and the Log records the actual colors used. Future ordering counts an assorted box toward the parent flower's total need, color TBD; never per-color. (Decided 2026-09-11 with Purchasing.)

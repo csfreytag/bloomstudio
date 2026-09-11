@@ -1349,9 +1349,11 @@ function renderCostsTab(r){
      <div class="cb-cat">Container</div>
      <div class="cb-row"><span>${r.container||'No container'}</span><span>$${fmt(c.vp)}</span></div>
      ${c.ap>0?`<div class="cb-row"><span>${r.accent}</span><span>$${fmt(c.ap)}</span></div>`:''}
+     ${(r.hardgood&&r.hardgood!=='None')?`<div class="cb-row"><span>${r.hardgood}</span><span>$${fmt(c.hp)}</span></div>`:''}
      <div class="cb-cat">Flowers</div>
      ${ingTable(FLOWERS,(r.flowers||[]).filter(f=>f.name!=='None'))}
      ${(r.fillers||[]).filter(f=>f.name!=='None').length?`<div class="cb-cat">Greenery &amp; filler</div>${ingTable(FILLERS,(r.fillers||[]).filter(f=>f.name!=='None'))}`:''}
+     ${(r.plants||[]).filter(f=>f.name!=='None').length?`<div class="cb-cat">Plants</div>${ingTable(PLANTS,(r.plants||[]).filter(f=>f.name!=='None'))}`:''}
      <div class="cb-cat">Labor</div>
      <div class="cb-row"><span>Labor (${c.pct}% of $${fmt(componentsRetail(r))} ingredients)</span><span>$${fmt(c.labor)}</span></div>
      <div class="cb-row total"><span>Total cost</span><span>$${fmt(c.total)}</span></div>
@@ -1947,21 +1949,26 @@ function calcOrderTotals(){
     const r=recipes.find(x=>x.id===id);if(!r)return;
     (r.flowers||[]).forEach(f=>{if(f.name==='None')return;const k=f.name+'||Flower';totals[k]=(totals[k]||0)+f.qty*qty;});
     (r.fillers||[]).forEach(f=>{if(f.name==='None')return;const k=f.name+'||Greenery/Filler';totals[k]=(totals[k]||0)+f.qty*qty;});
+    (r.plants||[]).forEach(f=>{if(f.name==='None')return;const k=f.name+'||Plant';totals[k]=(totals[k]||0)+f.qty*qty;});
   });
   const tbody=document.getElementById('orderTotalsRows');
   // Group by type
-  const flowers=[],fillers=[];
+  const flowers=[],fillers=[],plants=[];
   Object.entries(totals).forEach(([k,v])=>{
     const [name,type]=k.split('||');
-    if(type==='Flower')flowers.push([name,v]);else fillers.push([name,v]);
+    if(type==='Flower')flowers.push([name,v]);else if(type==='Plant')plants.push([name,v]);else fillers.push([name,v]);
   });
   flowers.sort((a,b)=>a[0].localeCompare(b[0]));
   fillers.sort((a,b)=>a[0].localeCompare(b[0]));
-  const allEntries=[...flowers.map(([n,v])=>[n,'Flower',v]),...fillers.map(([n,v])=>[n,'Greenery/Filler',v])];
+  plants.sort((a,b)=>a[0].localeCompare(b[0]));
+  const allEntries=[...flowers.map(([n,v])=>[n,'Flower',v]),...fillers.map(([n,v])=>[n,'Greenery/Filler',v]),...plants.map(([n,v])=>[n,'Plant',v])];
   if(allEntries.length===0){
     tbody.innerHTML='<tr><td colspan="3" style="color:var(--text3);font-style:italic;padding:10px 0;">Enter quantities above to see totals</td></tr>';
   } else {
-    tbody.innerHTML=allEntries.map(([name,type,v])=>`<tr><td>${name}</td><td style="color:var(--text2)">${type}</td><td style="font-weight:500;">${v} ${type==='Flower'?'stem'+(v!==1?'s':''):'pc'+(v!==1?'s':'')}</td></tr>`).join('');
+    tbody.innerHTML=allEntries.map(([name,type,v])=>{
+      const unit=type==='Flower'?('stem'+(v!==1?'s':'')):type==='Plant'?('plant'+(v!==1?'s':'')):('pc'+(v!==1?'s':''));
+      return `<tr><td>${name}</td><td style="color:var(--text2)">${type}</td><td style="font-weight:500;">${v} ${unit}</td></tr>`;
+    }).join('');
   }
   document.getElementById('orderTotalsSection').style.display='block';
 }

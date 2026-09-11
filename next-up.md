@@ -7,6 +7,8 @@ Live at https://freytags-recipes.web.app. Recent work (2026-09-09/10), all on pr
 - Paint: a painted stem/item adds a flat $2 (× qty for stems).
 - Container/accent/hardgood render as an `.ing-table` (Slot·Item·Paint·Price) like flowers — price shows in BOTH the dropdown and the Price column.
 - Usage-log **reopen + audit**: logs are append-only (edit = new version, original kept). Admins get a recent list + search; others search by employee #. Employee # required, cleared after each save. Admin "History" shows the chain. `firebase.js?v=7`.
+- **Prod `usageRecords` rule is now APPEND-ONLY (2026-09-11): `update:false`, admin-only delete** — the enforcement (step 5). Done via `scripts/prod-rules-usage-appendonly.js`. Rollback ruleset: `8ff6068f-ae3f-4297-b343-850180af3049`.
+- Price breakdown now itemizes hardgood + plant lines; Ordering export now includes plants.
 
 ## In flight
 - 19 untracked `scripts/_*.js` diagnostics + `.claude/settings.json` — uncommitted, undecided if they belong in the repo
@@ -17,10 +19,10 @@ Live at https://freytags-recipes.web.app. Recent work (2026-09-09/10), all on pr
 - Add the team in the in-app Users tab
 
 ## Next up
-- **Audit step 5 (pending): create-only Firestore rule on `usageRecords`** so edits/deletes can't erase originals even outside the app — surgical change to the SHARED prod ruleset via REST, NOT a repo-rules deploy
-- Price breakdown tab doesn't itemize hardgood/plant lines (total correct; lines missing)
-- Ordering export totals flowers + fillers only — add plants for plant gardens
-- Enable PITR + scheduled backups on prod Firestore
+- Enable PITR + scheduled daily backups on prod Firestore (console/gcloud; SHARED project — helps both apps)
+- OPEN DECISION: designers now see prices in Log/Production (per-line, value box, container price column) — the role says "Designer: no pricing visible." Decide keep vs hide (there's a dormant `uOptsPlain` price-free option list ready)
+- Overstuffing report (manager): the append-only audit + `valueUsed`/`designedValue` now make it buildable — needs a threshold definition
+- Held: Plant Items import (~423 recipes) — do in one pass after review (Chad's call)
 
 ## Decisions — don't re-litigate
 - Keep BOTH recipe pricing modes: count-up auto-calc AND build-to-target (2026-06-30)

@@ -75,7 +75,13 @@ else (hosting, functions) is already isolated.**
   ruleset id printed by the script.
 - **Verified live on 2026-09-11:** `usageRecords` is append-only
   (`update:false`, `delete: isRecipeAdmin()`); PITR = ENABLED; one daily backup
-  schedule at 7-day retention. Live prod does NOT yet contain the cooler/inventory
-  collections, so the purchasing canonical file that first adds them MUST also
-  contain the current live recipe rules (esp. the append-only `usageRecords`), or
-  that deploy will revert it.
+  schedule at 7-day retention; database **delete protection = ENABLED** (Purchasing
+  did this — it's a shared-DB setting, so to ever legitimately delete the DB
+  someone must toggle it off first).
+- **Reconciled 2026-09-11:** the Purchasing side confirmed its canonical
+  `firestore.rules` is in sync with live prod for all four recipe-owned blocks
+  (`recipes`, `tags`, `pricing`, append-only `usageRecords`) — so the next
+  Purchasing rules deploy preserves the append-only change (no revert).
+- **STANDING RULE:** after ANY future surgical rule change to prod from the recipe
+  side, **ping the Purchasing side to re-sync their canonical file** before their
+  next rules deploy — otherwise that deploy silently reverts the change.

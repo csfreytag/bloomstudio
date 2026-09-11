@@ -37,7 +37,7 @@ This repo (`bloomstudio`) is **Freytag's Recipe Guide**, an internal flower-reci
 - **The canonical `firestore.rules` lives in the PURCHASING repo** (the complete union of both apps' rules) and is the ONLY file deployed to prod rules.
 - **This repo NEVER deploys rules.** `firebase.json` here intentionally has **no `firestore`/`storage` block**, so a stray `firebase deploy` can't clobber the shared rules. The local `firestore.rules` is a stale, purchasing-less draft (loud DO-NOT-DEPLOY banner) — never deploy it.
 - **To change a recipe rule:** run a surgical REST script on live prod (`scripts/prod-rules-fetch.js` to read; model new changes on `scripts/prod-rules-usage-appendonly.js` — validate, then `--release`; it prints a rollback ruleset id) **AND** hand the exact block to the purchasing repo to mirror into canonical, or their next deploy reverts it. Verify live-vs-file before any rules deploy.
-- Recovery net: PITR is ON (7-day) + a daily 7-day backup schedule (verified 2026-09-11).
+- Recovery net (verified 2026-09-11): PITR ON (7-day) + a daily 7-day backup schedule + database **delete protection ON** (shared-DB setting — toggle off first if the DB ever must be deleted). Purchasing confirmed its canonical file is in sync with live prod, so the append-only `usageRecords` change won't be reverted.
 
 ## Environments
 

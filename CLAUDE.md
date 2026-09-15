@@ -44,9 +44,9 @@ This repo (`bloomstudio`) is **Freytag's Recipe Guide**, an internal flower-reci
 
 ## Environments
 
-- **Production** — Recipe hosting site `freytags-recipes` in Firebase project `freytags-purchasing`. Uses the web config in "Secrets & config" above.
-- **Staging** — Recipe hosting site `freytags-recipes-staging` in Firebase project `freytags-purchasing-staging` (the existing Purchasing staging project; Recipe staging shares it, mirroring how production Recipe shares the Purchasing production project). *To be created.*
-- Manage both with Firebase project aliases in `.firebaserc`: `default` → `freytags-purchasing`, `staging` → `freytags-purchasing-staging`. The staging frontend needs the **staging project's** own web config (grab it from that project's settings), not the production one.
+- **Production** — Recipe is the hosting site **`freytags-recipes`** (https://freytags-recipes.web.app) **INSIDE the shared Firebase project `freytags-purchasing`** — it is NOT its own project. That project also holds the Purchasing prod app (`freytags-purchasing` site), a `freytags-board` site, and the **shared Firestore/Auth/Functions**. So there is **no standalone "Recipes production" project** in the console — recipe prod lives under `freytags-purchasing`. (This is why PITR/backups enabled on `freytags-purchasing` already protect recipe prod data.)
+- **Staging** — its **own dedicated project `freytags-recipes-staging`** (this is the standalone "Freytags - Recipes - staging" you see in the console). **Spark/free tier: no Cloud Functions, no PITR/scheduled backups** (hence the "upgrade your plan" prompt there — safe to ignore; staging is throwaway).
+- `.firebaserc` aliases: `default` → `freytags-purchasing` (prod), `staging` → `freytags-recipes-staging`. Deploy prod hosting ONLY with `firebase deploy --only hosting:freytags-recipes`.
 
 ## Dev environment
 

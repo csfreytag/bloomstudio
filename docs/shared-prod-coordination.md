@@ -85,3 +85,13 @@ else (hosting, functions) is already isolated.**
 - **STANDING RULE:** after ANY future surgical rule change to prod from the recipe
   side, **ping the Purchasing side to re-sync their canonical file** before their
   next rules deploy — otherwise that deploy silently reverts the change.
+- **Functions isolation (2026-09-15):** deleted a stale orphan `setUserRole` that
+  sat in the SHARED `default` codebase (no `firebase-functions-codebase` label) —
+  it was already broken (its Cloud Run service was gone), never in this repo's
+  `functions/` source, and superseded by `setRecipeRole`. A Purchasing
+  `firebase deploy --only functions` (default codebase) could have flagged it for
+  deletion. **All recipe functions now carry the `recipe-guide` codebase label.**
+  STANDING RULE: every recipe function MUST be exported from the `recipe-guide`
+  codebase (`firebase.json` → functions `codebase:"recipe-guide"`) — never deploy
+  an unlabeled function, or it lands in the shared `default` codebase and becomes
+  a cross-app footgun. Verify: `gcloud functions describe <fn> --project freytags-purchasing --region us-central1 --gen2 --format="value(labels.firebase-functions-codebase)"` should print `recipe-guide`.

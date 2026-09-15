@@ -31,13 +31,16 @@ This repo (`bloomstudio`) is **Freytag's Recipe Guide**, an internal flower-reci
 - Deploy production ONLY with the explicit hosting target: `firebase deploy --only hosting:freytags-recipes`. **Never** a bare `firebase deploy` (that once overwrote the wrong site).
 - **Test the Firebase migration against staging first** so the production database is never touched until the migration is verified.
 
-## Shared prod rules — coordination (read `docs/shared-prod-coordination.md`)
+## Shared prod rules — coordination
+
+- **Canonical playbook lives in the PURCHASING repo:** `C:\Code\freytags-purchasing\docs\SHARED-PROD-COORDINATION.md` (single source of truth — both repos on this machine, so read it directly). Our `docs/shared-prod-coordination.md` is a **stub pointer**, not a copy. Propose changes on the purchasing side; they commit them into canonical.
 
 - Prod Firestore is ONE database shared with the **Purchasing app**; **rules + data are the only shared surface** (hosting & functions are isolated — recipe functions are `codebase="recipe-guide"`).
 - **The canonical `firestore.rules` lives in the PURCHASING repo** (the complete union of both apps' rules) and is the ONLY file deployed to prod rules.
 - **This repo NEVER deploys rules.** `firebase.json` here intentionally has **no `firestore`/`storage` block**, so a stray `firebase deploy` can't clobber the shared rules. The local `firestore.rules` is a stale, purchasing-less draft (loud DO-NOT-DEPLOY banner) — never deploy it.
 - **To change a recipe rule:** run a surgical REST script on live prod (`scripts/prod-rules-fetch.js` to read; model new changes on `scripts/prod-rules-usage-appendonly.js` — validate, then `--release`; it prints a rollback ruleset id) **AND** hand the exact block to the purchasing repo to mirror into canonical, or their next deploy reverts it. Verify live-vs-file before any rules deploy.
 - Recovery net (verified 2026-09-11): PITR ON (7-day) + a daily 7-day backup schedule + database **delete protection ON** (shared-DB setting — toggle off first if the DB ever must be deleted). Purchasing confirmed its canonical file is in sync with live prod, so the append-only `usageRecords` change won't be reverted.
+- **Functions must carry the `recipe-guide` codebase label.** Every recipe Cloud Function must be exported from the `recipe-guide` codebase (`firebase.json` → functions `codebase:"recipe-guide"`). An unlabeled function lands in the SHARED `default` codebase, where a Purchasing `firebase deploy --only functions` can flag it for deletion. (2026-09-15: deleted a stale orphan `setUserRole` that was sitting unlabeled in `default`.) Verify: `gcloud functions describe <fn> --project freytags-purchasing --region us-central1 --gen2 --format="value(labels.firebase-functions-codebase)"` → should print `recipe-guide`.
 
 ## Environments
 

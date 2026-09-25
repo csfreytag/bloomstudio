@@ -1,5 +1,5 @@
 # NEXT UP — Freytag's Recipe Guide
-Updated: 2026-09-10
+Updated: 2026-09-25
 
 ## Where things stand
 Live at https://freytags-recipes.web.app. Recent work (2026-09-09/10), all on prod + `main`:
@@ -11,6 +11,7 @@ Live at https://freytags-recipes.web.app. Recent work (2026-09-09/10), all on pr
 - Price breakdown now itemizes hardgood + plant lines; Ordering export now includes plants.
 
 ## In flight
+- **Opus full review (2026-09-25) — fixes NOT started, awaiting Chad's go.** Top verified bugs: (1) recipe names/SKUs with `"` get TRUNCATED on save — 74/391 recipes at risk (e.g. `6" Neantha…` → `6`), none damaged yet; + no HTML-escaping of user text anywhere (stored XSS from designer accounts); (2) Reports Approve/Send-back/Projection never save (`saveAll` only saves `activeId`); (3) reopened-log edit mode leaks into the next new log → saved as a hidden version of the wrong log; (4) editor silently drops an ingredient renamed in the sheet; (5) `nextId` collision can overwrite a recipe; (6) "Sync now" can wipe permanent prices if one tab read fails; (7) role functions force `active:true` (undo Purchasing deactivation), invites trust unverified email, Purchasing-manager→recipe-admin via users-doc fallback. Labor decision MADE + SHIPPED 2026-09-25 (see Decisions). Data cleanup to raise: live "Test Arrangement" recipe on prod; "Vail Morning"/"Solstice Sun" have the name typed in the SKU box; blank recipe #1.
 - 19 untracked `scripts/_*.js` diagnostics + `.claude/settings.json` — uncommitted, undecided if they belong in the repo
 
 ## Blocked on Chad
@@ -32,3 +33,4 @@ Live at https://freytags-recipes.web.app. Recent work (2026-09-09/10), all on pr
 - Container/accent/hardgood shown as a table like flowers; price in BOTH dropdown and column (2026-09-10)
 - Usage logs are APPEND-ONLY (edit = new version; original never overwritten). Admin: full list + search + history; others: search by employee # only. Employee # required + cleared after save; delete admin-only (2026-09-10)
 - Designer pricing in Log/Production is INTENDED, not a leak: CUSTOM → show build-to-price (build to the final total); RECIPE → show each item's price (so a substitution matches dollar-for-dollar) and alert "over the recipe" vs the recipe's DESIGNED value, never the sale price/margin (that's hidden, saved silently for the manager report). Supersedes the prototype "Designer: no pricing visible" line. Do NOT hide these prices (2026-08 / reaffirmed 2026-09-11)
+- Labor = SHARE OF THE FINAL PRICE, default 13% everywhere: $100 arrangement → $13 labor, $87 product. Price = ingredients ÷ (1 − labor%). Shared helpers retailWithLabor/laborOf/ingredientBudget; reverses the old "on top" editor math. Only 5 auto-priced recipes moved (avg +$2.99) (2026-09-25)

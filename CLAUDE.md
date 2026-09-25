@@ -139,6 +139,7 @@ Roles are per-app — the same person can be a Manager here and a Buyer in Purch
 
 - **Cost** = what Freytag's pays the vendor. **Price / retail** = what the customer pays.
 - **Markup**: Flowers & Fillers × 4; Containers, Accents, Hardgoods, Plants × 3.5.
+- **Labor = a share of the FINAL price, default 13%** (decided 2026-09-25): a $100 arrangement has $13 labor and $87 for product. Price = ingredients ÷ (1 − labor%); product budget for a target = target × (1 − labor%). Use the shared `retailWithLabor` / `laborOf` / `ingredientBudget` helpers in `index.html` on every screen — never inline labor math (the old editor added labor *on top*, which disagreed with the Calculator and Log).
 - **Margin** = (retail − cost) / retail × 100. **COGS** = cost as % of retail (COGS + margin = 100%).
 - Pricing tabs in the app: Flowers, Fillers, Containers, Accents, Hardgoods, Plants.
 - Price list columns: **Cost** → **Calculated retail (×4 / ×3.5)** → **Your final price** (override, e.g. round $4.74 → $4.75) → **Diff**.

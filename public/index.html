@@ -430,9 +430,16 @@ function componentsRetail(r){
     +(r.fillers||[]).reduce((s,f)=>s+f.qty*(gpPrice(FILLERS,f.name,4)+paintAdd(f.paint)),0)
     +(r.plants||[]).reduce((s,f)=>s+f.qty*gpPrice(PLANTS,f.name,3.5),0);
 }
-// Auto retail = components + labor, where labor is laborPct% ON TOP of the
-// components (so $100 of components at 13% = $113).
-function autoRetail(r){return componentsRetail(r)*(1+(r.laborPct||0)/100);}
+// Auto retail = components + labor, where labor is laborPct% OF THE FINAL PRICE
+// (so $87 of components at 13% = $100; see retailWithLabor below).
+function autoRetail(r){return retailWithLabor(componentsRetail(r),r.laborPct);}
+// LABOR IS A SHARE OF THE FINAL PRICE (Chad, 2026-09-25): a $100 arrangement at
+// 13% labor has $13 of labor and $87 of product. So price = ingredients / (1 − labor%)
+// and the product budget for a target price = target × (1 − labor%). Every screen
+// (recipe editor/view, price breakdown, calculator, Log build-to-price) uses these.
+function retailWithLabor(ing,pct){pct=+pct||0;return(pct>0&&pct<100)?ing/(1-pct/100):ing;}
+function laborOf(ing,pct){return retailWithLabor(ing,pct)-ing;}
+function ingredientBudget(target,pct){pct=Math.min(Math.max(+pct||0,0),100);return target*(1-pct/100);}
 function suggestedRetail(r){return autoRetail(r);}
 // Drift between a recipe's fixed selling price and current ingredient-based price.
 function driftInfo(r){
@@ -568,7 +575,7 @@ function calcCost(r){
   const fc=(r.flowers||[]).reduce((s,f)=>s+f.qty*gpCost(FLOWERS,f.name),0);
   const fil=(r.fillers||[]).reduce((s,f)=>s+f.qty*gpCost(FILLERS,f.name),0);
   const pc=(r.plants||[]).reduce((s,f)=>s+f.qty*gpCost(PLANTS,f.name),0);
-  const labor=componentsRetail(r)*(r.laborPct||0)/100;
+  const labor=laborOf(componentsRetail(r),r.laborPct);
   const total=vp+ap+hp+fc+fil+pc+labor;
   const margin=fp>0?(fp-total)/fp*100:0;
   return{vp,ap,hp,fc,fil,pc,labor,total,margin,pct:r.laborPct||0,fp};
@@ -1000,11 +1007,11 @@ function renderRecipeTab(r){
     </div>
     <div class="section">
      <h3>Labor</h3>
-     <p style="font-size:12px;color:var(--text2);margin-bottom:8px;font-style:italic;">Added on top of the ingredient total (ingredients $${fmt(componentsRetail(r))})</p>
+     <p style="font-size:12px;color:var(--text2);margin-bottom:8px;font-style:italic;">A share of the final price — 13% of a $100 arrangement is $13, leaving $87 for product (ingredients now $${fmt(componentsRetail(r))})</p>
      <div class="labor-row" style="display:flex;align-items:center;gap:8px;">
       <input type="number" id="f_laborpct" min="0" max="100" step="1" value="${r.laborPct||0}" oninput="refreshLaborDollar()" style="width:80px;"/>
       <span style="font-size:13px;color:var(--text2);">% labor</span>
-      <span class="labor-dollar" id="labor_dollar">= $${fmt(componentsRetail(r)*(r.laborPct||0)/100)}</span>
+      <span class="labor-dollar" id="labor_dollar">= $${fmt(laborOf(componentsRetail(r),r.laborPct))}</span>
      </div>
     </div>
     <div class="section">
@@ -1097,7 +1104,7 @@ function renderRecipeView(r){
 
   const totalStems=(r.flowers||[]).filter(f=>f.name!=='None').reduce((s,f)=>s+f.qty,0);
   const hasAny=totalStems>0||(r.fillers||[]).some(f=>f.name!=='None')||(r.plants||[]).some(f=>f.name!=='None')||extras.length>0||(r.extras&&r.extras.length>0);
-  const compR=componentsRetail(r),laborAmt=compR*(r.laborPct||0)/100;
+  const compR=componentsRetail(r),laborAmt=laborOf(compR,r.laborPct);
   const totalsHtml=`<div style="margin-top:4px;padding-top:12px;border-top:0.5px solid var(--border);display:flex;flex-direction:column;gap:6px;">
      <div style="display:flex;justify-content:space-between;font-size:15px;color:var(--text2);"><span>Ingredients</span><span>$${fmt(compR)}</span></div>
      <div style="display:flex;justify-content:space-between;font-size:15px;color:var(--text2);"><span>Labor (${r.laborPct||0}%)</span><span>$${fmt(laborAmt)}</span></div>
@@ -1175,7 +1182,7 @@ function refreshFinalPrice(){refreshStatCards();}
 function refreshLaborDollar(){
   const pct=parseFloat(document.getElementById('f_laborpct')?.value)||0;
   const ld=document.getElementById('labor_dollar');
-  if(ld)ld.textContent='= $'+fmt(liveComponents()*pct/100);
+  if(ld)ld.textContent='= $'+fmt(laborOf(liveComponents(),pct));
   refreshStatCards();
 }
 function refreshSize(){
@@ -1227,14 +1234,17 @@ function refreshStatCards(){
   const target=parseFloat(document.getElementById('f_calcprice')?.value)||0;
   const laborPct=parseFloat(document.getElementById('f_laborpct')?.value)||0;
   const ing=liveComponents();
-  const auto=ing*(1+laborPct/100);
+  const auto=retailWithLabor(ing,laborPct);
   const fp=adj>0?adj:(target>0?target:auto);
   // Cost side (vendor costs are $0 until the Purchasing feed exists).
   let costSum=gpCost(CONTAINERS,document.getElementById('f_container')?.value||'None')+gpCost(ACCENTS,document.getElementById('f_accent')?.value||'None')+gpCost(HARDGOODS,document.getElementById('f_hardgood')?.value||'None');
   document.querySelectorAll('.flower-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;costSum+=q*gpCost(FLOWERS,n||'None');});
   document.querySelectorAll('.filler-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;costSum+=q*gpCost(FILLERS,n||'None');});
   document.querySelectorAll('.plant-row').forEach(row=>{const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;costSum+=q*gpCost(PLANTS,n||'None');});
-  const total=costSum+ing*laborPct/100;
+  const total=costSum+laborOf(ing,laborPct);
+  // Keep the "= $X" labor figure in step with ingredient edits (it used to update
+  // only when the labor % box itself was typed in).
+  {const ld=document.getElementById('labor_dollar');if(ld)ld.textContent='= $'+fmt(laborOf(ing,laborPct));}
   const margin=fp>0?(fp-total)/fp*100:0;
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   set('live_retail','$'+fmt(fp));
@@ -1250,15 +1260,15 @@ function refreshStatCards(){
   refreshBudget();
 }
 // Shared breakdown text for both modes: count up (no target) or count down
-// toward a build-to target. budget = target / (1 + labor%) is the max you can
-// spend on ingredients so that ingredients + labor lands on the target.
+// toward a build-to target. budget = target × (1 − labor%) is the max you can
+// spend on ingredients (labor is a share of the price: $100 at 13% → $87).
 function buildToText(ing,pct,target,adj){
-  const labor=ing*pct/100,auto=ing*(1+pct/100);
+  const labor=laborOf(ing,pct),auto=retailWithLabor(ing,pct);
   if(target>0){
-    const budget=target/(1+pct/100),remaining=budget-ing,over=remaining<0;
+    const budget=ingredientBudget(target,pct),remaining=budget-ing,over=remaining<0;
     return `Toward <strong>$${fmt(target)}</strong> · ingredients <strong>$${fmt(ing)}</strong> of <strong>$${fmt(budget)}</strong> · <span style="color:${over?'var(--red)':'var(--stem)'};font-weight:600;">${over?'$'+fmt(-remaining)+' over':'$'+fmt(remaining)+' left'}</span> <span style="color:var(--text3);">(after ${pct}% labor)</span>`;
   }
-  let txt=`Counting up · ingredients <strong>$${fmt(ing)}</strong> + ${pct}% labor <strong>$${fmt(labor)}</strong> = <strong>$${fmt(auto)}</strong>`;
+  let txt=`Counting up · ingredients <strong>$${fmt(ing)}</strong> + labor <strong>$${fmt(labor)}</strong> (${pct}% of price) = <strong>$${fmt(auto)}</strong>`;
   if(adj>0)txt+=` · adjusted to <strong style="color:var(--green-dark);">$${fmt(adj)}</strong>`;
   return txt;
 }
@@ -1756,7 +1766,7 @@ function renderCalculator(){
      <h3>Labor</h3>
      <p style="font-size:12px;color:var(--text2);margin-bottom:8px;font-style:italic;">% of retail price</p>
      <div class="labor-row" style="display:flex;align-items:center;gap:8px;">
-      <input type="number" id="calc_labor" min="0" max="100" step="1" value="20" oninput="updateCalc()" style="width:80px;"/>
+      <input type="number" id="calc_labor" min="0" max="100" step="1" value="13" oninput="updateCalc()" style="width:80px;"/>
       <span style="font-size:13px;color:var(--text2);">% of retail</span>
       <span class="labor-dollar" id="calc_labor_dollar">= $0.00</span>
      </div>
@@ -1834,7 +1844,7 @@ function updateCalc(){
   const target=parseFloat(document.getElementById('calcTarget')?.value)||0;
   let labor,total;
   if(calcMode==='down'&&target>0){labor=target*laborPct/100;total=stemTotal+labor;}
-  else{total=laborPct<100?stemTotal/(1-laborPct/100):stemTotal;labor=total-stemTotal;}
+  else{total=retailWithLabor(stemTotal,laborPct);labor=total-stemTotal;}
 
   if(document.getElementById('cs_container'))document.getElementById('cs_container').textContent='$'+fmt(vp+ap);
   if(document.getElementById('cs_flowers'))document.getElementById('cs_flowers').textContent='$'+fmt(fc);
@@ -1847,11 +1857,11 @@ function updateCalc(){
   if(calcMode==='up'){
     if(document.getElementById('calcResult'))document.getElementById('calcResult').textContent='$'+fmt(total);
     if(document.getElementById('calcResultLabel'))document.getElementById('calcResultLabel').textContent='Arrangement price';
-    if(document.getElementById('calcResultNote'))document.getElementById('calcResultNote').textContent=stemTotal>0?`Ingredients $${fmt(stemTotal)} + ${laborPct}% labor`:'Add ingredients below';
+    if(document.getElementById('calcResultNote'))document.getElementById('calcResultNote').textContent=stemTotal>0?`Ingredients $${fmt(stemTotal)} + labor $${fmt(labor)} (${laborPct}% of price)`:'Add ingredients below';
     const el=document.getElementById('calcResult');if(el)el.style.color='var(--green-dark)';
   } else {
     if(target>0){
-      const maxIngredients=target*(1-laborPct/100);
+      const maxIngredients=ingredientBudget(target,laborPct);
       const spent=stemTotal;
       const remaining=maxIngredients-spent;
       if(document.getElementById('calcResult'))document.getElementById('calcResult').textContent='$'+fmt(Math.max(remaining,0));

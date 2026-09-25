@@ -163,6 +163,7 @@ Google Sheet → Firestore pricing sync; shared Firestore data + photo storage; 
 
 ## Key decisions — do not revisit without good reason
 
+- **HARD RULE — never change a recipe's price, directly or indirectly.** Only Chad (or his team, deliberately) changes recipe prices ("It should be up to me to… update the pricing"; "if something is already in the app, do not overwrite it"). Any change to pricing math — labor, paint, markup, `autoRetail`/`componentsRetail`/`gpPrice`, dropdown matching that feeds saves — counts, because recipes with no typed Adjusted retail compute their price live. **Before shipping any such change, check prod for recipes whose `finalPrice` would move; if any would, stop and ask Chad — do not deploy.** (Learned 2026-09-25: a labor-formula change raised 5 live recipe prices and had to be reverted.)
 - Firebase, not BigQuery.
 - Google Sheet is the **one-way** source for retail pricing — no editing prices in the app.
 - Cost comes from Purchasing-app invoice history (highest vendor cost), not manual entry.

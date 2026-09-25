@@ -10,7 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
-<script src="firebase.js?v=8"></script>
+<script src="firebase.js?v=9"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -327,12 +327,12 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Margin targets</div>
      <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Healthy <span style="background:#e8f4ec;color:#1a5c2e;padding:1px 6px;border-radius:6px;font-size:11px;font-weight:600;">≥ green</span></div>
      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-      <input type="number" id="marginGoodInput" value="${MARGIN_GOOD}" min="1" max="99" style="width:60px;" oninput="updateMarginTargets()"/>
+      <input type="number" id="marginGoodInput" min="1" max="99" style="width:60px;" oninput="updateMarginTargets()"/>
       <span style="font-size:12px;color:var(--text2);">%</span>
      </div>
      <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Watch <span style="background:var(--amber-light);color:var(--amber);padding:1px 6px;border-radius:6px;font-size:11px;font-weight:600;">≥ amber</span></div>
      <div style="display:flex;align-items:center;gap:6px;">
-      <input type="number" id="marginWarnInput" value="${MARGIN_WARN}" min="1" max="99" style="width:60px;" oninput="updateMarginTargets()"/>
+      <input type="number" id="marginWarnInput" min="1" max="99" style="width:60px;" oninput="updateMarginTargets()"/>
       <span style="font-size:12px;color:var(--text2);">%</span>
      </div>
      <p style="font-size:11px;color:var(--text3);margin-top:6px;font-style:italic;">Below warn = red. Saved automatically.</p>
@@ -926,7 +926,7 @@ async function saveRecipeRec(r){
 // A saved item that's no longer on the price list (renamed/removed in the sheet)
 // stays selected under its old name instead of silently becoming "None" — which
 // used to drop it from the recipe on the next save.
-function mkOpts(list,sel,noPrice){sel=String(sel==null?'':sel);const missing=sel.trim()&&sel.trim()!=='None'&&!list.some(f=>f.n.trim()===sel.trim());return (missing?`<option value="${escU(sel)}" selected>${escU(sel)} — not on price list</option>`:'')+list.map(f=>{const pr=(f.r!=null&&f.r>0)?f.r:(f.p>0?f.p:0);const e=String(f.n).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');return `<option value="${e}"${f.n.trim()===sel.trim()?' selected':''}>${e}${(!noPrice&&pr>0)?' ($'+pr+')':''}</option>`;}).join('');}
+function mkOpts(list,sel,noPrice){sel=String(sel==null?'':sel);const missing=sel.trim()&&sel.trim()!=='None'&&!list.some(f=>f.n.trim()===sel.trim());return (missing?`<option value="${escU(sel)}" selected>${escU(sel)} — not on price list</option>`:'')+list.map(f=>{const pr=(f.r!=null&&f.r>0)?f.r:0;   /* retail only — never the vendor cost (f.p) */const e=String(f.n).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');return `<option value="${e}"${f.n.trim()===sel.trim()?' selected':''}>${e}${(!noPrice&&pr>0)?' ($'+pr+')':''}</option>`;}).join('');}
 // Price cell for a single-pick extra (container/accent/hardgood), incl. any paint;
 // blank for None, "ask" for a market-priced item. Mirrors the flower line price.
 function extraPrice(list,name,paintArr){if(!name||name==='None')return '';return lineTotalP(list,name,3.5,1,paintArr);}
@@ -1434,7 +1434,7 @@ function renderPriceList(type,flash){
   const isProdHost=(location.hostname==='freytags-recipes.web.app'||location.hostname==='freytags-recipes.firebaseapp.com');
   const canSync=(currentRole==='admin'||currentRole==='manager')&&isProdHost;
   const syncBtn=canSync?`<button id="syncNowBtn" onclick="uSyncPricesNow()" style="margin-left:auto;font-size:12px;padding:5px 12px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);cursor:pointer;white-space:nowrap;font-style:normal;"><i class="ti ti-refresh"></i> Sync now</button>`:'';
-  const flashHtml=flash?`<div style="background:var(--bg2);border:0.5px solid ${flash.ok===false?'var(--red)':'var(--green)'};border-radius:var(--radius);padding:8px 12px;margin-bottom:10px;font-size:13px;color:${flash.ok===false?'var(--red)':'var(--green)'};font-weight:600;">${flash.text}</div>`:'';
+  const flashHtml=flash?`<div style="background:var(--bg2);border:0.5px solid ${flash.ok===false?'var(--red)':'var(--green)'};border-radius:var(--radius);padding:8px 12px;margin-bottom:10px;font-size:13px;color:${flash.ok===false?'var(--red)':'var(--green)'};font-weight:600;">${escU(flash.text)}</div>`:'';
   document.getElementById('mainContent').innerHTML=`
   ${flashHtml}
   ${banner}
@@ -1498,14 +1498,16 @@ function savePriceLists(){
 }
 
 // ── Designer Calculator ───────────────────────────────────────
+let marginSaveTimer=null;
 function updateMarginTargets(){
   const g=parseInt(document.getElementById('marginGoodInput')?.value)||40;
   const w=parseInt(document.getElementById('marginWarnInput')?.value)||20;
   MARGIN_GOOD=g;MARGIN_WARN=w;
-  try{localStorage.setItem('bs_margin_good',g);localStorage.setItem('bs_margin_warn',w);}catch(e){}
-  // Cloud settings are Purchasing-write-only in production; this fails silently
-  // there and margins persist per-browser via localStorage above.
-  RecipeStore.saveSettings({marginGood:g,marginWarn:w}).catch(e=>console.error('saveSettings',e));
+  // Shared for the whole team (tags/recipeSettings). Debounced — this fires on
+  // every keystroke. It used to write settings/, which only Purchasing may write,
+  // so in prod it failed silently and each browser kept its own numbers.
+  clearTimeout(marginSaveTimer);
+  marginSaveTimer=setTimeout(()=>{RecipeStore.saveMarginSettings(g,w).catch(e=>alert('Could not save the margin targets: '+(e.message||e)));},700);
   // Refresh report if visible
   if(activeNav==='reports'&&activeReportView==='margins')renderMarginReport();
   filterRecipes();
@@ -1756,16 +1758,17 @@ function renderCalculator(){
     <div class="section">
      <h3>Container</h3>
      <div class="field-row">
-      <div class="field"><label>Container</label><select id="calc_container" onchange="updateCalc()">${mkOpts(CONTAINERS,'None')}</select></div>
-      <div class="field"><label>Accent</label><select id="calc_accent" onchange="updateCalc()">${mkOpts(ACCENTS,'None')}</select></div>
+      <div class="field"><label>Container</label><select id="calc_container" onchange="updateCalc()">${mkOpts(CONTAINERS,'None')}</select><div style="margin-top:4px;">${ingPaintCell([],'calc-container-paint-sel','updateCalc()')}</div></div>
+      <div class="field"><label>Accent</label><select id="calc_accent" onchange="updateCalc()">${mkOpts(ACCENTS,'None')}</select><div style="margin-top:4px;">${ingPaintCell([],'calc-accent-paint-sel','updateCalc()')}</div></div>
+      <div class="field"><label>Hardgood</label><select id="calc_hardgood" onchange="updateCalc()">${mkOpts(HARDGOODS,'None')}</select></div>
      </div>
     </div>
     <div class="section">
      <h3>Flowers</h3>
      <table class="ing-table">
-      <thead><tr><th style="width:55%">Flower</th><th>Stems</th><th>Price</th><th></th></tr></thead>
+      <thead><tr><th style="width:45%">Flower</th><th>Paint</th><th>Stems</th><th>Price</th><th></th></tr></thead>
       <tbody id="calcFlowerRows">
-       <tr class="calc-flower-row"><td><select class="f-sel" onchange="updateCalc()">${mkOpts(FLOWERS,'None')}</select></td><td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateCalc()"/></td><td class="f-cost" style="color:var(--text2)">$0.00</td><td><button class="del-btn" onclick="removeCalcRow(this,'calcFlowerRows');updateCalc()"><i class="ti ti-x"></i></button></td></tr>
+       <tr class="calc-flower-row"><td><select class="f-sel" onchange="updateCalc()">${mkOpts(FLOWERS,'None')}</select></td><td class="calc-paint" style="vertical-align:top;">${ingPaintCell([],'calc-paint-sel','updateCalc()')}</td><td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateCalc()"/></td><td class="f-cost" style="color:var(--text2)">$0.00</td><td><button class="del-btn" onclick="removeCalcRow(this,'calcFlowerRows');updateCalc()"><i class="ti ti-x"></i></button></td></tr>
       </tbody>
      </table>
      <button class="add-row-btn" onclick="addCalcRow('calcFlowerRows','flower')"><i class="ti ti-plus"></i> Add flower</button>
@@ -1773,7 +1776,7 @@ function renderCalculator(){
     <div class="section">
      <h3>Greenery &amp; filler</h3>
      <table class="ing-table">
-      <thead><tr><th style="width:55%">Filler</th><th>Qty</th><th>Price</th><th></th></tr></thead>
+      <thead><tr><th style="width:45%">Filler</th><th>Paint</th><th>Qty</th><th>Price</th><th></th></tr></thead>
       <tbody id="calcFillerRows"></tbody>
      </table>
      <button class="add-row-btn" onclick="addCalcRow('calcFillerRows','filler')"><i class="ti ti-plus"></i> Add filler</button>
@@ -1790,7 +1793,7 @@ function renderCalculator(){
      <h3>Labor</h3>
      <p style="font-size:12px;color:var(--text2);margin-bottom:8px;font-style:italic;">% of retail price</p>
      <div class="labor-row" style="display:flex;align-items:center;gap:8px;">
-      <input type="number" id="calc_labor" min="0" max="100" step="1" value="20" oninput="updateCalc()" style="width:80px;"/>
+      <input type="number" id="calc_labor" min="0" max="100" step="1" value="13" oninput="updateCalc()" style="width:80px;"/>
       <span style="font-size:13px;color:var(--text2);">% of retail</span>
       <span class="labor-dollar" id="calc_labor_dollar">= $0.00</span>
      </div>
@@ -1801,7 +1804,7 @@ function renderCalculator(){
     <div class="section">
      <h3>Price summary</h3>
      <div style="font-size:13px;">
-      <div class="cb-row"><span>Container</span><span id="cs_container">$0.00</span></div>
+      <div class="cb-row"><span>Container, accent &amp; hardgood</span><span id="cs_container">$0.00</span></div>
       <div class="cb-row"><span>Flowers</span><span id="cs_flowers">$0.00</span></div>
       <div class="cb-row"><span>Greenery &amp; filler</span><span id="cs_fillers">$0.00</span></div>
       <div class="cb-row"><span>Plants</span><span id="cs_plants">$0.00</span></div>
@@ -1839,24 +1842,30 @@ function addCalcRow(tbodyId,type){
   const tbody=document.getElementById(tbodyId);
   const list=type==='flower'?FLOWERS:type==='filler'?FILLERS:PLANTS;
   const tr=document.createElement('tr');tr.className='calc-'+type+'-row';
-  tr.innerHTML=`<td><select class="f-sel" onchange="updateCalc()">${mkOpts(list,'None')}</select></td><td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateCalc()"/></td><td class="f-cost" style="color:var(--text2)">$0.00</td><td><button class="del-btn" onclick="removeCalcRow(this,'${tbodyId}');updateCalc()"><i class="ti ti-x"></i></button></td>`;
+  tr.innerHTML=`<td><select class="f-sel" onchange="updateCalc()">${mkOpts(list,'None')}</select></td>${type==='plant'?'':`<td class="calc-paint" style="vertical-align:top;">${ingPaintCell([],'calc-paint-sel','updateCalc()')}</td>`}<td><input class="f-qty" type="number" value="1" min="0" step="1" oninput="updateCalc()"/></td><td class="f-cost" style="color:var(--text2)">$0.00</td><td><button class="del-btn" onclick="removeCalcRow(this,'${tbodyId}');updateCalc()"><i class="ti ti-x"></i></button></td>`;
   tbody.appendChild(tr);
 }
 function removeCalcRow(btn,tbodyId){btn.closest('tr').remove();}
 
 function updateCalc(){
   if(!document.getElementById('calc_container'))return;
-  const vp=gpPrice(CONTAINERS,document.getElementById('calc_container').value,3.5);
-  const ap=gpPrice(ACCENTS,document.getElementById('calc_accent').value,3.5);
+  // Paint = the same flat fee the recipe editor uses (per stem on flowers/fillers,
+  // once on a container/accent). Hardgoods are never painted.
+  const painted=el=>[...el.querySelectorAll('.calc-paint-sel')].some(x=>x.value);
+  const anyPaint=cls=>[...document.querySelectorAll('.'+cls)].some(x=>x.value);
+  const cn=document.getElementById('calc_container').value,an=document.getElementById('calc_accent').value;
+  const vp=gpPrice(CONTAINERS,cn,3.5)+((cn!=='None'&&anyPaint('calc-container-paint-sel'))?paintUnitPrice():0);
+  const ap=gpPrice(ACCENTS,an,3.5)+((an!=='None'&&anyPaint('calc-accent-paint-sel'))?paintUnitPrice():0);
+  const hp=gpPrice(HARDGOODS,document.getElementById('calc_hardgood')?.value||'None',3.5);
   let fc=0;
   document.querySelectorAll('#calcFlowerRows tr').forEach(row=>{
     const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
-    const c=q*gpPrice(FLOWERS,n||'None',4);fc+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
+    const c=q*(gpPrice(FLOWERS,n||'None',4)+((n&&n!=='None'&&painted(row))?paintUnitPrice():0));fc+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
   });
   let fil=0;
   document.querySelectorAll('#calcFillerRows tr').forEach(row=>{
     const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
-    const c=q*gpPrice(FILLERS,n||'None',4);fil+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
+    const c=q*(gpPrice(FILLERS,n||'None',4)+((n&&n!=='None'&&painted(row))?paintUnitPrice():0));fil+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
   });
   let pl=0;
   document.querySelectorAll('#calcPlantRows tr').forEach(row=>{
@@ -1864,13 +1873,13 @@ function updateCalc(){
     const c=q*gpPrice(PLANTS,n||'None',3.5);pl+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
   });
   const laborPct=parseFloat(document.getElementById('calc_labor')?.value)||0;
-  const stemTotal=vp+ap+fc+fil+pl;
+  const stemTotal=vp+ap+hp+fc+fil+pl;
   const target=parseFloat(document.getElementById('calcTarget')?.value)||0;
   let labor,total;
   if(calcMode==='down'&&target>0){labor=target*laborPct/100;total=stemTotal+labor;}
   else{total=laborPct<100?stemTotal/(1-laborPct/100):stemTotal;labor=total-stemTotal;}
 
-  if(document.getElementById('cs_container'))document.getElementById('cs_container').textContent='$'+fmt(vp+ap);
+  if(document.getElementById('cs_container'))document.getElementById('cs_container').textContent='$'+fmt(vp+ap+hp);
   if(document.getElementById('cs_flowers'))document.getElementById('cs_flowers').textContent='$'+fmt(fc);
   if(document.getElementById('cs_fillers'))document.getElementById('cs_fillers').textContent='$'+fmt(fil);
   if(document.getElementById('cs_plants'))document.getElementById('cs_plants').textContent='$'+fmt(pl);
@@ -1944,7 +1953,11 @@ function renderOrdering(){
 
   // Render tag chips
   const el=document.getElementById('orderTagList');
-  el.innerHTML=TAGS.map(t=>`<span class="tag-filter-chip" onclick="toggleOrderTag(this,'${escJ(t)}');loadOrderRecipes();" style="font-size:12px;padding:3px 10px;">${escU(t)}</span>`).join('');
+  // Keep earlier picks that still exist, and SHOW them as picked (they used to stay
+  // selected invisibly after leaving and coming back).
+  activeOrderTags=activeOrderTags.filter(t=>TAGS.includes(t));
+  el.innerHTML=TAGS.map(t=>`<span class="tag-filter-chip${activeOrderTags.includes(t)?' active':''}" onclick="toggleOrderTag(this,'${escJ(t)}');loadOrderRecipes();" style="font-size:12px;padding:3px 10px;">${escU(t)}</span>`).join('');
+  if(activeOrderTags.length)loadOrderRecipes();
 }
 
 let activeOrderTags=[];
@@ -1958,7 +1971,9 @@ function loadOrderRecipes(){
   if(activeOrderTags.length===0){document.getElementById('orderRecipesSection').style.display='none';return;}
   // Deduplicate — each recipe appears once even if it matches multiple selected tags
   const seen=new Set();
+  // Only recipes we still sell — discontinued/archived ones don't need stems ordered.
   const filtered=recipes.filter(r=>{
+    if(r.archived||r.status==='discontinued')return false;
     const matches=activeOrderTags.some(t=>(r.tags||[]).includes(t));
     if(matches&&!seen.has(r.id)){seen.add(r.id);return true;}
     return false;
@@ -1977,10 +1992,9 @@ function loadOrderRecipes(){
 function calcOrderTotals(){
   const totals={};
   document.querySelectorAll('#orderQtyRows tr[data-id]').forEach(row=>{
-    const id=parseInt(row.dataset.id);
     const qty=parseFloat(row.querySelector('.order-qty')?.value)||0;
     if(qty<=0)return;
-    const r=recipes.find(x=>x.id===id);if(!r)return;
+    const r=recipes.find(x=>String(x.id)===row.dataset.id);if(!r)return;
     (r.flowers||[]).forEach(f=>{if(f.name==='None')return;const k=f.name+'||Flower';totals[k]=(totals[k]||0)+f.qty*qty;});
     (r.fillers||[]).forEach(f=>{if(f.name==='None')return;const k=f.name+'||Greenery/Filler';totals[k]=(totals[k]||0)+f.qty*qty;});
     (r.plants||[]).forEach(f=>{if(f.name==='None')return;const k=f.name+'||Plant';totals[k]=(totals[k]||0)+f.qty*qty;});
@@ -2001,7 +2015,7 @@ function calcOrderTotals(){
   } else {
     tbody.innerHTML=allEntries.map(([name,type,v])=>{
       const unit=type==='Flower'?('stem'+(v!==1?'s':'')):type==='Plant'?('plant'+(v!==1?'s':'')):('pc'+(v!==1?'s':''));
-      return `<tr><td>${escU(name)}</td><td style="color:var(--text2)">${type}</td><td style="font-weight:500;">${v} ${unit}</td></tr>`;
+      return `<tr data-name="${escU(name)}" data-type="${type}" data-qty="${v}" data-unit="${unit}"><td>${escU(name)}</td><td style="color:var(--text2)">${type}</td><td style="font-weight:500;">${v} ${unit}</td></tr>`;
     }).join('');
   }
   document.getElementById('orderTotalsSection').style.display='block';
@@ -2009,10 +2023,11 @@ function calcOrderTotals(){
 
 function exportOrderCSV(){
   const tagLabel=activeOrderTags.join('_')||'order';
-  const rows=[['Ingredient','Type','Total Needed']];
-  document.querySelectorAll('#orderTotalsRows tr').forEach(row=>{
-    const cells=row.querySelectorAll('td');
-    if(cells.length===3)rows.push([cells[0].textContent,cells[1].textContent,cells[2].textContent]);
+  // Quantity is its own NUMBER column (was "12 stems" text, which a spreadsheet
+  // can't add up); the unit goes in the next column.
+  const rows=[['Ingredient','Type','Total Needed','Unit']];
+  document.querySelectorAll('#orderTotalsRows tr[data-qty]').forEach(row=>{
+    rows.push([row.dataset.name,row.dataset.type,row.dataset.qty,row.dataset.unit]);
   });
   const csv=rows.map(r=>r.map(c=>'"'+c.replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
@@ -2099,7 +2114,7 @@ function uMaybeAutoSub(row){
   if(curName!==origName || (origColor && curColor!==origColor)) uMarkSubRow(row);
 }
 function renderUsageLog(){
-  uMode='log';uEditing=null;   // a freshly drawn form is always a NEW log, never an edit
+  uMode='log';uEditing=null;uLookupSeq++;   // a freshly drawn form is always a NEW log, never an edit
   document.getElementById('topTitle').textContent='Log Usage';
   document.getElementById('tabBar').style.display='none';
   document.getElementById('actionBtns').style.display='none';
@@ -2211,7 +2226,7 @@ function renderUsageLog(){
 // no order — a Quantity instead — and it keeps build-to-price for custom batches
 // ("make five $100 arrangements") and the recipe path for menu items.
 function renderProduction(){
-  uMode='production';uEditing=null;
+  uMode='production';uEditing=null;uLookupSeq++;
   document.getElementById('topTitle').textContent='Production Log';
   document.getElementById('tabBar').style.display='none';
   document.getElementById('actionBtns').style.display='none';
@@ -2520,15 +2535,17 @@ function captureUsage(){
   },extra);
 }
 function uMsg(t,ok){const el=document.getElementById('uSaveMsg');if(el){el.textContent=t||'';el.style.color=ok?'var(--green)':'var(--red)';}}
+let uSaving=false;    // a double-tapped Save must not write the log twice
 function saveUsageLog(){
+  if(uSaving)return;
   const rec=captureUsage();
   const editing=!!rec.id;
   const has=rec.flowers.length||rec.fillers.length||rec.plants.length||rec.container||rec.accent||rec.hardgood;
   if(rec.type==='production'){
     if(!rec.employeeNumber){uMsg('Enter your employee # before saving.');document.getElementById('u_emp')?.focus();return;}
     if(!has){uMsg('Add at least one item you made.');return;}
-    uMsg('Saving…',true);
-    RecipeStore.saveUsage(rec).then(()=>{
+    uMsg('Saving…',true);uSaving=true;
+    RecipeStore.saveUsage(rec).finally(()=>{uSaving=false;}).then(()=>{
       RecipeStore.log(editing?'production.edited':'production.created','usage',rec.baseRecipeSku||'custom',rec.baseRecipeName||'Custom',{qty:rec.quantityMade,custom:rec.custom,editOf:editing?(rec.rootId||null):null});
       uEmployeeNo='';uEditing=null;   // deliberate re-entry for the next person
       renderProduction();
@@ -2539,8 +2556,8 @@ function saveUsageLog(){
   if(!rec.orderNumber){uMsg('Enter (or scan) the order number first.');document.getElementById('u_order').focus();return;}
   if(!has){uMsg('Add at least one item you used.');return;}
   if(!rec.employeeNumber){uMsg('Enter your employee # before saving.');document.getElementById('u_emp')?.focus();return;}
-  uMsg('Saving…',true);
-  RecipeStore.saveUsage(rec).then(()=>{
+  uMsg('Saving…',true);uSaving=true;
+  RecipeStore.saveUsage(rec).finally(()=>{uSaving=false;}).then(()=>{
     RecipeStore.log(editing?'usage.edited':'usage.created','usage',rec.orderNumber,rec.baseRecipeName||'Custom',{custom:rec.custom,editOf:editing?(rec.rootId||null):null});
     uEmployeeNo='';uEditing=null;
     renderUsageLog();
@@ -2629,26 +2646,58 @@ function uReopen(id){
 function uLoadRecord(u){
   uEditing={id:u.id,rootId:u.rootId||u.id,version:u.version||1};
   const rsel=document.getElementById('u_recipe');
-  if(rsel)rsel.value=(u.baseRecipeId&&recipes.some(r=>String(r.id)===String(u.baseRecipeId)))?u.baseRecipeId:'';
-  document.getElementById('uFlowerRows').innerHTML=uRows(u.flowers,'flower');
-  document.getElementById('uFillerRows').innerHTML=uRows(u.fillers,'filler');
-  document.getElementById('uPlantRows').innerHTML=uRows(u.plants,'plant');
-  document.getElementById('u_container').value=(u.container&&CONTAINERS.some(c=>c.n===u.container))?u.container:'None';
-  document.getElementById('u_accent').value=(u.accent&&ACCENTS.some(c=>c.n===u.accent))?u.accent:'None';
-  document.getElementById('u_hardgood').value=(u.hardgood&&HARDGOODS.some(c=>c.n===u.hardgood))?u.hardgood:'None';
+  const base=u.baseRecipeId?recipes.find(r=>String(r.id)===String(u.baseRecipeId)):null;
+  if(rsel)rsel.value=base?String(base.id):'';
+  // Rebuild the rows so the log's recorded substitutions survive the edit: a row
+  // that replaced a recipe item carries that original (struck, with its reason),
+  // an untouched recipe item carries itself, an added item carries nothing.
+  const subs=(u.substitutions||[]).filter(x=>!x.category);
+  const baseNames=base?new Set([...(base.flowers||[]),...(base.fillers||[]),...(base.plants||[])].map(f=>f.name)):new Set();
+  const fill=(tbId,items,type)=>{
+    const tb=document.getElementById(tbId);tb.innerHTML=uRows(items,type);
+    if(!base)return;
+    const used=new Set();
+    tb.querySelectorAll('tr').forEach(row=>{
+      const name=row.querySelector('.uf-sel')?.value||'';if(!name||name==='None')return;
+      const color=row.querySelector('.f-color-sel')?.value||'';
+      const i=subs.findIndex((x,k)=>!used.has(k)&&x.to===name&&(!x.toColor||x.toColor===color));
+      if(i>=0){used.add(i);const x=subs[i];row.dataset.orig=x.from||'';row.dataset.origColor=x.fromColor||'';uMarkSubRow(row);const rs=row.querySelector('.uf-reason');if(rs&&x.reason)rs.value=x.reason;}
+      else if(baseNames.has(name)){row.dataset.orig=name;row.dataset.origColor=color;}
+    });
+  };
+  fill('uFlowerRows',u.flowers,'flower');fill('uFillerRows',u.fillers,'filler');fill('uPlantRows',u.plants,'plant');
+  // A saved extra no longer on the price list stays as recorded (not "None").
+  const setExtra=(id,list,val)=>{const sel=document.getElementById(id);if(!sel)return;val=val||'None';
+    if(val!=='None'&&!list.some(c=>c.n===val)){const o=document.createElement('option');o.value=val;o.textContent=val+' — not on price list';sel.insertBefore(o,sel.firstChild);}
+    sel.value=val;};
+  setExtra('u_container',CONTAINERS,u.container);setExtra('u_accent',ACCENTS,u.accent);setExtra('u_hardgood',HARDGOODS,u.hardgood);
   {const cp=document.getElementById('uContainerPaint');if(cp)cp.innerHTML=ingPaintCell(u.containerPaint||[],'u-container-paint-sel','uBudget()');}
   {const ap=document.getElementById('uAccentPaint');if(ap)ap.innerHTML=ingPaintCell(u.accentPaint||[],'u-accent-paint-sel','uBudget()');}
   const nt=document.getElementById('u_notes');if(nt)nt.value=u.notes||'';
-  const emp=document.getElementById('u_emp');if(emp)emp.value=u.employeeNumber||'';
+  // Whoever is editing enters THEIR employee # — the original author stays on v1.
+  const emp=document.getElementById('u_emp');if(emp)emp.value='';
   if(uMode==='production'){const q=document.getElementById('u_qty');if(q)q.value=u.quantityMade||1;}
   else{const o=document.getElementById('u_order');if(o)o.value=u.orderNumber||'';}
   if(u.custom){
     const t=document.getElementById('u_target');if(t)t.value=u.targetPrice||'';
     const f=document.getElementById('u_funeral');if(f)f.checked=!!u.funeral;
     if(u.funeral){const d=document.getElementById('u_discount');if(d&&u.deductPct!=null)d.value=u.deductPct;}
-    else{const l=document.getElementById('u_labor');if(l&&u.deductPct!=null)l.value=String(u.deductPct);}
+    else{const l=document.getElementById('u_labor');
+      if(l&&u.deductPct!=null){
+        if([...l.options].some(o=>o.value===String(u.deductPct)))l.value=String(u.deductPct);
+        else{l.value='custom';const c=document.getElementById('u_laborCustom');if(c)c.value=u.deductPct;}
+      }}
   }
-  uOrigExtra={container:document.getElementById('u_container').value,accent:document.getElementById('u_accent').value,hardgood:document.getElementById('u_hardgood').value};
+  // The ORIGINAL recipe extras (so a recorded container/accent/hardgood swap is
+  // still a swap after the edit), then redraw each swap's struck original + reason.
+  uOrigExtra={};
+  ['container','accent','hardgood'].forEach(k=>{
+    const cur=document.getElementById('u_'+k).value;
+    const x=(u.substitutions||[]).find(y=>y.category===k);
+    uOrigExtra[k]=x?(x.from||'None'):cur;
+    if(x){uExtraChanged(k);const rs=document.querySelector('.u-extra-reason[data-kind="'+k+'"]');if(rs&&x.reason)rs.value=x.reason;}
+    else{const b=document.getElementById('u_'+k+'_sub');if(b)b.innerHTML='';}
+  });
   uRecipeValue=(u.designedValue!=null)?u.designedValue:0;
   uOrderPrice=(u.orderPrice!=null)?u.orderPrice:(u.targetPrice||0);
   uSyncBudgetPanel();uBudget();uEditBanner();
@@ -2687,6 +2736,7 @@ function uCleanDesc(d){return String(d||'').replace(/https?:\/\/\S+/g,'').replac
 // Classify an order line: a designed "arrangement" we log, vs an "add-on"
 // (balloon, wine, chocolate, ribbon, delivery…) we don't count.
 let uLastLines=[];
+let uLookupSeq=0;      // bumps on every order lookup; stale answers are ignored
 let uOrderFuneral=false;
 let uExpectedSku='';   // set by the recipe-view shortcut: warn if the looked-up order isn't this recipe
 let uExpectedName='';
@@ -2710,9 +2760,13 @@ function uLookupOrder(){
   const ord=(document.getElementById('u_order').value||'').trim();
   const box=document.getElementById('uOrderLines');
   if(!ord){if(box)box.innerHTML='<span style="color:var(--red);font-size:12px;">Enter an order number first.</span>';return;}
-  if(box)box.innerHTML='<span style="color:var(--text3);font-size:12px;">Looking up order '+ord+'…</span>';
+  if(box)box.innerHTML='<span style="color:var(--text3);font-size:12px;">Looking up order '+escU(ord)+'…</span>';
   const expected=uExpectedSku, expectedName=uExpectedName; uExpectedSku='';uExpectedName='';   // one-shot: recipe-view shortcut only
+  // Only the NEWEST lookup may fill the form: scan order A then B quickly and A's
+  // slower answer must not land on top of B.
+  const seq=++uLookupSeq;
   RecipeStore.lookupOrder(ord).then(res=>{
+    if(seq!==uLookupSeq)return;
     const lines=(res&&res.lines)||[];
     uLastLines=lines;
     uOrderFuneral=!!(res&&res.isFuneral);
@@ -2747,6 +2801,7 @@ function uLookupOrder(){
     if(arrs.length===1)uUseLine((arrs[0].productCode||'').trim(),{noScroll:!!warnHtml});
     if(warnHtml)box.scrollIntoView({behavior:'smooth',block:'start'});
   }).catch(e=>{
+    if(seq!==uLookupSeq)return;
     if(box)box.innerHTML='<span style="color:var(--red);font-size:12px;">Lookup failed: '+escU(e.message||e)+'</span>';
   });
 }
@@ -3031,7 +3086,7 @@ async function boot(){
     TAGS=data.tags||[];
     recipes=data.recipes||[];
     MARGIN_GOOD=data.marginGood;MARGIN_WARN=data.marginWarn;
-    {const lg=parseInt(localStorage.getItem('bs_margin_good'),10),lw=parseInt(localStorage.getItem('bs_margin_warn'),10);if(!isNaN(lg))MARGIN_GOOD=lg;if(!isNaN(lw))MARGIN_WARN=lw;}
+    {const gi=document.getElementById('marginGoodInput'),wi=document.getElementById('marginWarnInput');if(gi)gi.value=MARGIN_GOOD;if(wi)wi.value=MARGIN_WARN;}
     PRICING_SYNC=data.pricingSync||null;
     nextId=Math.max(0,...recipes.map(r=>Number(r.id)||0))+1;
     migrateRecipeShape();

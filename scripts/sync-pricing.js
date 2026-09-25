@@ -386,7 +386,10 @@ async function writeFirestore(priceLists) {
   await ref.set({
     priceLists,
     pricingSyncedAt: admin.firestore.FieldValue.serverTimestamp(),
-    pricingSync: { at: new Date().toISOString(), changedCount: changes.length, changes: changes.slice(0, 200) }
+    // merge:true merges INTO the existing pricingSync map, so explicitly clear the
+    // "Sync now" markers — otherwise a nightly run still reads as manual/by <person>.
+    pricingSync: { at: new Date().toISOString(), changedCount: changes.length, changes: changes.slice(0, 200),
+                   manual: false, by: admin.firestore.FieldValue.delete() }
   }, { merge: true });
   console.log('Write complete.');
 }

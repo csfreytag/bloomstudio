@@ -85,6 +85,10 @@
   // Tags live in their own collection (the production rules let managers write
   // /tags but NOT /settings). One doc holds the whole list: tags/all { list:[] }.
   var TAGS_DOC = 'all';
+  // Recipe-app settings the team edits (margin thresholds). Lives under /tags
+  // because that collection is recipe-owned and recipe-manager-writable in the
+  // shared prod rules — settings/ is writable only by Purchasing roles.
+  var RECIPE_SETTINGS_DOC = 'recipeSettings';
   var PRICE_LIST_KEYS = ['flowers', 'fillers', 'containers', 'accents', 'hardgoods', 'plants'];
 
   // Resolved after sign-in.
@@ -266,11 +270,13 @@
       return Promise.all([
         db.collection('recipes').get(),
         db.collection('settings').doc(SETTINGS_DOC).get(),
-        db.collection('tags').doc(TAGS_DOC).get()
+        db.collection('tags').doc(TAGS_DOC).get(),
+        db.collection('tags').doc(RECIPE_SETTINGS_DOC).get()
       ]).then(function (res) {
         var recipesSnap = res[0];
         var settingsSnap = res[1];
         var tagsSnap = res[2];
+        var rs = res[3].exists ? (res[3].data() || {}) : {};
         var cloudEmpty = recipesSnap.empty && !settingsSnap.exists;
 
         // Seed only on staging. Production starts clean: prices arrive via the
@@ -306,8 +312,10 @@
           recipes: recipes,
           priceLists: priceLists,
           tags: tags,
-          marginGood: typeof s.marginGood === 'number' ? s.marginGood : 40,
-          marginWarn: typeof s.marginWarn === 'number' ? s.marginWarn : 20,
+          // Margin thresholds: tags/recipeSettings (recipe managers can write it),
+          // else the older settings/ copy, else the defaults.
+          marginGood: typeof rs.marginGood === 'number' ? rs.marginGood : (typeof s.marginGood === 'number' ? s.marginGood : 40),
+          marginWarn: typeof rs.marginWarn === 'number' ? rs.marginWarn : (typeof s.marginWarn === 'number' ? s.marginWarn : 20),
           pricingSync: s.pricingSync || null
         };
       });
@@ -345,6 +353,11 @@
 
     saveTags: function (tags) {
       return db.collection('tags').doc(TAGS_DOC).set({ list: tags }, { merge: true });
+    },
+
+    saveMarginSettings: function (good, warn) {
+      return db.collection('tags').doc(RECIPE_SETTINGS_DOC)
+        .set({ marginGood: good, marginWarn: warn }, { merge: true });
     },
 
     saveSettings: function (obj) {
@@ -451,8 +464,19 @@
         clean.version = (clean.version || 1) + 1;
         clean.supersedes = prevId;
         delete clean.id;
-        var vref = col.doc();
-        return vref.set(clean).then(function () { return vref.id; });
+        // Fixed id per version (<rootId>_v<n>): if two people reopened the same
+        // log, the second save finds v<n> taken and is refused instead of making
+        // a duplicate v<n>. (Double-tapping Save hits the same guard.)
+        var vref = col.doc(clean.rootId + '_v' + clean.version);
+        return db.runTransaction(function (tx) {
+          return tx.get(vref).then(function (d) {
+            if (d.exists) {
+              var e = new Error('Someone already saved an edit of this log. Search for it again to reopen the newest version.');
+              e.code = 'version-taken'; throw e;
+            }
+            tx.set(vref, clean);
+          });
+        }).then(function () { return vref.id; });
       }
       // New log → v1; rootId = its own id (set client-side, no follow-up write).
       delete clean.supersedes;
@@ -473,14 +497,22 @@
         });
     },
 
-    // Find logs by employee number OR order number (equality only → no composite
-    // index needed; sorted newest-first client-side).
+    // Find logs by employee number OR order number, NEWEST first — so a busy
+    // employee's latest logs are always in the window, not an arbitrary 200.
+    // Uses composite indexes usageRecords(employeeNumber|orderNumber ↑, createdAt ↓);
+    // if an index is missing/building, falls back to the unordered query.
     searchUsage: function (opts) {
       opts = opts || {};
       var q = db.collection('usageRecords');
       if (opts.employeeNumber) q = q.where('employeeNumber', '==', String(opts.employeeNumber));
       else if (opts.orderNumber) q = q.where('orderNumber', '==', String(opts.orderNumber));
-      return q.limit(opts.max || 200).get().then(function (snap) {
+      var max = opts.max || 200;
+      return q.orderBy('createdAt', 'desc').limit(max).get()
+        .catch(function (e) {
+          if (e && e.code === 'failed-precondition') return q.limit(max).get();
+          throw e;
+        })
+        .then(function (snap) {
         var out = [];
         snap.forEach(function (d) { var x = d.data() || {}; x.id = d.id; out.push(x); });
         out.sort(function (a, b) {

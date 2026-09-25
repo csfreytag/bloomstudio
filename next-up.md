@@ -2,10 +2,9 @@
 Updated: 2026-09-25
 
 ## Where things stand
-Live at https://freytags-recipes.web.app (`firebase.js?v=9`). The Opus full review's Tier 1 and Tier 2 fixes are all shipped to staging + prod and pushed to `main` (2026-09-25). Remaining review work is the UI tier. Labor = share-of-price is decided but NOT live (would move 7 recipe prices).
+Live at https://freytags-recipes.web.app (`firebase.js?v=9`). The Opus full review is DONE: Tier 1, Tier 2 and the UI tier are all shipped to staging + prod and pushed to `main` (2026-09-25). Labor = share-of-price is decided but NOT live (would move 7 recipe prices).
 
 ## In flight
-- Review UI tier (not started): recipe below the fold after tapping on phone/tablet (auto-scroll), long Log form (sticky Save), sticky 2x2 price cards eat space/overlap, two paint dropdowns per row, orphan nav tab, market items show $0.00 in the editor, junk recipe #1
 - Labor = share of final price, default 13% — ship only after the team locks the 7 calculated-price recipes (#1 blank, #2 Test Arrangement, #3 Seaside Sunflower, #58 Twenty Four White Roses Luxury, #167 Apricot Blush Trio, #292 "Vail Morning", #314 "Solstice Sun") or Chad OKs new prices
 - ~22 untracked `scripts/_*.js` diagnostics + `.claude/settings.json` — undecided if they belong in the repo
 
@@ -33,3 +32,4 @@ Live at https://freytags-recipes.web.app (`firebase.js?v=9`). The Opus full revi
 - Functions check roles from token claims only + `active:true` (no shared users-doc fallback); never set `active:true` over an `active:false` (2026-09-25)
 - Margin targets live in `tags/recipeSettings` (recipe-manager-writable) — `settings/` is Purchasing-write-only (2026-09-25)
 - Calculator: includes hardgoods + paint, labor default 13% (scratch tool, not a recipe price) (2026-09-25)
+- Recipe editor price cards stay PINNED (Chad's earlier ask) but as a slim one-line bar; Log/Production Save + employee # pinned to the bottom; one paint dropdown per row (+ 2nd color on demand) (2026-09-25)

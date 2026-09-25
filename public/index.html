@@ -36,8 +36,9 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .sidebar-header { padding: 12px 14px 10px; border-bottom: 0.5px solid var(--border); background: var(--bg); }
 .sidebar-header img.logo { width: 100%; max-width: 210px; display: block; margin: 0 auto 4px; }
 .sidebar-header p { font-size: 11px; color: var(--text3); text-align: center; font-style: italic; letter-spacing: 0.04em; }
-.nav-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); border-bottom: 0.5px solid var(--border); }
-.nav-tab { padding: 11px 6px; font-size: 16px; text-align: center; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; transition: all 0.15s; }
+.nav-tabs { display: flex; flex-wrap: wrap; border-bottom: 0.5px solid var(--border); }
+/* --navw is set by balanceNav() so the rows come out even (no tab alone on a row). */
+.nav-tab { flex: 1 0 var(--navw, 33%); min-width: 0; white-space: nowrap; padding: 11px 4px; font-size: 15px; text-align: center; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; transition: all 0.15s; }
 .nav-tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 500; }
 .nav-tab:hover:not(.active) { background: var(--bg2); }
 .search-filter { border-bottom: 0.5px solid var(--border); }
@@ -98,6 +99,12 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .stat-card { background: var(--bg2); border-radius: var(--radius); padding: 9px 11px; }
 .stat-card .slabel { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
 .stat-card .sval { font-size: 19px; color: var(--text); margin-top: 2px; }
+/* Recipe editor's pinned price bar: stays in view while you build (Chad's ask),
+   but slim — one line per card — so it doesn't eat the top of the screen. */
+.stat-bar { position: sticky; top: 0; z-index: 20; background: var(--bg3); padding: 6px 0; margin-bottom: 6px; gap: 6px; }
+.stat-bar .stat-card { padding: 5px 10px; display: flex; align-items: baseline; justify-content: space-between; gap: 6px; min-width: 0; }
+.stat-bar .slabel { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat-bar .sval { font-size: 16px; margin-top: 0; white-space: nowrap; }
 .two-col { display: grid; grid-template-columns: 1fr 220px; gap: 14px; align-items: start; }
 .section { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 13px 15px; margin-bottom: 11px; }
 .section h3 { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 11px; }
@@ -142,6 +149,13 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .usage-log .ing-table td { vertical-align: top; }
 .usage-log .ing-table th { font-size: 11.5px; }
 .usage-log .uf-orig { text-decoration: line-through; color: var(--text3); font-size: 12px; margin-top: 4px; }
+/* Log / Production: employee # + Save stay pinned to the bottom of the screen
+   while you work down the (long) form, then settle in place at the end. */
+.u-savebar { position: sticky; bottom: 0; z-index: 15; background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 10px 14px; margin: 10px 0 4px; box-shadow: 0 -4px 14px rgba(0,0,0,0.07); }
+.u-emp-field { width: 200px; }
+.u-save-btn { font-size: 15px; padding: 9px 18px; }
+.paint-more { display: block; margin-top: 3px; background: none; border: none; padding: 0; font-size: 11px; color: var(--stem); cursor: pointer; }
+.paint-more:hover { text-decoration: underline; }
 .market-ask { color: var(--amber); font-style: italic; font-weight: 600; }
 .seasonal-tag { display: inline-block; background: var(--amber-light); color: var(--amber); font-size: 11px; font-weight: 600; font-style: normal; padding: 1px 7px; border-radius: 999px; margin-left: 6px; vertical-align: middle; white-space: nowrap; }
 .usage-log .ing-table select, .usage-log .ing-table input[type=number] { font-size: 15px; }
@@ -199,6 +213,8 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
 .approval-btns { display: flex; gap: 8px; }
 .approve-btn { background: var(--stem); color: white; border: none; padding: 6px 14px; border-radius: var(--radius); font-size: 12px; cursor: pointer; }
 .sendback-btn { background: none; border: 0.5px solid var(--border2); padding: 6px 14px; border-radius: var(--radius); font-size: 12px; cursor: pointer; color: var(--amber); }
+/* Only shown when the sidebar stacks above the content (phone/tablet). */
+.to-list-btn { display: none; align-items: center; gap: 4px; font-size: 12px; padding: 4px 9px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text2); cursor: pointer; white-space: nowrap; }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
@@ -214,7 +230,6 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
      fixed-height layout — relax that so they size to content on mobile. */
   .sidebar [id^="sidebar-"] { overflow: visible !important; flex: none !important; }
   .recipe-list { flex: none; max-height: 45vh; }   /* keep the list from pushing content far down */
-  .nav-tabs { flex-wrap: wrap; }
 
   /* Main + content take natural height; the page itself scrolls */
   .main { overflow: visible; min-height: 0; }
@@ -229,6 +244,20 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
   .two-col { grid-template-columns: 1fr; }
   .field-row, .field-row-3, .pricing-grid { grid-template-columns: 1fr; }
   .stat-row { grid-template-columns: 1fr 1fr; }
+  .stat-bar .stat-card { display: block; padding: 4px 6px; }
+  .stat-bar .slabel { font-size: 9px; }
+  .stat-bar .sval { font-size: 14px; }
+
+  /* Stacked: a quick way back up to the list you tapped from */
+  .to-list-btn { display: inline-flex; }
+  .top-bar h2 { flex: 1 1 60%; }
+
+  /* Keep the pinned Log save bar to one line on a phone */
+  .u-savebar { padding: 8px 10px; }
+  .u-emp-field { width: 118px; }
+  .u-emp-field label { font-size: 12px !important; }
+  .u-save-btn { font-size: 14px; padding: 9px 12px; flex: 1; justify-content: center; }
+  #uSaveMsg:empty { display: none; }
 
   /* 16px inputs stop iOS from auto-zooming on focus */
   input, select, textarea { font-size: 16px; }
@@ -352,6 +381,7 @@ textarea { resize: vertical; width: 100%; min-height: 70px; }
  </div>
  <div class="main">
   <div class="top-bar">
+   <button class="to-list-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to the list"><i class="ti ti-arrow-up"></i> List</button>
    <h2 id="topTitle">Select a recipe</h2>
    <div class="tab-bar" id="tabBar" style="display:none;">
     <button class="tab active" id="tab-recipe" onclick="switchTab('recipe')">Recipe edit</button>
@@ -393,6 +423,7 @@ function gpPrice(list,name,mult){const f=list.find(x=>x.n.trim()===name.trim());
 function findItem(list,name){return (list||[]).find(x=>x.n&&x.n.trim()===String(name||'').trim());}
 // A "market" item has no fixed retail and no fallback cost — its price is "ask"
 // (a **market seasonal row, or a seasonal row whose Expiration has passed).
+const ASK_HTML='<span class="market-ask">ask</span>';
 function isMarketItem(it){return !!it&&(it.r===null||it.r===undefined)&&!(it.p>0);}
 function fmtShortDate(iso){if(!iso)return '';const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?(parseInt(m[2],10)+'/'+parseInt(m[3],10)):iso;}
 // Small "Seasonal" chip shown beside an item name (price list / drop-in lists).
@@ -496,6 +527,24 @@ function migrateRecipeShape(){
   });
 }
 
+// Pick how many nav tabs per row for the visible count (4 designer / 8 manager /
+// 9 admin) and width: fewest rows, never a single tab alone on the last row.
+function balanceNav(){
+  const nav=document.querySelector('.nav-tabs');if(!nav)return;
+  const tabs=[...nav.querySelectorAll('.nav-tab')].filter(t=>t.style.display!=='none');
+  const n=tabs.length;if(!n)return;
+  const maxC=Math.max(1,Math.floor((nav.clientWidth||260)/84));
+  let best=Math.min(n,maxC);
+  if(n>maxC){
+    let bestRows=Infinity;
+    for(let c=maxC;c>=2;c--){const rows=Math.ceil(n/c),rem=n%c;if(rem===1)continue;if(rows<bestRows){bestRows=rows;best=c;}}
+    if(bestRows===Infinity)best=maxC;
+  }
+  nav.style.setProperty('--navw',(100/best-0.01)+'%');
+}
+window.addEventListener('resize',()=>{clearTimeout(window.__navT);window.__navT=setTimeout(balanceNav,120);});
+setTimeout(balanceNav,0);
+
 function applyRole(role){
   currentRole=role;
   const isDesigner=role==='designer';
@@ -504,6 +553,7 @@ function applyRole(role){
   document.getElementById('nt-reports').style.display=isDesigner?'none':'';
   document.getElementById('nt-tags').style.display=isDesigner?'none':'';
   document.getElementById('nt-users').style.display=(role==='admin')?'':'none';
+  balanceNav();
   if(activeId)renderEditor();
 }
 
@@ -947,7 +997,7 @@ function renderRecipeTab(r){
   document.getElementById('mainContent').innerHTML=`
   ${archivedBanner(r)}
   ${driftBanner(r)}
-  <div class="stat-row" style="position:sticky;top:0;z-index:20;background:var(--bg3);padding:8px 0;margin-bottom:6px;">
+  <div class="stat-row stat-bar" style="grid-template-columns:repeat(${isDesigner?2:4},minmax(0,1fr));">
    <div class="stat-card"><div class="slabel">Ingredients</div><div class="sval" id="live_running" style="color:var(--blue)">$${fmt(componentsRetail(r))}</div></div>
    <div class="stat-card"><div class="slabel">Final retail</div><div class="sval" id="live_retail" style="color:var(--green-dark)">$${fmt(fp)}</div></div>
    ${!isDesigner?`<div class="stat-card"><div class="slabel">Total cost</div><div class="sval" id="live_cost">$${fmt(c.total)}</div></div>
@@ -1229,13 +1279,29 @@ function ingColorCell(item,color){
 }
 // Up to two paint shades per flower (descriptive — flowers can be painted one or
 // two colors). Options come from PAINTS; empty = not painted.
+function paintSelectHtml(sel,cls,onch){
+  const oc=onch?` onchange="${onch}"`:'';
+  return `<select class="${cls}"${oc} style="font-size:12px;padding:3px 4px;max-width:118px;display:block;"><option value="">— none</option>`+
+    PAINTS.map(p=>`<option value="${escU(p)}"${p===sel?' selected':''}>${escU(p)}</option>`).join('')+`</select>`;
+}
+// One paint dropdown per row; a second color appears only when asked for (or when
+// the item already has two) — two dropdowns on every row doubled the table height.
 function ingPaintCell(paint,cls,onch){
   paint=paint||[];cls=cls||'f-paint-sel';
-  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const oc=onch?` onchange="${onch}"`:'';
-  const one=sel=>`<select class="${cls}"${oc} style="font-size:12px;padding:3px 4px;max-width:118px;display:block;"><option value="">— none</option>`+
-    PAINTS.map(p=>`<option value="${esc(p)}"${p===sel?' selected':''}>${esc(p)}</option>`).join('')+`</select>`;
-  return one(paint[0]||'')+`<div style="height:3px;"></div>`+one(paint[1]||'');
+  const second=paint[1]
+    ?`<div style="height:3px;"></div>`+paintSelectHtml(paint[1],cls,onch)
+    :`<button type="button" class="paint-more" data-cls="${escU(cls)}" data-onch="${escU(onch||'')}" onclick="ingPaintMore(this)"${paint[0]?'':' style="display:none;"'}>+ 2nd color</button>`;
+  return paintSelectHtml(paint[0]||'',cls,onch)+second;
+}
+// "+ 2nd color" only appears once a first color is picked.
+document.addEventListener('change',e=>{
+  const nx=e.target&&e.target.tagName==='SELECT'&&e.target.nextElementSibling;
+  if(nx&&nx.classList&&nx.classList.contains('paint-more'))nx.style.display=e.target.value?'':'none';
+});
+function ingPaintMore(btn){
+  const w=document.createElement('div');
+  w.innerHTML=`<div style="height:3px;"></div>`+paintSelectHtml('',btn.dataset.cls,btn.dataset.onch);
+  btn.replaceWith(...w.childNodes);
 }
 function ingRow(f,type){
   const list=type==='flower'?FLOWERS:type==='plant'?PLANTS:FILLERS;
@@ -1250,8 +1316,8 @@ function ingRow(f,type){
     <td><select class="f-sel" onchange="updateRowCost(this)">${mkOpts(list,f.name)}</select></td>
     ${colorTd}${paintTd}
     <td><input class="f-qty" type="number" value="${f.qty}" min="0" step="1" oninput="updateRowCost(this)" style="width:60px;"/></td>
-    <td class="f-each" style="color:var(--text2);font-size:13px;white-space:nowrap;">$${fmt(each)}</td>
-    <td class="f-cost" style="font-size:13px;font-weight:500;white-space:nowrap;">$${fmt(total)}</td>
+    <td class="f-each" style="color:var(--text2);font-size:13px;white-space:nowrap;">${isMarketItem(item)?ASK_HTML:'$'+fmt(each)}</td>
+    <td class="f-cost" style="font-size:13px;font-weight:500;white-space:nowrap;">${isMarketItem(item)?ASK_HTML:'$'+fmt(total)}</td>
     <td><button class="del-btn" onclick="this.closest('tr').remove();refreshStatCards()"><i class="ti ti-x"></i></button></td>
   </tr>`;
 }
@@ -1314,8 +1380,10 @@ function updateRowCost(el){
   const item=list.find(x=>x.n.trim()===name.trim());
   const base=(item&&item.r&&item.r>0)?item.r:parseFloat(((item?item.p:0)*(type==='plant'?3.5:4)).toFixed(2));
   const each=base+((type!=='plant'&&domRowPainted(row))?paintUnitPrice():0);
-  if(row.querySelector('.f-each'))row.querySelector('.f-each').textContent='$'+fmt(each);
-  if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(qty*each);
+  // Market-priced (no fixed retail) items read "ask", not a misleading $0.00.
+  const mk=isMarketItem(item);
+  if(row.querySelector('.f-each'))row.querySelector('.f-each').innerHTML=mk?ASK_HTML:'$'+fmt(each);
+  if(row.querySelector('.f-cost'))row.querySelector('.f-cost').innerHTML=mk?ASK_HTML:'$'+fmt(qty*each);
   // When the flower/filler itself changes, repopulate its color options.
   const colorCell=row.querySelector('.f-color');
   if(colorCell&&el.classList.contains('f-sel'))colorCell.innerHTML=ingColorCell(item,'');
@@ -1860,17 +1928,17 @@ function updateCalc(){
   let fc=0;
   document.querySelectorAll('#calcFlowerRows tr').forEach(row=>{
     const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
-    const c=q*(gpPrice(FLOWERS,n||'None',4)+((n&&n!=='None'&&painted(row))?paintUnitPrice():0));fc+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
+    const c=q*(gpPrice(FLOWERS,n||'None',4)+((n&&n!=='None'&&painted(row))?paintUnitPrice():0));fc+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').innerHTML=isMarketItem(findItem(FLOWERS,n))?ASK_HTML:'$'+fmt(c);
   });
   let fil=0;
   document.querySelectorAll('#calcFillerRows tr').forEach(row=>{
     const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
-    const c=q*(gpPrice(FILLERS,n||'None',4)+((n&&n!=='None'&&painted(row))?paintUnitPrice():0));fil+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
+    const c=q*(gpPrice(FILLERS,n||'None',4)+((n&&n!=='None'&&painted(row))?paintUnitPrice():0));fil+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').innerHTML=isMarketItem(findItem(FILLERS,n))?ASK_HTML:'$'+fmt(c);
   });
   let pl=0;
   document.querySelectorAll('#calcPlantRows tr').forEach(row=>{
     const n=row.querySelector('.f-sel')?.value,q=parseFloat(row.querySelector('.f-qty')?.value)||0;
-    const c=q*gpPrice(PLANTS,n||'None',3.5);pl+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').textContent='$'+fmt(c);
+    const c=q*gpPrice(PLANTS,n||'None',3.5);pl+=c;if(row.querySelector('.f-cost'))row.querySelector('.f-cost').innerHTML=isMarketItem(findItem(PLANTS,n))?ASK_HTML:'$'+fmt(c);
   });
   const laborPct=parseFloat(document.getElementById('calc_labor')?.value)||0;
   const stemTotal=vp+ap+hp+fc+fil+pl;
@@ -1959,6 +2027,16 @@ function renderOrdering(){
   el.innerHTML=TAGS.map(t=>`<span class="tag-filter-chip${activeOrderTags.includes(t)?' active':''}" onclick="toggleOrderTag(this,'${escJ(t)}');loadOrderRecipes();" style="font-size:12px;padding:3px 10px;">${escU(t)}</span>`).join('');
   if(activeOrderTags.length)loadOrderRecipes();
 }
+
+// Phone/tablet: the sidebar stacks ABOVE the content, so tapping a recipe (or a
+// Prices / Reports item) used to leave you looking at the list with the thing you
+// opened off-screen below. Bring it into view. Desktop is untouched.
+const isStacked=()=>window.matchMedia('(max-width: 900px)').matches;
+document.addEventListener('click',e=>{
+  if(!isStacked())return;
+  if(!e.target.closest('.sidebar .recipe-item, .sidebar .pl-nav-btn'))return;
+  setTimeout(()=>{const m=document.querySelector('.main');if(m)m.scrollIntoView({behavior:'smooth',block:'start'});},0);
+},true);   // capture: the tap re-renders the list, detaching the target before a bubble listener runs
 
 let activeOrderTags=[];
 function toggleOrderTag(el,tag){
@@ -2200,10 +2278,14 @@ function renderUsageLog(){
     <h3>Notes <span style="font-weight:normal;font-style:italic;font-size:11px;">(optional)</span></h3>
     <textarea id="u_notes" rows="2" style="width:100%;" placeholder="Anything worth noting — why a substitution was made, etc."></textarea>
    </div>
-   <div class="field" style="max-width:220px;margin-top:8px;"><label>Your employee #</label><input type="text" id="u_emp" autocomplete="off" placeholder="who filled this?" style="font-size:16px;"/></div>
-   <div id="uEditBar" style="display:none;margin:6px 0;padding:7px 10px;border-radius:var(--radius);background:var(--amber-light);color:var(--amber);font-size:13px;font-weight:600;"></div>
-   <div id="uSaveMsg" style="font-size:13px;min-height:18px;margin:6px 0 8px;"></div>
-   <button class="save-btn" onclick="saveUsageLog()"><i class="ti ti-check"></i> Save usage log</button>
+   <div class="u-savebar">
+    <div id="uEditBar" style="display:none;margin:0 0 6px;padding:7px 10px;border-radius:var(--radius);background:var(--amber-light);color:var(--amber);font-size:13px;font-weight:600;"></div>
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+     <div class="field u-emp-field"><label>Your employee #</label><input type="text" id="u_emp" autocomplete="off" placeholder="who filled this?" style="font-size:16px;"/></div>
+     <button class="save-btn u-save-btn" onclick="saveUsageLog()"><i class="ti ti-check"></i> Save usage log</button>
+     <div id="uSaveMsg" style="font-size:13px;flex:1 1 180px;align-self:center;"></div>
+    </div>
+   </div>
    <div class="section" style="margin-top:16px;">${uRecentPanelHtml(false)}</div>
   </div>`;
   const oi=document.getElementById('u_order');if(oi)oi.focus();
@@ -2308,10 +2390,14 @@ function renderProduction(){
     <h3>Notes <span style="font-weight:normal;font-style:italic;font-size:11px;">(optional)</span></h3>
     <textarea id="u_notes" rows="2" style="width:100%;" placeholder="Anything worth noting — why a substitution was made, etc."></textarea>
    </div>
-   <div class="field" style="max-width:220px;margin-top:8px;"><label>Your employee #</label><input type="text" id="u_emp" autocomplete="off" placeholder="who's making this?" style="font-size:16px;"/></div>
-   <div id="uEditBar" style="display:none;margin:6px 0;padding:7px 10px;border-radius:var(--radius);background:var(--amber-light);color:var(--amber);font-size:13px;font-weight:600;"></div>
-   <div id="uSaveMsg" style="font-size:13px;min-height:18px;margin:6px 0 8px;"></div>
-   <button class="save-btn" onclick="saveUsageLog()"><i class="ti ti-check"></i> Save production log</button>
+   <div class="u-savebar">
+    <div id="uEditBar" style="display:none;margin:0 0 6px;padding:7px 10px;border-radius:var(--radius);background:var(--amber-light);color:var(--amber);font-size:13px;font-weight:600;"></div>
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+     <div class="field u-emp-field"><label>Your employee #</label><input type="text" id="u_emp" autocomplete="off" placeholder="who's making this?" style="font-size:16px;"/></div>
+     <button class="save-btn u-save-btn" onclick="saveUsageLog()"><i class="ti ti-check"></i> Save production log</button>
+     <div id="uSaveMsg" style="font-size:13px;flex:1 1 180px;align-self:center;"></div>
+    </div>
+   </div>
    <div class="section" style="margin-top:16px;">${uRecentPanelHtml(true)}</div>
   </div>`;
   const q=document.getElementById('u_qty');if(q)q.focus();

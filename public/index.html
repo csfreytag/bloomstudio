@@ -613,13 +613,13 @@ function resetMain(){
 function renderSidebarTags(){
   const el=document.getElementById('sidebarTagList');
   if(!el)return;
-  el.innerHTML=TAGS.map((t,i)=>`<div class="tag-manage-chip">${t}<button onclick="deleteTag(${i})"><i class="ti ti-x"></i></button></div>`).join('');
+  el.innerHTML=TAGS.map((t,i)=>`<div class="tag-manage-chip">${escU(t)}<button onclick="deleteTag(${i})"><i class="ti ti-x"></i></button></div>`).join('');
 }
 function renderTagsMain(){
   document.getElementById('topTitle').textContent='Tag library';
   document.getElementById('tabBar').style.display='none';
   document.getElementById('actionBtns').style.display='none';
-  document.getElementById('mainContent').innerHTML=`<div class="section"><h3>Tag library</h3><p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Tags can be applied to any recipe for filtering and search. Add or remove them here.</p><div id="mainTagList" style="display:flex;flex-wrap:wrap;">${TAGS.map((t,i)=>`<div class="tag-manage-chip" style="font-size:13px;padding:4px 10px;margin:3px;">${t}<button onclick="deleteTag(${i});renderTagsMain();" title="Remove"><i class="ti ti-x"></i></button></div>`).join('')||'<span style="font-size:13px;color:var(--text3);font-style:italic;">No tags yet.</span>'}</div><div class="add-tag-row"><input type="text" id="mainNewTag" placeholder="New tag name…" onkeydown="if(event.key==='Enter')addTagMain()"/><button class="add-tag-btn" onclick="addTagMain()"><i class="ti ti-plus"></i> Add tag</button></div></div>`;
+  document.getElementById('mainContent').innerHTML=`<div class="section"><h3>Tag library</h3><p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Tags can be applied to any recipe for filtering and search. Add or remove them here.</p><div id="mainTagList" style="display:flex;flex-wrap:wrap;">${TAGS.map((t,i)=>`<div class="tag-manage-chip" style="font-size:13px;padding:4px 10px;margin:3px;">${escU(t)}<button onclick="deleteTag(${i});renderTagsMain();" title="Remove"><i class="ti ti-x"></i></button></div>`).join('')||'<span style="font-size:13px;color:var(--text3);font-style:italic;">No tags yet.</span>'}</div><div class="add-tag-row"><input type="text" id="mainNewTag" placeholder="New tag name…" onkeydown="if(event.key==='Enter')addTagMain()"/><button class="add-tag-btn" onclick="addTagMain()"><i class="ti ti-plus"></i> Add tag</button></div></div>`;
 }
 function addTag(){
   const el=document.getElementById('newTagInput');
@@ -637,7 +637,16 @@ function saveTags(){RecipeStore.saveTags(TAGS).catch(e=>alert('Could not save ta
 // ── Admin: User management ────────────────────────────────────
 let USERS=[];
 let INVITES=[];
+// escU: make any user/sheet text safe to put INTO HTML (element text or a
+// "…" attribute). Without it, a recipe named  6" Palm  was cut off at the quote
+// in the editor (and saved back as "6"), and typed text could run as script.
 function escU(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+// escJ: for text passed as a JS string inside an onclick="fn('…')" attribute —
+// JS-escape first (\ ' newline), then HTML-escape. Fixes e.g. o'neil@… emails.
+function escJ(s){return escU(String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,'\\n'));}
+// A recipe id as an onclick argument: numeric ids stay numbers (so === matches),
+// any non-numeric document id is passed as a quoted, escaped string.
+function idArg(id){return typeof id==='number'?String(id):"'"+escJ(id)+"'";}
 function showUsers(){
   document.getElementById('topTitle').textContent='Users';
   document.getElementById('tabBar').style.display='none';
@@ -649,7 +658,7 @@ function showUsers(){
 }
 function roleSelect(email,current){
   const roles=['admin','manager','designer'];
-  return `<select onchange="usrChangeRole('${escU(email)}',this.value)" style="padding:4px 8px;border:0.5px solid rgba(0,0,0,0.18);border-radius:6px;font-size:13px;">`+
+  return `<select onchange="usrChangeRole('${escJ(email)}',this.value)" style="padding:4px 8px;border:0.5px solid rgba(0,0,0,0.18);border-radius:6px;font-size:13px;">`+
     roles.map(r=>`<option value="${r}"${r===current?' selected':''}>${r.charAt(0).toUpperCase()+r.slice(1)}</option>`).join('')+`</select>`;
 }
 function renderUsers(){
@@ -664,7 +673,7 @@ function renderUsers(){
       <td>${escU(u.email)}</td>
       <td>${isMe?cap(u.recipeGuideRole):roleSelect(u.email,u.recipeGuideRole)}</td>
       <td>${purch}</td>
-      <td style="text-align:right;">${isMe?'':`<button onclick="usrRemove('${escU(u.email)}')" style="background:none;border:0.5px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">Remove</button>`}</td>
+      <td style="text-align:right;">${isMe?'':`<button onclick="usrRemove('${escJ(u.email)}')" style="background:none;border:0.5px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">Remove</button>`}</td>
     </tr>`;
   }).join('')||'<tr><td colspan="5" style="color:var(--text3);font-style:italic;padding:10px;">No Recipe Guide users yet.</td></tr>';
   document.getElementById('mainContent').innerHTML=`
@@ -676,7 +685,7 @@ function renderUsers(){
   ${INVITES.length?`<div class="section">
     <h3>Pending invites</h3>
     <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Pre-authorized — access is granted automatically the first time they sign in.</p>
-    <div class="pl-wrap"><table class="pl-table"><thead><tr><th>Email</th><th>Role</th><th style="text-align:right;">Action</th></tr></thead><tbody>${INVITES.map(iv=>`<tr><td>${escU(iv.email)}</td><td>${escU(iv.role)}</td><td style="text-align:right;"><button onclick="usrRevokeInvite('${escU(iv.email)}')" style="background:none;border:0.5px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">Revoke</button></td></tr>`).join('')}</tbody></table></div>
+    <div class="pl-wrap"><table class="pl-table"><thead><tr><th>Email</th><th>Role</th><th style="text-align:right;">Action</th></tr></thead><tbody>${INVITES.map(iv=>`<tr><td>${escU(iv.email)}</td><td>${escU(iv.role)}</td><td style="text-align:right;"><button onclick="usrRevokeInvite('${escJ(iv.email)}')" style="background:none;border:0.5px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">Revoke</button></td></tr>`).join('')}</tbody></table></div>
   </div>`:''}
   <div class="section">
     <h3>Add a Google user</h3>
@@ -745,7 +754,7 @@ function toggleFilters(){
 }
 function renderTagFilterChips(){
   const el=document.getElementById('tagFilterList');if(!el)return;
-  el.innerHTML=TAGS.map(t=>`<span class="tag-filter-chip${activeTagFilters.includes(t)?' active':''}" onclick="toggleTagFilter('${t.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">${t}</span>`).join('');
+  el.innerHTML=TAGS.map(t=>`<span class="tag-filter-chip${activeTagFilters.includes(t)?' active':''}" onclick="toggleTagFilter('${escJ(t)}')">${escU(t)}</span>`).join('');
 }
 function toggleTagFilter(tag){
   const i=activeTagFilters.indexOf(tag);
@@ -783,13 +792,13 @@ function filterRecipes(){
   });
   el.innerHTML=filtered.map(r=>{
     const fp=finalPrice(r);const{margin}=calcCost(r);
-    const tagHtml=(r.tags||[]).map(t=>`<span class="tag-chip">${t}</span>`).join('');
+    const tagHtml=(r.tags||[]).map(t=>`<span class="tag-chip">${escU(t)}</span>`).join('');
     const st=r.status||'active';
     const dWeb=r.webItem?driftInfo(r):null;
-    return`<div class="recipe-item${r.id===activeId?' active':''}" onclick="selectRecipe(${r.id})">
-      <div class="sku">${r.sku||'—'} ${statusBadge(st)}${r.webItem?`<span class="status-badge" style="background:${dWeb.big?'var(--red-light)':dWeb.changed?'var(--amber-light)':'var(--blue-light)'};color:${dWeb.big?'var(--red)':dWeb.changed?'var(--amber)':'var(--blue)'};">Web${dWeb.changed?' ⚠':''}</span>`:''}</div>
-      <div class="rname">${r.name||'Untitled'}</div>
-      <div class="rprice">$${fmt(fp)} <span class="margin-pill ${mc(margin)}">${margin.toFixed(0)}%</span></div>
+    return`<div class="recipe-item${r.id===activeId?' active':''}" onclick="selectRecipe(${idArg(r.id)})">
+      <div class="sku">${escU(r.sku||'—')} ${statusBadge(st)}${r.webItem?`<span class="status-badge" style="background:${dWeb.big?'var(--red-light)':dWeb.changed?'var(--amber-light)':'var(--blue-light)'};color:${dWeb.big?'var(--red)':dWeb.changed?'var(--amber)':'var(--blue)'};">Web${dWeb.changed?' ⚠':''}</span>`:''}</div>
+      <div class="rname">${escU(r.name||'Untitled')}</div>
+      <div class="rprice">$${fmt(fp)}${currentRole==='designer'?'':` <span class="margin-pill ${mc(margin)}">${margin.toFixed(0)}%</span>`}</div>
       ${tagHtml?`<div class="rtags">${tagHtml}</div>`:''}
     </div>`;
   }).join('')||'<div style="padding:14px 16px;font-size:13px;color:var(--text3);font-style:italic;">No recipes found</div>';
@@ -830,8 +839,11 @@ function archivedBanner(r){
 // unsaved entries are never lost.
 function captureForm(r){
   if(!r||!document.getElementById('f_name'))return;
-  r.sku=document.getElementById('f_sku').value;
-  r.name=document.getElementById('f_name').value;
+  // A text box drops line breaks, and some imported names contain one — if the
+  // user didn't actually change the text, keep the stored value untouched.
+  const keep=(v,old)=>(old!=null&&v===String(old).replace(/[\r\n]/g,''))?old:v;
+  r.sku=keep(document.getElementById('f_sku').value,r.sku);
+  r.name=keep(document.getElementById('f_name').value,r.name);
   r.calcPrice=parseFloat(document.getElementById('f_calcprice')?.value)||0;
   const adj=document.getElementById('f_adjprice').value;
   r.adjPrice=(adj&&parseFloat(adj)>0)?parseFloat(adj):null;
@@ -905,7 +917,7 @@ function renderRecipeTab(r){
     ?`<div class="photo-area"><img src="${r.photo}" alt="Arrangement photo" onclick="openLightbox('${r.photo.replace(/'/g,"\\'")}')"/><input type="file" accept="image/*" onchange="handlePhoto(event)" title="Change"/></div><button class="photo-remove" onclick="removePhoto()"><i class="ti ti-x"></i> Remove</button>`
     :`<div class="photo-area"><i class="ti ti-camera" style="font-size:28px;color:var(--text3);margin-bottom:6px;"></i><div class="photo-label">Click to upload<br>arrangement photo</div><input type="file" accept="image/*" onchange="handlePhoto(event)"/></div>`;
   const tagsHtml=TAGS.length
-    ?TAGS.map(t=>`<span class="recipe-tag-chip${(r.tags||[]).includes(t)?' selected':''}" data-tag="${t.replace(/"/g,'&quot;')}" onclick="this.classList.toggle('selected')">${t}</span>`).join('')
+    ?TAGS.map(t=>`<span class="recipe-tag-chip${(r.tags||[]).includes(t)?' selected':''}" data-tag="${escU(t)}" onclick="this.classList.toggle('selected')">${escU(t)}</span>`).join('')
     :'<span class="no-tags-msg">No tags yet — add some in the Tags tab.</span>';
   const sz=sizeStr(r);
   const adjNote=r.adjPrice&&r.adjPrice>0?`Adjusted from $${fmt(autoRetail(r))}`:((r.calcPrice&&r.calcPrice>0)?'Build-to target':'Ingredients + labor');
@@ -924,8 +936,8 @@ function renderRecipeTab(r){
     <div class="section">
      <h3>Details</h3>
      <div class="field-row">
-      <div class="field"><label>SKU</label><input id="f_sku" type="text" value="${r.sku}" placeholder="e.g. FMD2601"/></div>
-      <div class="field"><label>Name</label><input id="f_name" type="text" value="${r.name}" placeholder="Arrangement name"/></div>
+      <div class="field"><label>SKU</label><input id="f_sku" type="text" value="${escU(r.sku||'')}" placeholder="e.g. FMD2601"/></div>
+      <div class="field"><label>Name</label><input id="f_name" type="text" value="${escU(r.name||'')}" placeholder="Arrangement name"/></div>
      </div>
      <div class="field-row">
       <div class="field"><label>Projection <span style="font-style:italic;color:var(--text3)">(optional)</span></label><input id="f_proj" type="number" value="${r.projection||''}" min="0" placeholder="units"/></div>
@@ -1023,7 +1035,7 @@ function renderRecipeTab(r){
     <div class="section">
      <h3>Notes</h3>
      ${isDesigner?`<p style="font-size:12px;color:var(--text2);margin-bottom:6px;font-style:italic;">Suggest tags or anything the reviewer should know here — a manager adds tags on approval.</p>`:''}
-     <textarea id="f_notes" placeholder="Sourcing tips, design intent, substitution ideas, customer feedback…">${r.notes||''}</textarea>
+     <textarea id="f_notes" placeholder="Sourcing tips, design intent, substitution ideas, customer feedback…">${escU(r.notes||'')}</textarea>
     </div>
     ${isDesigner?`<div class="section">
      <h3>Status</h3>
@@ -1042,7 +1054,7 @@ function renderRecipeTab(r){
       </div>
       <div class="field">
        <label>Note to reviewer <span style="font-style:italic;color:var(--text3)">(optional)</span></label>
-       <input id="f_approvalNote" type="text" value="${r.approvalNote||''}" placeholder="Any notes for the approver…"/>
+       <input id="f_approvalNote" type="text" value="${escU(r.approvalNote||'')}" placeholder="Any notes for the approver…"/>
       </div>
      </div>
      <div style="margin-top:10px;display:flex;align-items:flex-start;gap:8px;">
@@ -1067,10 +1079,10 @@ function renderRecipeTab(r){
 function renderRecipeView(r){
   const c=calcCost(r),fp=finalPrice(r);
   const sz=sizeStr(r);
-  const tagHtml=(r.tags||[]).map(t=>`<span style="font-size:11px;padding:3px 10px;background:var(--bg2);color:var(--text2);border:0.5px solid var(--border);border-radius:20px;">${t}</span>`).join('');
+  const tagHtml=(r.tags||[]).map(t=>`<span style="font-size:11px;padding:3px 10px;background:var(--bg2);color:var(--text2);border:0.5px solid var(--border);border-radius:20px;">${escU(t)}</span>`).join('');
   const photoSafe=r.photo?r.photo.replace(/'/g,"\\'"):'';
   const photoHtml=r.photo
-    ?`<img src="${r.photo}" alt="${r.name||'Arrangement'}" onclick="openLightbox('${photoSafe}')" style="width:100%;max-height:400px;object-fit:contain;background:var(--bg2);border-radius:var(--radius);cursor:zoom-in;display:block;"/>`
+    ?`<img src="${r.photo}" alt="${escU(r.name||'Arrangement')}" onclick="openLightbox('${photoSafe}')" style="width:100%;max-height:400px;object-fit:contain;background:var(--bg2);border-radius:var(--radius);cursor:zoom-in;display:block;"/>`
     :`<div style="width:100%;height:220px;background:var(--bg2);border-radius:var(--radius);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;color:var(--text3);font-style:italic;font-size:13px;">No photo uploaded</div>`;
 
   // Ingredient list with per-line retail price (sell price, not cost).
@@ -1078,7 +1090,7 @@ function renderRecipeView(r){
     items=(items||[]).filter(f=>f.name&&f.name!=='None');
     if(!items.length)return'';
     const rows=items.map(f=>{
-      return `<li style="display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:17.5px;line-height:1.45;"><span style="min-width:44px;font-weight:700;color:var(--text);">${f.qty}×</span><span style="flex:1;">${f.name}${f.color?` <span style="color:var(--text2);">— ${f.color}</span>`:''}${f.paint&&f.paint.length?` <span style="color:var(--accent2,#8a6d3b);">· painted ${f.paint.join(' + ')}</span>`:''}${seasonalTag(findItem(list,f.name))}</span><span style="color:var(--text2);white-space:nowrap;">${lineTotalP(list,f.name,mult,f.qty,f.paint)}</span></li>`;
+      return `<li style="display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:17.5px;line-height:1.45;"><span style="min-width:44px;font-weight:700;color:var(--text);">${f.qty}×</span><span style="flex:1;">${escU(f.name)}${f.color?` <span style="color:var(--text2);">— ${escU(f.color)}</span>`:''}${f.paint&&f.paint.length?` <span style="color:var(--accent2,#8a6d3b);">· painted ${escU(f.paint.join(' + '))}</span>`:''}${seasonalTag(findItem(list,f.name))}</span><span style="color:var(--text2);white-space:nowrap;">${lineTotalP(list,f.name,mult,f.qty,f.paint)}</span></li>`;
     }).join('');
     return `<div style="margin-bottom:16px;"><h3 style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px;">${title}</h3><ul style="list-style:none;margin:0;padding:0;">${rows}</ul></div>`;
   }
@@ -1093,7 +1105,7 @@ function renderRecipeView(r){
   // Items listed on the recipe sheet that have no priced dropdown entry (glass,
   // candles, ribbon, themed decor, discontinued bits). Shown so designers see
   // the full arrangement; not separately priced (recipe total is the set price).
-  const alsoHtml=(r.extras&&r.extras.length)?`<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Also included</h3><ul style="list-style:none;margin:0;padding:0;">${r.extras.map(e=>`<li style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:14px;line-height:1.4;"><span style="min-width:40px;font-weight:600;color:var(--green-dark);">${e.qty}×</span><span style="flex:1;">${e.name}</span><span style="color:var(--text3);font-size:11px;white-space:nowrap;">incl.</span></li>`).join('')}</ul></div>`:'';
+  const alsoHtml=(r.extras&&r.extras.length)?`<div style="margin-bottom:16px;"><h3 style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Also included</h3><ul style="list-style:none;margin:0;padding:0;">${r.extras.map(e=>`<li style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:14px;line-height:1.4;"><span style="min-width:40px;font-weight:600;color:var(--green-dark);">${e.qty}×</span><span style="flex:1;">${escU(e.name)}</span><span style="color:var(--text3);font-size:11px;white-space:nowrap;">incl.</span></li>`).join('')}</ul></div>`:'';
 
   const totalStems=(r.flowers||[]).filter(f=>f.name!=='None').reduce((s,f)=>s+f.qty,0);
   const hasAny=totalStems>0||(r.fillers||[]).some(f=>f.name!=='None')||(r.plants||[]).some(f=>f.name!=='None')||extras.length>0||(r.extras&&r.extras.length>0);
@@ -1111,8 +1123,8 @@ function renderRecipeView(r){
     ${r.photo?`<div style="font-size:11px;color:var(--text3);font-style:italic;text-align:center;margin-top:4px;">Tap the photo to enlarge</div>`:''}
    </div>
    <div class="section">
-    <div style="font-size:15px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;font-family:monospace;">${r.sku||'—'}</div>
-    <div style="font-size:22px;color:var(--text);margin-top:3px;">${r.name||'Untitled'}</div>
+    <div style="font-size:15px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;font-family:monospace;">${escU(r.sku||'—')}</div>
+    <div style="font-size:22px;color:var(--text);margin-top:3px;">${escU(r.name||'Untitled')}</div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;color:var(--text2);font-size:15px;">
      ${sz?`<span style="font-style:italic;">${sz}</span>`:''}
      ${(sz&&totalStems)?'<span style="color:var(--text3);">·</span>':''}
@@ -1123,9 +1135,9 @@ function renderRecipeView(r){
    <div class="section" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
     <div class="field" style="max-width:260px;flex:1;min-width:170px;">
      <label>Making this for an order? Log it</label>
-     <input type="text" id="rv_order" placeholder="Scan or type the order #" autocomplete="off" style="font-size:16px;" onkeydown="if(event.key==='Enter'){event.preventDefault();uLogFromView(${r.id});}"/>
+     <input type="text" id="rv_order" placeholder="Scan or type the order #" autocomplete="off" style="font-size:16px;" onkeydown="if(event.key==='Enter'){event.preventDefault();uLogFromView(${idArg(r.id)});}"/>
     </div>
-    <button class="save-btn" onclick="uLogFromView(${r.id})"><i class="ti ti-clipboard-plus"></i> Log usage</button>
+    <button class="save-btn" onclick="uLogFromView(${idArg(r.id)})"><i class="ti ti-clipboard-plus"></i> Log usage</button>
    </div>
    <div class="section">
     ${ingSection('Flowers',r.flowers,FLOWERS,4)}
@@ -1134,7 +1146,7 @@ function renderRecipeView(r){
     ${extrasHtml}
     ${alsoHtml}
     ${!hasAny?'<div style="font-size:13px;color:var(--text3);font-style:italic;">No ingredients added yet.</div>':totalsHtml}
-    ${r.notes?`<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border);"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:5px;">Notes</div><div style="font-size:16.5px;color:var(--text);line-height:1.6;white-space:pre-wrap;">${r.notes}</div></div>`:''}
+    ${r.notes?`<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border);"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:5px;">Notes</div><div style="font-size:16.5px;color:var(--text);line-height:1.6;white-space:pre-wrap;">${escU(r.notes)}</div></div>`:''}
    </div>
   </div>`;
 }
@@ -1319,7 +1331,7 @@ function renderCostsTab(r){
       <tbody>${items.map(f=>{
         const p=gpCost(list,f.name);
         return`<tr>
-          <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);">${f.name}${f.color?` <span style="color:var(--text2);font-style:italic;">— ${f.color}</span>`:''}</td>
+          <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid var(--border);">${escU(f.name)}${f.color?` <span style="color:var(--text2);font-style:italic;">— ${escU(f.color)}</span>`:''}</td>
           <td style="padding:5px 8px;border-bottom:0.5px solid var(--border);text-align:center;color:var(--text2);">${f.qty}</td>
           <td style="padding:5px 8px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--text2);">$${fmt(p)}</td>
           <td style="padding:5px 0;border-bottom:0.5px solid var(--border);text-align:right;font-weight:500;">$${fmt(f.qty*p)}</td>
@@ -1347,9 +1359,9 @@ function renderCostsTab(r){
     <div class="section">
      <h3>Price breakdown</h3>
      <div class="cb-cat">Container</div>
-     <div class="cb-row"><span>${r.container||'No container'}</span><span>$${fmt(c.vp)}</span></div>
-     ${c.ap>0?`<div class="cb-row"><span>${r.accent}</span><span>$${fmt(c.ap)}</span></div>`:''}
-     ${(r.hardgood&&r.hardgood!=='None')?`<div class="cb-row"><span>${r.hardgood}</span><span>$${fmt(c.hp)}</span></div>`:''}
+     <div class="cb-row"><span>${escU(r.container||'No container')}</span><span>$${fmt(c.vp)}</span></div>
+     ${c.ap>0?`<div class="cb-row"><span>${escU(r.accent)}</span><span>$${fmt(c.ap)}</span></div>`:''}
+     ${(r.hardgood&&r.hardgood!=='None')?`<div class="cb-row"><span>${escU(r.hardgood)}</span><span>$${fmt(c.hp)}</span></div>`:''}
      <div class="cb-cat">Flowers</div>
      ${ingTable(FLOWERS,(r.flowers||[]).filter(f=>f.name!=='None'))}
      ${(r.fillers||[]).filter(f=>f.name!=='None').length?`<div class="cb-cat">Greenery &amp; filler</div>${ingTable(FILLERS,(r.fillers||[]).filter(f=>f.name!=='None'))}`:''}
@@ -1390,7 +1402,7 @@ function renderPriceList(type,flash){
   const rows=items.map(item=>{
     const hasRetail=(item.r!==null&&item.r!==undefined&&item.r>0);
     const priceCell=hasRetail?('$'+item.r.toFixed(2)):(item.p>0?('$'+(item.p*mult).toFixed(2)):'<span class="market-ask">Market — ask</span>');
-    return`<tr><td>${item.n}${seasonalTag(item)}</td><td style="text-align:right;font-weight:500;">${priceCell}</td></tr>`;
+    return`<tr><td>${escU(item.n)}${seasonalTag(item)}</td><td style="text-align:right;font-weight:500;">${priceCell}</td></tr>`;
   }).join('')||'<tr><td colspan="2" style="color:var(--text3);font-style:italic;padding:10px;">No items yet — add them in the master price sheet.</td></tr>';
   const s=PRICING_SYNC;
   const syncedLine=(s&&s.at)?`Synced from the master price sheet · ${fmtSyncDate(s.at)}`:'Prices are managed in the master Google Sheet and are read-only here.';
@@ -1526,12 +1538,12 @@ function renderMarginReport(){
   const tableRows=rows.map(({r,c,fp})=>{
     const mC=mColor(c.margin);
     const mB=mBgColor(c.margin);
-    return`<tr onclick="selectRecipeFromReport(${r.id})" style="cursor:pointer;">
-      <td style="font-family:monospace;font-size:11px;color:var(--text3);">${r.sku||'—'}</td>
-      <td>${r.name||'Untitled'} ${statusBadge(r.status||'active')}</td>
+    return`<tr onclick="selectRecipeFromReport(${idArg(r.id)})" style="cursor:pointer;">
+      <td style="font-family:monospace;font-size:11px;color:var(--text3);">${escU(r.sku||'—')}</td>
+      <td>${escU(r.name||'Untitled')} ${statusBadge(r.status||'active')}</td>
       <td style="text-align:right;">$${fmt(fp)}</td>
       <td style="text-align:right;">$${fmt(c.total)}</td>
-      <td style="text-align:right;"><span style="background:${mBg};color:${mC};font-weight:600;padding:2px 8px;border-radius:8px;font-size:12px;">${c.margin.toFixed(1)}%</span></td>
+      <td style="text-align:right;"><span style="background:${mB};color:${mC};font-weight:600;padding:2px 8px;border-radius:8px;font-size:12px;">${c.margin.toFixed(1)}%</span></td>
       <td style="text-align:right;">$${fmt(fp-c.total)}</td>
       <td style="text-align:right;color:var(--text2);">${(r.tags||[]).join(', ')||'—'}</td>
     </tr>`;
@@ -1573,7 +1585,7 @@ function renderMarginReport(){
 
 function renderSeasonalReport(){
   document.getElementById('topTitle').textContent='Seasonal Planning';
-  const tagOpts=TAGS.map(t=>`<option value="${t.replace(/"/g,'&quot;')}">${t}</option>`).join('');
+  const tagOpts=TAGS.map(t=>`<option value="${escU(t)}">${escU(t)}</option>`).join('');
   document.getElementById('mainContent').innerHTML=`
   <div class="section">
    <h3>Select a season or holiday</h3>
@@ -1602,11 +1614,11 @@ function loadSeasonalData(){
     const stems=(r.flowers||[]).filter(f=>f.name!=='None').reduce((s,f)=>s+f.qty,0);
     totalStems+=stems*proj;
     const mC=mColor(c.margin);
-    return`<tr onclick="selectRecipeFromReport(${r.id})" style="cursor:pointer;">
-      <td>${r.name||'Untitled'} ${statusBadge(r.status||'active')}</td>
+    return`<tr onclick="selectRecipeFromReport(${idArg(r.id)})" style="cursor:pointer;">
+      <td>${escU(r.name||'Untitled')} ${statusBadge(r.status||'active')}</td>
       <td style="text-align:right;">$${fmt(fp)}</td>
       <td style="text-align:right;color:${mC};font-weight:600;">${c.margin.toFixed(1)}%</td>
-      <td style="text-align:right;"><input type="number" value="${r.projection||''}" placeholder="—" onclick="event.stopPropagation()" onchange="updateProjection(${r.id},this.value)" style="width:70px;text-align:right;font-size:13px;" /></td>
+      <td style="text-align:right;"><input type="number" value="${r.projection||''}" placeholder="—" onclick="event.stopPropagation()" onchange="updateProjection(${idArg(r.id)},this.value)" style="width:70px;text-align:right;font-size:13px;" /></td>
       <td style="text-align:right;">${proj?'$'+Math.round(projRev).toLocaleString():'—'}</td>
       <td style="text-align:right;color:var(--text2);">${proj?'$'+Math.round(projCost).toLocaleString():'—'}</td>
       <td style="text-align:right;">${proj?'$'+(projRev-projCost).toLocaleString():'—'}</td>
@@ -1659,20 +1671,20 @@ function renderApprovalsQueue(){
   <p style="font-size:13px;color:var(--text2);margin-bottom:16px;font-style:italic;">${pending.length} recipe${pending.length!==1?'s':''} waiting for review.</p>
   ${pending.map(r=>{
     const c=calcCost(r),fp=finalPrice(r);
-    const flowers=(r.flowers||[]).filter(f=>f.name!=='None').map(f=>`${f.qty}× ${f.name}`).join(', ');
+    const flowers=(r.flowers||[]).filter(f=>f.name!=='None').map(f=>`${f.qty}× ${escU(f.name)}`).join(', ');
     return`<div class="approval-card">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;">
        <div>
-        <h4>${r.name||'Untitled'} <span style="font-size:11px;color:var(--text3);font-family:monospace;">${r.sku||''}</span></h4>
-        <p style="margin-bottom:4px;">$${fmt(fp)} retail · ${c.margin.toFixed(1)}% margin · ${r.container||'no container'}</p>
+        <h4>${escU(r.name||'Untitled')} <span style="font-size:11px;color:var(--text3);font-family:monospace;">${escU(r.sku||'')}</span></h4>
+        <p style="margin-bottom:4px;">$${fmt(fp)} retail · ${c.margin.toFixed(1)}% margin · ${escU(r.container||'no container')}</p>
         <p style="font-size:12px;color:var(--text2);">${flowers||'No flowers listed'}</p>
-        ${r.approvalNote?`<p style="font-size:12px;color:var(--amber);margin-top:6px;"><i class="ti ti-message"></i> "${r.approvalNote}"</p>`:''}
+        ${r.approvalNote?`<p style="font-size:12px;color:var(--amber);margin-top:6px;"><i class="ti ti-message"></i> "${escU(r.approvalNote)}"</p>`:''}
        </div>
-       <button onclick="selectRecipeFromReport(${r.id})" style="background:none;border:0.5px solid var(--border2);padding:5px 10px;border-radius:var(--radius);font-size:11px;cursor:pointer;white-space:nowrap;"><i class="ti ti-external-link"></i> Open</button>
+       <button onclick="selectRecipeFromReport(${idArg(r.id)})" style="background:none;border:0.5px solid var(--border2);padding:5px 10px;border-radius:var(--radius);font-size:11px;cursor:pointer;white-space:nowrap;"><i class="ti ti-external-link"></i> Open</button>
       </div>
       <div class="approval-btns">
-       <button class="approve-btn" onclick="approveFromQueue(${r.id})"><i class="ti ti-check"></i> Approve</button>
-       <button class="sendback-btn" onclick="sendBackFromQueue(${r.id})">Send back</button>
+       <button class="approve-btn" onclick="approveFromQueue(${idArg(r.id)})"><i class="ti ti-check"></i> Approve</button>
+       <button class="sendback-btn" onclick="sendBackFromQueue(${idArg(r.id)})">Send back</button>
       </div>
     </div>`;
   }).join('')}`;
@@ -1910,7 +1922,7 @@ function renderOrdering(){
 
   // Render tag chips
   const el=document.getElementById('orderTagList');
-  el.innerHTML=TAGS.map(t=>`<span class="tag-filter-chip" onclick="toggleOrderTag(this,'${t.replace(/'/g,"\\'")}');loadOrderRecipes();" style="font-size:12px;padding:3px 10px;">${t}</span>`).join('');
+  el.innerHTML=TAGS.map(t=>`<span class="tag-filter-chip" onclick="toggleOrderTag(this,'${escJ(t)}');loadOrderRecipes();" style="font-size:12px;padding:3px 10px;">${escU(t)}</span>`).join('');
 }
 
 let activeOrderTags=[];
@@ -1934,8 +1946,8 @@ function loadOrderRecipes(){
   document.getElementById('orderTotalsSection').style.display='none';
   tbody.innerHTML=filtered.length
     ?filtered.map(r=>{
-        const tagBadges=(r.tags||[]).filter(t=>activeOrderTags.includes(t)).map(t=>`<span class="tag-chip" style="font-size:10px;">${t}</span>`).join(' ');
-        return`<tr data-id="${r.id}"><td>${r.name||'Untitled'}</td><td style="color:var(--text3);font-family:monospace;font-size:11px;">${r.sku||'—'}</td><td>${tagBadges}</td><td><input type="number" class="order-qty" min="0" step="1" placeholder="0" style="width:80px;" oninput="calcOrderTotals()"/></td></tr>`;
+        const tagBadges=(r.tags||[]).filter(t=>activeOrderTags.includes(t)).map(t=>`<span class="tag-chip" style="font-size:10px;">${escU(t)}</span>`).join(' ');
+        return`<tr data-id="${escU(r.id)}"><td>${escU(r.name||'Untitled')}</td><td style="color:var(--text3);font-family:monospace;font-size:11px;">${escU(r.sku||'—')}</td><td>${tagBadges}</td><td><input type="number" class="order-qty" min="0" step="1" placeholder="0" style="width:80px;" oninput="calcOrderTotals()"/></td></tr>`;
       }).join('')
     :`<tr><td colspan="4" style="color:var(--text3);font-style:italic;padding:10px 0;">No recipes found for selected tags</td></tr>`;
 }
@@ -1967,7 +1979,7 @@ function calcOrderTotals(){
   } else {
     tbody.innerHTML=allEntries.map(([name,type,v])=>{
       const unit=type==='Flower'?('stem'+(v!==1?'s':'')):type==='Plant'?('plant'+(v!==1?'s':'')):('pc'+(v!==1?'s':''));
-      return `<tr><td>${name}</td><td style="color:var(--text2)">${type}</td><td style="font-weight:500;">${v} ${unit}</td></tr>`;
+      return `<tr><td>${escU(name)}</td><td style="color:var(--text2)">${type}</td><td style="font-weight:500;">${v} ${unit}</td></tr>`;
     }).join('');
   }
   document.getElementById('orderTotalsSection').style.display='block';
@@ -2069,7 +2081,7 @@ function renderUsageLog(){
   document.getElementById('topTitle').textContent='Log Usage';
   document.getElementById('tabBar').style.display='none';
   document.getElementById('actionBtns').style.display='none';
-  const recipeOpts=recipes.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).map(r=>`<option value="${r.id}">${(r.name||'Untitled').replace(/</g,'&lt;')}${r.sku?' — '+r.sku:''}</option>`).join('');
+  const recipeOpts=recipes.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).map(r=>`<option value="${escU(r.id)}">${escU(r.name||'Untitled')}${r.sku?' — '+escU(r.sku):''}</option>`).join('');
   document.getElementById('mainContent').innerHTML=`
   <div class="usage-log">
    <div class="section">
@@ -2181,7 +2193,7 @@ function renderProduction(){
   document.getElementById('topTitle').textContent='Production Log';
   document.getElementById('tabBar').style.display='none';
   document.getElementById('actionBtns').style.display='none';
-  const recipeOpts=recipes.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).map(r=>`<option value="${r.id}">${(r.name||'Untitled').replace(/</g,'&lt;')}${r.sku?' — '+r.sku:''}</option>`).join('');
+  const recipeOpts=recipes.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).map(r=>`<option value="${escU(r.id)}">${escU(r.name||'Untitled')}${r.sku?' — '+escU(r.sku):''}</option>`).join('');
   document.getElementById('mainContent').innerHTML=`
   <div class="usage-log">
    <div class="section">
@@ -2538,14 +2550,14 @@ function uLogRowHtml(u,prodMode){
   const n=(u.flowers||[]).length+(u.fillers||[]).length+(u.plants||[]).length+(u.container?1:0)+(u.accent?1:0)+(u.hardgood?1:0);
   const who=(u.userEmail||'').split('@')[0];
   const when=(u.createdAt&&u.createdAt.toDate)?u.createdAt.toDate().toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
-  const label=u.custom?'<span style="color:var(--amber);">Custom</span>':('Recipe '+(u.baseRecipeSku||u.baseRecipeName||''));
+  const label=u.custom?'<span style="color:var(--amber);">Custom</span>':('Recipe '+escU(u.baseRecipeSku||u.baseRecipeName||''));
   const nSub=((u.substitutions||[]).length)+((u.dropped||[]).length);
   const subTag=nSub?` · <span style="color:var(--amber);">${nSub} sub${nSub!==1?'s':''}</span>`:'';
   const ver=(u.version&&u.version>1)?` · <span style="color:var(--amber);">edited v${u.version}</span>`:'';
   const lead=prodMode
-    ? `<strong>${u.quantityMade||1}×</strong> ${u.baseRecipeName||u.baseRecipeSku||'Custom'}`
-    : `<strong style="font-family:monospace;">${u.orderNumber||'—'}</strong> · ${label}`;
-  const meta=(u.employeeNumber?('#'+u.employeeNumber):who)+(when?' · '+when:'');
+    ? `<strong>${u.quantityMade||1}×</strong> ${escU(u.baseRecipeName||u.baseRecipeSku||'Custom')}`
+    : `<strong style="font-family:monospace;">${escU(u.orderNumber||'—')}</strong> · ${label}`;
+  const meta=escU(u.employeeNumber?('#'+u.employeeNumber):who)+(when?' · '+when:'');
   const btn=(fn,icon,txt,title)=>`<button onclick="${fn}" title="${title}" style="background:none;border:0.5px solid var(--border2);border-radius:6px;color:var(--text2);cursor:pointer;padding:2px 7px;font-size:12px;margin-left:4px;"><i class="ti ${icon}"></i> ${txt}</button>`;
   const acts=btn(`uReopen('${u.id}')`,'ti-pencil','Reopen','Reopen to edit — saves a new version, keeps the original')
     +((admin&&u.version>1)?btn(`uShowHistory('${u.rootId||u.id}')`,'ti-history','History','See every version'):'')
@@ -2634,7 +2646,7 @@ function uShowHistory(rootId){
       const when=(u.createdAt&&u.createdAt.toDate)?u.createdAt.toDate().toLocaleString():'(just now)';
       const stems=(u.flowers||[]).reduce((s,x)=>s+(+x.qty||0),0)+(u.fillers||[]).reduce((s,x)=>s+(+x.qty||0),0);
       const v=(u.valueUsed!=null)?('$'+(+u.valueUsed).toFixed(2)):'—';
-      return `v${u.version||1} · ${when} · emp #${u.employeeNumber||'—'} · ${stems} stems · ${v}`;
+      return `v${u.version||1} · ${when} · emp #${escU(u.employeeNumber||'—')} · ${stems} stems · ${v}`;
     }).join('\n');
     alert('Version history (oldest first):\n\n'+rows+'\n\nThe original (v1) is always kept — an edit only adds a new version.');
   }).catch(e=>alert('Could not load history: '+(e.message||e)));
@@ -2683,28 +2695,28 @@ function uLookupOrder(){
     uLastLines=lines;
     uOrderFuneral=!!(res&&res.isFuneral);
     if(!box)return;
-    if(!lines.length){box.innerHTML='<span style="color:var(--amber);font-size:13px;">No lines found for order '+ord+'. Double-check the number, or log it manually below.</span>';return;}
+    if(!lines.length){box.innerHTML='<span style="color:var(--amber);font-size:13px;">No lines found for order '+escU(ord)+'. Double-check the number, or log it manually below.</span>';return;}
     const arrs=[],addons=[];
     lines.forEach(l=>{(uLineKind(l.productCode,l.description)==='addon'?addons:arrs).push(l);});
     // Shortcut safety: if they came from a recipe view but this order isn't that
     // recipe, warn loudly — likely a mistyped order number.
     let warnHtml='';
     if(expected&&arrs.length&&!arrs.some(l=>String(l.productCode||'').trim()===expected)){
-      const got=arrs.map(l=>{const code=String(l.productCode||'').trim();const rec=recipes.find(r=>String(r.sku||'').trim()===code);return rec?rec.name:(uCleanDesc(l.description)||code);}).join(', ');
-      warnHtml=`<div style="background:var(--amber-light,#f5ead9);border:1px solid var(--amber);border-radius:var(--radius);padding:9px 12px;margin-bottom:8px;font-size:13.5px;color:var(--amber);font-weight:700;">⚠ This order is for ${got} — not the ${expectedName||expected} you were viewing. Double-check the order number.</div>`;
+      const got=arrs.map(l=>{const code=String(l.productCode||'').trim();const rec=recipes.find(r=>String(r.sku||'').trim()===code);return escU(rec?rec.name:(uCleanDesc(l.description)||code));}).join(', ');
+      warnHtml=`<div style="background:var(--amber-light,#f5ead9);border:1px solid var(--amber);border-radius:var(--radius);padding:9px 12px;margin-bottom:8px;font-size:13.5px;color:var(--amber);font-weight:700;">⚠ This order is for ${got} — not the ${escU(expectedName||expected)} you were viewing. Double-check the order number.</div>`;
     }
-    let html=`<div id="uOrderHead" style="font-size:13px;color:var(--text2);margin-bottom:6px;">Order <strong>${ord}</strong> — ${arrs.length} arrangement${arrs.length!==1?'s':''}${addons.length?` <span style="color:var(--text3);">(+${addons.length} add-on${addons.length!==1?'s':''}, not logged)</span>`:''}:</div>`;
+    let html=`<div id="uOrderHead" style="font-size:13px;color:var(--text2);margin-bottom:6px;">Order <strong>${escU(ord)}</strong> — ${arrs.length} arrangement${arrs.length!==1?'s':''}${addons.length?` <span style="color:var(--text3);">(+${addons.length} add-on${addons.length!==1?'s':''}, not logged)</span>`:''}:</div>`;
     html+=arrs.map(l=>{
       const code=(l.productCode||'').trim();
       const rec=recipes.find(r=>String(r.sku||'').trim()===code);
       const nm=uCleanDesc(l.description)||code;
       const codeEsc=code.replace(/[^A-Za-z0-9\- ]/g,'');
       return `<div class="u-ordline" data-code="${codeEsc}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:6px;">
-        <span style="font-size:13px;">${code?`<strong style="font-family:monospace;">${code}</strong> · `:''}${nm}${l.units>1?` · ×${l.units}`:''}${rec?'':' <span style="color:var(--amber);font-size:11px;">(no recipe — custom)</span>'}</span>
+        <span style="font-size:13px;">${code?`<strong style="font-family:monospace;">${escU(code)}</strong> · `:''}${escU(nm)}${l.units>1?` · ×${l.units}`:''}${rec?'':' <span style="color:var(--amber);font-size:11px;">(no recipe — custom)</span>'}</span>
         <button class="add-row-btn" style="white-space:nowrap;" onclick="uUseLine('${codeEsc}')">${rec?'<i class="ti ti-clipboard-check"></i> Fill as recipe':'<i class="ti ti-pencil"></i> Log custom'}</button>
       </div>`;
     }).join('');
-    if(addons.length)html+=`<div style="margin-top:2px;font-size:11px;color:var(--text3);">Add-ons skipped: ${addons.map(l=>uCleanDesc(l.description)||l.productCode).join(', ')}</div>`;
+    if(addons.length)html+=`<div style="margin-top:2px;font-size:11px;color:var(--text3);">Add-ons skipped: ${addons.map(l=>escU(uCleanDesc(l.description)||l.productCode)).join(', ')}</div>`;
     if(arrs.length>1)html+=`<div style="margin-top:8px;font-size:12px;color:var(--text3);font-style:italic;">This order has more than one arrangement — fill one, Save, then come back and log the next.</div>`;
     box.innerHTML=warnHtml+html;
     // Single arrangement: load it automatically so the recipe shows right away.
@@ -2713,7 +2725,7 @@ function uLookupOrder(){
     if(arrs.length===1)uUseLine((arrs[0].productCode||'').trim(),{noScroll:!!warnHtml});
     if(warnHtml)box.scrollIntoView({behavior:'smooth',block:'start'});
   }).catch(e=>{
-    if(box)box.innerHTML='<span style="color:var(--red);font-size:12px;">Lookup failed: '+(e.message||e)+'</span>';
+    if(box)box.innerHTML='<span style="color:var(--red);font-size:12px;">Lookup failed: '+escU(e.message||e)+'</span>';
   });
 }
 function uUseLine(code,opts){
@@ -2737,7 +2749,7 @@ function uUseLine(code,opts){
   if(active){active.style.borderColor='var(--green)';active.style.background='var(--bg2)';}
   const head=document.getElementById('uOrderHead');
   if(head){const n=rec?(rec.name||rec.sku||'recipe'):'custom line';
-    head.innerHTML=`<span style="color:var(--green);font-weight:600;"><i class="ti ti-check"></i> Loaded ${rec?('“'+n+'” — its ingredients are filled in below'):'a custom line — enter what you used below'}.</span> Adjust any substitutions, then Save.`;}
+    head.innerHTML=`<span style="color:var(--green);font-weight:600;"><i class="ti ti-check"></i> Loaded ${rec?('“'+escU(n)+'” — its ingredients are filled in below'):'a custom line — enter what you used below'}.</span> Adjust any substitutions, then Save.`;}
   if(!(opts&&opts.noScroll)){
     const anchor=document.getElementById('uVoiceSection')||document.getElementById('uFlowerRows');
     if(anchor)anchor.scrollIntoView({behavior:'smooth',block:'start'});

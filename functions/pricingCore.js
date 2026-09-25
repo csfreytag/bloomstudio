@@ -65,12 +65,16 @@ async function buildPriceLists(sheets, sheetId) {
   const existing = new Set((meta.data.sheets || []).map(s => s.properties.title));
   const priceLists = {};
   const warnings = [];
+  // A tab that exists but fails to read would leave its category holding only the
+  // OTHER tab's items (e.g. seasonal flowers with no permanent flowers) — the
+  // caller must refuse to write when this is non-empty (same as sync-pricing.js).
+  const readErrors = [];
 
   for (const src of SOURCES) {
     if (!existing.has(src.tab)) continue;
     let rows;
     try { rows = await readTab(sheets, sheetId, src.tab); }
-    catch (e) { warnings.push(`${src.tab}: ${e.message || e}`); continue; }
+    catch (e) { readErrors.push(`${src.tab}: ${e.message || e}`); continue; }
     const headerRows = src.headerRows === undefined ? 1 : src.headerRows;
     for (const block of src.blocks) {
       const items = [];
@@ -94,7 +98,7 @@ async function buildPriceLists(sheets, sheetId) {
     if (!existing.has(src.tab)) continue;
     let rows;
     try { rows = await readTab(sheets, sheetId, src.tab); }
-    catch (e) { warnings.push(`${src.tab}: ${e.message || e}`); continue; }
+    catch (e) { readErrors.push(`${src.tab}: ${e.message || e}`); continue; }
     for (const block of src.blocks) {
       const items = [];
       for (let i = 1; i < rows.length; i++) {
@@ -123,7 +127,7 @@ async function buildPriceLists(sheets, sheetId) {
     priceLists[key] = list.filter(i => i.seasonal || !seasonalNames.has(unormName(i.n)));
   }
 
-  return { priceLists, warnings };
+  return { priceLists, warnings, readErrors };
 }
 
 function priceOf(item) { return (item.r !== null && item.r !== undefined) ? item.r : null; }

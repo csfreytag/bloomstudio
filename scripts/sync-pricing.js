@@ -445,7 +445,7 @@ function diffPriceLists(prev, next) {
     console.error('\nFailed to read the Sheet:', e.message || e);
     console.error('Checklist: (1) Sheet shared with the service-account email,');
     console.error('           (2) Google Sheets API enabled on its GCP project,');
-    console.error('           (3) tab names match', Object.keys(TAB_TO_KEY).join(', '));
+    console.error('           (3) tab names match', ACTIVE_SOURCES.map(s => s.tab).join(', '));
     process.exit(1);
   }
 

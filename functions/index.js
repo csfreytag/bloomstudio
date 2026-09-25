@@ -19,8 +19,8 @@
  * purchasingRole (and the shared `active` flag) is never disturbed. Removing a
  * recipe role never disables the account or affects Purchasing.
  *
- * Caller must be a Recipe Guide ADMIN (checked via their recipeGuideRole claim,
- * falling back to their users/{uid} doc so this also works pre-claims).
+ * Caller must be a Recipe Guide ADMIN (checked via their recipeGuideRole claim
+ * plus active:true — the same test the prod Firestore rules use).
  * ========================================================================== */
 
 'use strict';
@@ -43,52 +43,59 @@ const ORDA_SA_KEY = defineSecret('ORDA_SA_KEY');
 
 const VALID_ROLES = ['admin', 'manager', 'designer'];
 
-async function assertRecipeAdmin(req) {
+// Role checks use ONLY the auth-token claims, exactly like the prod Firestore
+// rules (recipeGuideRole + active:true). There is no users-doc fallback: those
+// docs are shared with the Purchasing app, so trusting them would let anyone who
+// can edit a users doc grant themselves Recipe admin. (Staging is Spark — it
+// can't run functions — so the old staging fallback never applied anyway.)
+function recipeRoleOf(req) {
   const auth = req.auth;
   if (!auth) throw new HttpsError('unauthenticated', 'You must be signed in.');
-  if (auth.token && auth.token.recipeGuideRole === 'admin') return;
-  // Fallback for environments where roles live in the users doc (staging).
-  const snap = await db.collection('users').doc(auth.uid).get();
-  if (snap.exists && (snap.data() || {}).recipeGuideRole === 'admin') return;
+  const t = auth.token || {};
+  if (t.active !== true) throw new HttpsError('permission-denied', 'This account is not active.');
+  return t.recipeGuideRole;
+}
+
+async function assertRecipeAdmin(req) {
+  if (recipeRoleOf(req) === 'admin') return;
   throw new HttpsError('permission-denied', 'Recipe Guide admins only.');
 }
 
 // Any Recipe Guide user (Designers included) — for read-only order lookups.
 async function assertRecipeUser(req) {
-  const auth = req.auth;
-  if (!auth) throw new HttpsError('unauthenticated', 'You must be signed in.');
-  if (auth.token && VALID_ROLES.includes(auth.token.recipeGuideRole)) return;
-  const snap = await db.collection('users').doc(auth.uid).get();
-  if (snap.exists && VALID_ROLES.includes((snap.data() || {}).recipeGuideRole)) return;
+  if (VALID_ROLES.includes(recipeRoleOf(req))) return;
   throw new HttpsError('permission-denied', 'Recipe Guide access required.');
 }
 
 // Managers or admins — for actions that change shared data but aren't user admin
 // (e.g. triggering the price sync). Designers are excluded.
 async function assertRecipeManager(req) {
-  const auth = req.auth;
-  if (!auth) throw new HttpsError('unauthenticated', 'You must be signed in.');
-  const ok = r => r === 'admin' || r === 'manager';
-  if (auth.token && ok(auth.token.recipeGuideRole)) return;
-  const snap = await db.collection('users').doc(auth.uid).get();
-  if (snap.exists && ok((snap.data() || {}).recipeGuideRole)) return;
+  const r = recipeRoleOf(req);
+  if (r === 'admin' || r === 'manager') return;
   throw new HttpsError('permission-denied', 'Recipe Guide managers or admins only.');
 }
 
 function cleanEmail(e) { return String(e || '').trim().toLowerCase(); }
 
 // Set the recipe role on both the auth claims (merged) and the users doc.
+// `active` is SHARED with the Purchasing app: a deliberately deactivated account
+// (active:false) stays deactivated — granting a recipe role must not revive it.
+// Returns false in that case so the caller can tell the admin.
 async function applyRecipeRole(user, role) {
   const existing = user.customClaims || {};
-  const claims = Object.assign({}, existing, { active: true, recipeGuideRole: role });
+  const deactivated = existing.active === false;
+  const claims = Object.assign({}, existing, { recipeGuideRole: role });
+  if (!deactivated) claims.active = true;
   await admin.auth().setCustomUserClaims(user.uid, claims);
-  await db.collection('users').doc(user.uid).set({
+  const doc = {
     email: user.email || '',
     displayName: user.displayName || '',
     recipeGuideRole: role,
-    active: true,
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
+  };
+  if (!deactivated) doc.active = true;
+  await db.collection('users').doc(user.uid).set(doc, { merge: true });
+  return !deactivated;
 }
 
 exports.setRecipeRole = onCall(async (req) => {
@@ -104,8 +111,8 @@ exports.setRecipeRole = onCall(async (req) => {
     throw new HttpsError('not-found',
       `No account exists yet for ${email}. A Google user must sign in once first; for someone without an @freytags.com login, use "Create account" instead.`);
   }
-  await applyRecipeRole(user, role);
-  return { ok: true, uid: user.uid, email, role };
+  const active = await applyRecipeRole(user, role);
+  return { ok: true, uid: user.uid, email, role, deactivated: !active };
 });
 
 exports.createRecipeUser = onCall(async (req) => {
@@ -170,8 +177,8 @@ exports.inviteRecipeUser = onCall(async (req) => {
   let user = null;
   try { user = await admin.auth().getUserByEmail(email); } catch (e) { /* not signed in yet */ }
   if (user) {
-    await applyRecipeRole(user, role);
-    return { ok: true, mode: 'granted', email, role };
+    const active = await applyRecipeRole(user, role);
+    return { ok: true, mode: 'granted', email, role, deactivated: !active };
   }
   await db.collection('recipeInvites').doc(email).set({
     email,
@@ -189,6 +196,9 @@ exports.claimRecipeInvite = onCall(async (req) => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'You must be signed in.');
   const email = cleanEmail(req.auth.token && req.auth.token.email);
   if (!email) return { role: null };
+  // Only a PROVEN owner of the address may claim its invite (Google sign-in is
+  // verified; an unverified email/password sign-up with the same address is not).
+  if (req.auth.token.email_verified !== true) return { role: null };
   const ref = db.collection('recipeInvites').doc(email);
   const snap = await ref.get();
   if (!snap.exists) return { role: null };
@@ -308,11 +318,14 @@ exports.syncPricesNow = onCall({ secrets: [ORDA_SA_KEY] }, async (req) => {
   });
   const sheets = google.sheets({ version: 'v4', auth: await auth.getClient() });
 
-  let priceLists, warnings;
+  let priceLists, warnings, readErrors;
   try {
-    ({ priceLists, warnings } = await core.buildPriceLists(sheets, core.SHEET_ID));
+    ({ priceLists, warnings, readErrors } = await core.buildPriceLists(sheets, core.SHEET_ID));
   } catch (e) {
     throw new HttpsError('internal', 'Could not read the price sheet: ' + (e.message || e));
+  }
+  if (readErrors && readErrors.length) {
+    throw new HttpsError('unavailable', 'Some price-sheet tabs could not be read, so nothing was changed. Try again in a minute. (' + readErrors.join('; ') + ')');
   }
   if (!Object.keys(priceLists).length) {
     throw new HttpsError('internal', 'The price sheet returned no items — refusing to overwrite.');

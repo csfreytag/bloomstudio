@@ -319,6 +319,21 @@
       return db.collection('recipes').doc(String(recipe.id)).set(clean, { merge: true });
     },
 
+    // First save of a NEW recipe: only writes if no recipe already has this id
+    // (two people creating at once used to get the same id and overwrite each
+    // other). Rejects with code 'id-taken' so the caller can pick the next id.
+    createRecipe: function (recipe) {
+      var ref = db.collection('recipes').doc(String(recipe.id));
+      var clean = JSON.parse(JSON.stringify(recipe));
+      clean.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      return db.runTransaction(function (tx) {
+        return tx.get(ref).then(function (d) {
+          if (d.exists) { var e = new Error('Recipe id ' + recipe.id + ' is already taken'); e.code = 'id-taken'; throw e; }
+          tx.set(ref, clean);
+        });
+      });
+    },
+
     deleteRecipe: function (id) {
       return db.collection('recipes').doc(String(id)).delete();
     },

@@ -5,7 +5,7 @@ Updated: 2026-09-25
 Live at https://freytags-recipes.web.app (`firebase.js?v=9`). The Opus full review is DONE: Tier 1, Tier 2 and the UI tier are all shipped to staging + prod and pushed to `main` (2026-09-25). Labor = share-of-price is decided but NOT live (would move 7 recipe prices).
 
 ## In flight
-- Connect STAGING Recipe to STAGING Purchasing (project `freytags-purchasing-staging`). Full backup done 2026-09-26: `C:\Users\ChadFreytag\Backups\recipe-app\2026-09-26` (README inside) + git tag `backup-2026-09-26`. Next: agree the plan, then sync staging data from prod
+- Connect STAGING Recipe to STAGING Purchasing (project `freytags-purchasing-staging`). Full backup done 2026-09-26: `C:\Users\ChadFreytag\Backups\recipe-app\2026-09-26` (README inside) + git tag `backup-2026-09-26`. Code identical on both sites (verified by file hashes 2026-09-26). Staging DATA synced from prod 2026-09-26 (`scripts/sync-prod-to-staging.js --apply`; re-check = 0 diffs). Next: plan + Purchasing handoff for pointing staging Recipe at `freytags-purchasing-staging`
 - Labor = share of final price, default 13% — ship only after the team locks the 7 calculated-price recipes (#1 blank, #2 Test Arrangement, #3 Seaside Sunflower, #58 Twenty Four White Roses Luxury, #167 Apricot Blush Trio, #292 "Vail Morning", #314 "Solstice Sun") or Chad OKs new prices
 - ~22 untracked `scripts/_*.js` diagnostics + `.claude/settings.json` — undecided if they belong in the repo
 

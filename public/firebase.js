@@ -40,13 +40,21 @@
   // TODO(setup): replace the placeholder values below with the STAGING
   // project's own web config (Firebase console -> Project settings -> Your
   // apps -> SDK setup). Until this is filled in, staging/localhost will warn.
+  // STAGING shares the Purchasing app's STAGING project (freytags-purchasing-
+  // staging) — the same arrangement as production, where both apps share
+  // freytags-purchasing. (Plan A, 2026-09-26.) The staging SITE is still hosted
+  // in freytags-recipes-staging; only the data/login/functions moved.
+  // The old recipe-only staging project, kept for reference / rollback:
+  //   apiKey 'AIzaSyAXAh2UZXo-CVn5yvNsMqjagE90jnr1URE', authDomain/projectId
+  //   'freytags-recipes-staging', messagingSenderId '191400526806',
+  //   appId '1:191400526806:web:0dda9774e712873e871a77'
   var STAGING_CONFIG = {
-    apiKey: 'AIzaSyAXAh2UZXo-CVn5yvNsMqjagE90jnr1URE',
-    authDomain: 'freytags-recipes-staging.firebaseapp.com',
-    projectId: 'freytags-recipes-staging',
-    storageBucket: 'freytags-recipes-staging.firebasestorage.app',
-    messagingSenderId: '191400526806',
-    appId: '1:191400526806:web:0dda9774e712873e871a77'
+    apiKey: 'AIzaSyDlik8_Bk9FUO8brxU-q0JN0odomUfCEpE',
+    authDomain: 'freytags-purchasing-staging.firebaseapp.com',
+    projectId: 'freytags-purchasing-staging',
+    storageBucket: 'freytags-purchasing-staging.firebasestorage.app',
+    messagingSenderId: '191335731248',
+    appId: '1:191335731248:web:c3955ab77153de5b66ddf5'
   };
 
   function pickConfig() {
@@ -92,7 +100,13 @@
   var PRICE_LIST_KEYS = ['flowers', 'fillers', 'containers', 'accents', 'hardgoods', 'plants'];
 
   // Resolved after sign-in.
-  var ctx = { user: null, role: null, env: IS_STAGING ? 'staging' : 'production' };
+  // Seeding demo data is only ever allowed in the old recipe-only staging
+  // project — never in a project shared with the Purchasing app.
+  var CAN_SEED = CONFIG.projectId === 'freytags-recipes-staging';
+  // Cloud Functions (order lookup, Sync now, user admin) run in both shared
+  // projects (prod and purchasing-staging are on Blaze).
+  var HAS_FUNCTIONS = CONFIG.projectId === 'freytags-purchasing' || CONFIG.projectId === 'freytags-purchasing-staging';
+  var ctx = { user: null, role: null, env: IS_STAGING ? 'staging' : 'production', hasFunctions: HAS_FUNCTIONS };
 
   // ── Auth gate UI ──────────────────────────────────────────────────────────
   function injectAuthStyles() {
@@ -111,7 +125,9 @@
       '.fbDivider{display:flex;align-items:center;gap:8px;color:#9b9b96;font-size:11px;margin:14px 0;}',
       '.fbDivider::before,.fbDivider::after{content:"";flex:1;height:1px;background:rgba(0,0,0,0.1);}',
       '#fbAuthMsg{font-size:12px;color:#A32D2D;min-height:16px;margin-top:10px;}',
-      '#fbEnvBadge{position:fixed;bottom:10px;right:12px;z-index:9998;background:#854F0B;color:#fff;font-size:10px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif;padding:3px 9px;border-radius:10px;letter-spacing:0.04em;opacity:0.9;}'
+      '#fbEnvBadge{position:fixed;top:0;left:0;right:0;z-index:10001;background:#854F0B;color:#fff;font-size:13px;font-weight:700;text-align:center;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,sans-serif;padding:5px 10px;letter-spacing:0.03em;box-shadow:0 1px 4px rgba(0,0,0,0.25);}',
+      'body.fb-staging{padding-top:28px;}',
+      'body.fb-staging .app{height:calc(100vh - 28px);}'
     ].join('\n');
     document.head.appendChild(s);
   }
@@ -138,12 +154,15 @@
     if (m) m.textContent = text || '';
   }
 
+  // Full-width banner on every non-production host, so nobody records a real
+  // designer count on the test site by mistake.
   function showEnvBadge() {
     if (!IS_STAGING || document.getElementById('fbEnvBadge')) return;
     var b = document.createElement('div');
     b.id = 'fbEnvBadge';
-    b.textContent = 'STAGING';
+    b.textContent = 'STAGING — TEST SITE. Nothing here is real; do not log real work.';
     document.body.appendChild(b);
+    document.body.classList.add('fb-staging');
   }
 
   function loginScreen() {
@@ -204,14 +223,20 @@
   }
 
   // ── Role resolution ───────────────────────────────────────────────────────
-  // Reads users/{uid}. If missing, an admin must create it. (A bootstrap path
-  // for the very first admin is documented in the setup checklist.)
+  // The recipeGuideRole CLAIM on the sign-in token first — it's what the shared
+  // security rules check — then the users/{uid} doc as a fallback. (Copied users
+  // docs are keyed by another project's uids, so a claim-only user is normal.)
   function resolveRole(user) {
-    return db.collection('users').doc(user.uid).get().then(function (snap) {
+    return user.getIdTokenResult().then(function (t) {
+      var c = (t && t.claims) || {};
+      if (c.recipeGuideRole && c.active !== false) return c.recipeGuideRole;
+      return fromDoc();
+    }, fromDoc);
+    function fromDoc() { return db.collection('users').doc(user.uid).get().then(function (snap) {
       if (!snap.exists) return null;
       var d = snap.data() || {};
       return d.recipeGuideRole || null;
-    });
+    }); }
   }
 
   // ── Public API: RecipeStore ────────────────────────────────────────────────
@@ -281,7 +306,7 @@
 
         // Seed only on staging. Production starts clean: prices arrive via the
         // one-way Sheet sync (service account) and the team builds recipes/tags.
-        if (cloudEmpty && IS_STAGING) {
+        if (cloudEmpty && IS_STAGING && CAN_SEED) {
           return seedCloud(defaults).then(function () { return RecipeStore.loadAll(defaults); });
         }
 

@@ -10,7 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
-<script src="firebase.js?v=9"></script>
+<script src="firebase.js?v=10"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -1235,7 +1235,7 @@ function uLogFromView(recipeId){
     const vr=recipes.find(x=>String(x.id)===String(recipeId));
     uExpectedSku=(vr&&vr.sku)?String(vr.sku).trim():'';   // remember what they were viewing
     uExpectedName=(vr&&vr.name)?vr.name:uExpectedSku;
-    if(uIsProd())uLookupOrder();   // pulls the order; auto-loads its recipe + price
+    if(uHasFunctions())uLookupOrder();   // pulls the order; auto-loads its recipe + price
   }
   const oi=document.getElementById('u_order');if(oi)oi.focus();
 }
@@ -1497,10 +1497,9 @@ function renderPriceList(type,flash){
   const s=PRICING_SYNC;
   const syncedLine=(s&&s.at)?`Synced from the master price sheet · ${fmtSyncDate(s.at)}`:'Prices are managed in the master Google Sheet and are read-only here.';
   const banner=(s&&s.changedCount>0)?`<div style="background:var(--blue-light);border:0.5px solid var(--blue);border-radius:var(--radius);padding:8px 12px;margin-bottom:10px;font-size:13px;color:var(--blue);"><i class="ti ti-bell"></i> <strong>${s.changedCount} price${s.changedCount!==1?'s':''} changed</strong> in the last sync (${fmtSyncDate(s.at)}). Worth reviewing web items for re-pricing.</div>`:'';
-  // "Sync now" — managers/admins, production only (the Cloud Function doesn't run
-  // on the staging Spark tier). Lets a just-added seasonal item go live now.
-  const isProdHost=(location.hostname==='freytags-recipes.web.app'||location.hostname==='freytags-recipes.firebaseapp.com');
-  const canSync=(currentRole==='admin'||currentRole==='manager')&&isProdHost;
+  // "Sync now" — managers/admins, wherever the Cloud Functions run (prod and
+  // purchasing-staging). Lets a just-added seasonal item go live now.
+  const canSync=(currentRole==='admin'||currentRole==='manager')&&uHasFunctions();
   const syncBtn=canSync?`<button id="syncNowBtn" onclick="uSyncPricesNow()" style="margin-left:auto;font-size:12px;padding:5px 12px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);cursor:pointer;white-space:nowrap;font-style:normal;"><i class="ti ti-refresh"></i> Sync now</button>`:'';
   const flashHtml=flash?`<div style="background:var(--bg2);border:0.5px solid ${flash.ok===false?'var(--red)':'var(--green)'};border-radius:var(--radius);padding:8px 12px;margin-bottom:10px;font-size:13px;color:${flash.ok===false?'var(--red)':'var(--green)'};font-weight:600;">${escU(flash.text)}</div>`:'';
   document.getElementById('mainContent').innerHTML=`
@@ -2206,14 +2205,14 @@ function renderUsageLog(){
       <label>Order number</label>
       <input type="text" id="u_order" placeholder="Scan the barcode or type the order #" autocomplete="off" style="font-size:16px;" onkeydown="if(event.key==='Enter'){event.preventDefault();uLookupOrder();}"/>
      </div>
-     ${uIsProd()?`<button class="save-btn" onclick="uLookupOrder()"><i class="ti ti-search"></i> Look up order</button>`:''}
+     ${uHasFunctions()?`<button class="save-btn" onclick="uLookupOrder()"><i class="ti ti-search"></i> Look up order</button>`:''}
      <div class="field" style="flex:1;min-width:220px;max-width:420px;">
       <label>Base it on a recipe <span style="font-style:italic;color:var(--text3);">(optional)</span></label>
       <select id="u_recipe" onchange="uPrefill()"><option value="">— Custom arrangement (start blank) —</option>${recipeOpts}</select>
      </div>
     </div>
     <div id="uOrderLines" style="margin-top:10px;"></div>
-    <p style="font-size:12px;color:var(--text3);font-style:italic;margin-top:6px;">${uIsProd()?'Scan the barcode or type the number, then Look up. Or pick a recipe / leave blank for a custom build.':'A barcode scanner types the number straight into this box. Live Orda lookup runs on the live site (not staging).'}</p>
+    <p style="font-size:12px;color:var(--text3);font-style:italic;margin-top:6px;">${uHasFunctions()?'Scan the barcode or type the number, then Look up. Or pick a recipe / leave blank for a custom build.':'A barcode scanner types the number straight into this box. Live Orda lookup runs on the live site (not staging).'}</p>
    </div>
    <div class="section" id="uBudgetPanel" style="display:none;">
     <h3 id="u_valueHead">Build to price</h3>
@@ -2815,7 +2814,9 @@ function deleteUsage(id){
 }
 
 // ── Orda order lookup (production only) ─────────────────────────────────────
-function uIsProd(){try{return RecipeStore.context&&RecipeStore.context().env==='production';}catch(e){return false;}}
+// Order lookup / Sync now need the Cloud Functions, which run in both shared
+// projects (prod + purchasing-staging) — not the old recipe-only staging.
+function uHasFunctions(){try{return !!(RecipeStore.context&&RecipeStore.context().hasFunctions);}catch(e){return false;}}
 // Tidy a raw Orda description ("FFE2600 - MARDI GRAS SEE LINK - https://…") down
 // to a readable name.
 function uCleanDesc(d){return String(d||'').replace(/https?:\/\/\S+/g,'').replace(/\*+/g,' ').replace(/\bSEE LINK\b/ig,'').replace(/\bFILL TO VALUE\b/ig,'').replace(/^\s*FFE\d+\s*-?\s*/i,'').replace(/[-–]\s*$/,'').replace(/\s+/g,' ').trim();}

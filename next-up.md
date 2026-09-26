@@ -17,6 +17,7 @@ Live at https://freytags-recipes.web.app (`firebase.js?v=9`). The Opus full revi
 - Add the team in the in-app Users tab
 
 ## Next up
+- Ship plan-A code (9495472: claim-first role lookup, hasFunctions gates, banner, seed guard, firebase.js?v=10) to PROD — HOLD: Chad 2026-09-26, team is working in prod. Do it at a quiet time, after Chad + Carrie test staging. ⚠ Until then `staging` is AHEAD of `main`: any prod hotfix must be built from `main` (or ship this too knowingly) — don't deploy prod from the staging branch by accident
 - IDEA: "Add seasonal item" form in the Purchasing app → appends to the SEASONAL tab of PRICE SHEETS; Recipe side already consumes it. Purchasing-side build; offer a handoff spec
 - Overstuffing report (manager): needs a threshold definition
 - Held: Plant Items import (~423 recipes) — one pass after review (Chad's call)

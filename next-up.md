@@ -9,6 +9,7 @@ Live at https://freytags-recipes.web.app (`firebase.js?v=9`). The Opus full revi
 - ~22 untracked `scripts/_*.js` diagnostics + `.claude/settings.json` — undecided if they belong in the repo
 
 ## Blocked on Chad
+- Make the GitHub repo PRIVATE (it went public 2026-05-08 only for GitHub Pages; Pages still serves the OLD localStorage prototype at csfreytag.github.io/bloomstudio). Turn off Pages first, then Settings → Change visibility. Audit 2026-09-25: no keys/passwords in any of 88 commits; 0 forks/stars
 - Team review of the 7 calculated-price recipes above
 - Hand to Purchasing: (a) add the two `usageRecords` composite indexes (employeeNumber↑+createdAt↓, orderNumber↑+createdAt↓; created live 2026-09-25) to their `firestore.indexes.json`; (b) FYI recipe functions no longer revive `active:false` or trust users-doc roles
 - One live click-through as admin: Approve from the queue, create a recipe, reopen→edit→Save a log, set margin targets, Sync now (I can't sign in)

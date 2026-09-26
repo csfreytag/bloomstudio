@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude-in-chrome__read_page",
+      "mcp__claude-in-chrome__read_network_requests",
+      "mcp__claude-in-chrome__read_console_messages",
+      "mcp__ccd_session_mgmt__search_session_transcripts"
+    ]
+  }
+}
